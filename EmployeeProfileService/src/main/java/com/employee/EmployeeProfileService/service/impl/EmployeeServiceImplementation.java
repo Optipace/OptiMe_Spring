@@ -41,17 +41,9 @@ public class EmployeeServiceImplementation implements EmployeeService {
     }
 
     @Override
-    public ApiResponse<EmployeeResponse> getEmployeeDetails(String authHeader) {
+    public ApiResponse<EmployeeResponse> getEmployeeDetails(String employeeId) {
 
 //        Office office = null;
-        if(authHeader == null || !authHeader.startsWith("Bearer ")){
-            throw new CustomException("Invalid token or please provide token", HttpStatus.BAD_REQUEST);
-        }
-
-        String token = authHeader.substring(7);
-
-        String employeeId = jwtUtil.extractEmployeeId(token);
-
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/emp/")
+@RequestMapping("/api/employee/")
 @RequiredArgsConstructor
 public class EmployeeController {
 
@@ -24,8 +24,8 @@ public class EmployeeController {
     }
 
     @GetMapping("/getEmployeDetails")
-    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader ("Authorization") String authHeader){
-        ApiResponse<EmployeeResponse> response = empService.getEmployeeDetails(authHeader);
+    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader("X-Employee-Id") String employeeId){
+        ApiResponse<EmployeeResponse> response = empService.getEmployeeDetails(employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
