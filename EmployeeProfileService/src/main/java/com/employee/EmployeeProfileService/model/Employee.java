@@ -58,6 +58,9 @@ public class Employee {
     @NotBlank
     private String workType;
 
+    @Enumerated(EnumType.STRING)
+    private ProfileStatusEnum profileStatus;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id")
     private Office office;

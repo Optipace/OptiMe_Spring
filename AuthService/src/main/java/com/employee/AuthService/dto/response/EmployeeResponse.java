@@ -1,15 +1,11 @@
-package com.employee.EmployeeProfileService.dto.response;
+package com.employee.AuthService.dto.response;
 
-import com.employee.EmployeeProfileService.enums.*;
-import lombok.AllArgsConstructor;
+import com.employee.AuthService.enums.GenderEnum;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
 public class EmployeeResponse {
     private String employeeName;
     private String employeeId;

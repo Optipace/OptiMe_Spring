@@ -1,23 +1,37 @@
 package com.employee.AdminService.serviceImpl;
 
-import com.employee.AdminService.dto.request.InternalRequests;
+import com.employee.AdminService.client.AuthClient;
+import com.employee.AdminService.client.EmployeeClient;
+import com.employee.AdminService.dto.request.AuthIdentityPayload;
+import com.employee.AdminService.dto.request.EmployeeProfilePayload;
 import com.employee.AdminService.dto.request.RegisterRequest;
 import com.employee.AdminService.dto.response.ApiResponse;
+import com.employee.AdminService.exception.CustomException;
 import com.employee.AdminService.service.AdminService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import feign.FeignException;
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
-    private final RestClient restClient = RestClient.create();// Spring Boot 3+ modern HTTP Client
+    private final AuthClient authClient;
+    private final EmployeeClient  employeeClient;
+    private final ObjectMapper objectMapper;
 
     @Override
     public ApiResponse<?> addNewUser(RegisterRequest request, String adminEmployeeId) {
 
             // 1. Prepare Auth Payload (Security Data)
-            InternalRequests.AuthIdentityPayload authPayload = new InternalRequests.AuthIdentityPayload(
+            AuthIdentityPayload authPayload = new AuthIdentityPayload(
                     request.getEmployeeId(),
                     request.getEmailId(),
                     request.getContact(),
@@ -26,7 +40,7 @@ public class AdminServiceImpl implements AdminService {
             );
 
             // 2. Prepare Profile Payload (HR Data)
-            InternalRequests.EmployeeProfilePayload profilePayload = new InternalRequests.EmployeeProfilePayload(
+             EmployeeProfilePayload profilePayload = new EmployeeProfilePayload(
                     request.getEmployeeId(),
                     request.getUserName(),
                     request.getContact(),
@@ -38,21 +52,26 @@ public class AdminServiceImpl implements AdminService {
                     request.getOfficeId()
             );
 
-            // 3. Make Synchronous Call to Auth Service (Port 8081)
-            // If this fails, an exception is thrown and the process stops
-            restClient.post()
-                    .uri("http://localhost:8081/api/auth/internal/create-identity")
-                    .body(authPayload)
-                    .retrieve()
-                    .toBodilessEntity();
+           try{
+               // 3. Call Auth service via Feign
+               authClient.createIdentity(authPayload);
 
-            // 4. Make Synchronous Call to Employee Profile Service (Port 8082)
-            restClient.post()
-                    .uri("http://localhost:8082/api/employee/internal/create-profile")
-                    .body(profilePayload)
-                    .retrieve()
-                    .toBodilessEntity();
+               // 4. Call Employee Profile service via Feign
+               employeeClient.createProfile(profilePayload);
 
+           }catch (FeignException e){
+               String rawErrorJson = e.contentUTF8();
+               String cleanErrorMessage = "Microservice call failed";
+
+               JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+
+               if(errorNode.has("message")){
+                   cleanErrorMessage = errorNode.get("message").asText();
+               }else{
+                   cleanErrorMessage = rawErrorJson;
+               }
+               throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+           }
             return new ApiResponse<>(
                     true,
                     "User added successfully",

@@ -25,9 +25,6 @@ public class InternalServiceImpl implements InternalService {
         User user = userRepository.findByEmployeeId(request.getCreatedBy())
                 .orElseThrow(() -> new CustomException("Admin ID not found", HttpStatus.NOT_FOUND));
 
-        if(!(user.getRole().equals(request.getRole()))){
-            throw new CustomException("You are not permitted!", HttpStatus.UNAUTHORIZED);
-        }
 
         if(userRepository.findByEmployeeId(request.getEmployeeId()).isPresent()){
             throw new CustomException("User identity already exists", HttpStatus.BAD_REQUEST);
