@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/auth/")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -21,20 +21,20 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/getOtp")
-    public ResponseEntity<ApiResponse<?>> getOtpByIdentifier(@Valid @RequestBody OtpRequest request){
-        ApiResponse<?> response = userService.getOtpByIdentifier(request.getIdentifier());
+    public ResponseEntity<ApiResponse<?>> generateOtp(@Valid @RequestBody OtpRequest request){
+        ApiResponse<?> response = userService.generateOtp(request);
         return ResponseEntity.status(200).body(response);
     }
 
     @PostMapping("/validateOtp")
     public ResponseEntity<ApiResponse<?>> validateOtp(@Valid @RequestBody ValidationRequest request){
-        ApiResponse<?> response = userService.validateOtp(request.getIdentifier(),request.getOtp());
+        ApiResponse<?> response = userService.validateOtp(request);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<?>> registerUser(@Valid @RequestBody RegisterRequest request){
-        ApiResponse<?> response = userService.registerUser(request);
+    @PostMapping("/complete-registration")
+    public ResponseEntity<ApiResponse<?>> completeRegistration(@Valid @RequestBody CompleteRegisterRequest request){
+        ApiResponse<?> response = userService.completeRegistration(request);
         return ResponseEntity.status(201).body(response);
     }
 

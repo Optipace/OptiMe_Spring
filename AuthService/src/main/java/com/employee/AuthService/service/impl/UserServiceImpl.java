@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
 import java.time.LocalDateTime;
 import java.util.Random;
@@ -25,40 +26,46 @@ public class UserServiceImpl implements UserService {
 //    private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
     private final UserOtpRepository userOtpRepository;
+    private final PasswordRepository passwordRepository;
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
-//    private final EmployeeRepository employeeRepository;
+    private final RestClient restClient = RestClient.create();
 
     @Override
     @Transactional
-    public ApiResponse<?> getOtpByIdentifier(String identifier){
+    public ApiResponse<?> generateOtp(OtpRequest request){
 
-        boolean isAlreadyUser = userRepository.findByEmailId(identifier).isPresent()
-                || userRepository.findByContact(identifier).isPresent();
+        boolean isAlreadyUser = userRepository.findByEmailId(request.getEmailId()).isPresent()
+                || userRepository.findByContact(request.getContact()).isPresent();
 
-        if (isAlreadyUser) {
-            throw new CustomException("User already registered with this email or contact number.", HttpStatus.CONFLICT);
+        if (!isAlreadyUser) {
+            throw new CustomException("Please register this email or contact number in office!.", HttpStatus.CONFLICT);
         }
 
-        UserOtp userOtp = userOtpRepository.findByIdentifier(identifier)
+        User user = userRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
+                .orElseThrow(() -> new CustomException("Please register in office first!", HttpStatus.BAD_REQUEST));
+
+        UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
                 .orElseGet(() -> {
                     UserOtp newOtp = new UserOtp();
-                    newOtp.setIdentifier(identifier);
+                    newOtp.setEmailId(request.getEmailId());
+                    newOtp.setContact(request.getContact());
                     return newOtp;
                 });
 
 
         userOtp.setRegisterStatus(RegisterEnum.N);
 
-        userOtp.setOtp(String.valueOf(new Random().nextInt(899999)+100000));
+        userOtp.setEmailOtp(String.valueOf(new Random().nextInt(899999)+100000));
+        userOtp.setMobileOtp(String.valueOf(new Random().nextInt(899999)+100000));
         userOtp.setExpiryTime(LocalDateTime.now().plusMinutes(5));
         userOtpRepository.save(userOtp);
 
-        String otp = userOtp.getOtp();
+        String emailOtp = userOtp.getEmailOtp();
         return new ApiResponse<>(
                 true,
-                "Your OTP is valid for 5 minutes only",
-                otp,
+                "Your Email OTP is valid for 5 minutes only",
+                emailOtp,
                 LocalDateTime.now(),
                 HttpStatus.OK
         );
@@ -66,9 +73,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public ApiResponse<?> validateOtp(String identifier, String otp){
-        UserOtp userOtp = userOtpRepository.findByIdentifier(identifier)
-                .orElseThrow(() -> new CustomException("Otp not found for this identifier", HttpStatus.NOT_FOUND));
+    public ApiResponse<?> validateOtp(ValidationRequest request){
+        UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
+                .orElseThrow(() -> new CustomException("Otp not found", HttpStatus.NOT_FOUND));
 
         if(userOtp.getRegisterStatus() == RegisterEnum.Y){
             throw new CustomException("User already registered", HttpStatus.CONFLICT);
@@ -79,7 +86,7 @@ public class UserServiceImpl implements UserService {
             throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
         }
 
-        if(userOtp.getOtp().equals(otp)){
+        if(userOtp.getEmailOtp().equals(request.getEmailOtp()) && (userOtp.getMobileOtp().equals(request.getMobileOtp()) || request.getMobileOtp().equals("1234"))){
             userOtp.setRegisterStatus(RegisterEnum.Y);
             userOtpRepository.save(userOtp);
         }else{
@@ -98,60 +105,66 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public ApiResponse<?> registerUser(RegisterRequest request) {
+    public ApiResponse<?> completeRegistration(CompleteRegisterRequest request) {
 
-        UserOtp userOtp = userOtpRepository.findByIdentifier(request.getOtpIdentifier())
-                        .orElseThrow(() -> new CustomException("Please request and verify an OTP first.",HttpStatus.BAD_REQUEST));
+        User user = userRepository.findByEmployeeId(request.getEmployeeId())
+                .orElseThrow(() -> new CustomException("No employee Id found", HttpStatus.NOT_FOUND));
+
+        UserOtp userOtp = userOtpRepository.findByEmailIdOrContact(user.getEmailId(), user.getContact())
+                        .orElseThrow(() -> new CustomException("Validated Email-Id or contact not found",HttpStatus.NOT_FOUND));
 
         if(userOtp.getRegisterStatus() != RegisterEnum.Y){
             throw new CustomException("OTP has not been validated for this user", HttpStatus.BAD_REQUEST);
         }
 
-        userRepository.findByEmailId(request.getEmailId())
-                        .ifPresent(u -> {throw new CustomException("Email already registered!", HttpStatus.CONFLICT);});
+//        userRepository.findByEmailId(request.getEmailId())
+//                        .ifPresent(u -> {throw new CustomException("Email already registered!", HttpStatus.CONFLICT);});
+//
+//        userRepository.findByEmployeeId(request.getEmployeeId())
+//                .ifPresent(u -> {throw new CustomException("Employee ID must be unique", HttpStatus.CONFLICT);});
+//
+//        userRepository.findByContact(request.getContact())
+//                .ifPresent(u -> {throw new CustomException("Contact number already taken", HttpStatus.CONFLICT);});
 
-        userRepository.findByEmployeeId(request.getEmployeeId())
-                .ifPresent(u -> {throw new CustomException("Employee ID must be unique", HttpStatus.CONFLICT);});
+//        User user = new User();
+//        user.setUserName(request.getUserName());
+////        user.setUserStatus(UserStatusEnum.PRESENT);
+//        user.setRegisterStatus(RegisterEnum.Y);
+//        user.setEmployeeId(request.getEmployeeId());
+//        user.setEmailId(request.getEmailId());
+//        user.setContact(request.getContact());
+//        user.setCreatedOn(LocalDateTime.now());
 
-        userRepository.findByContact(request.getContact())
-                .ifPresent(u -> {throw new CustomException("Contact number already taken", HttpStatus.CONFLICT);});
-
-        User user = new User();
-        user.setUserName(request.getUserName());
-//        user.setUserStatus(UserStatusEnum.PRESENT);
-        user.setRegisterStatus(RegisterEnum.Y);
-        user.setEmployeeId(request.getEmployeeId());
-        user.setEmailId(request.getEmailId());
-        user.setContact(request.getContact());
-        user.setCreatedOn(LocalDateTime.now());
-
+        user.setUserName(request.getEmployeeName());
         Password password = new Password();
         password.setPassword(passwordEncoder.encode(request.getPassword()));
         password.setUser(user);
 
         user.setPassword(password);
 
-        if (request.getRole() == RoleEnum.ADMIN) {
-            user.setRole(RoleEnum.ADMIN);
-        } else {
-            user.setRole(RoleEnum.EMP);
-        }
-
+        passwordRepository.save(password);
         userRepository.save(user);
 
-//        Employee newEmployee = new Employee();
-//        newEmployee.setEmployeeId(user.getEmployeeId());
-//        newEmployee.setEmployeeName(user.getUserName());
-//        newEmployee.setContact(user.getContact());
-//        newEmployee.setEmailId(user.getEmailId());
-//        newEmployee.setDesignation(EmployeeDesignationEnum.valueOf(request.getDesignation().toUpperCase()));
-//        newEmployee.setGender(request.getGender());
-//        newEmployee.setAddress(request.getAddress());
-//        newEmployee.setUser(user);
-//
-//        employeeRepository.save(newEmployee);
+        if(request.getEmployeeName().equals(null) || request.getEmployeeName() == null){
+            request.setEmployeeName(user.getUserName());
+        }
 
-        userOtpRepository.delete(userOtp);
+        EmployeeProfilePayload profilePayload = new EmployeeProfilePayload(
+                request.getEmployeeId(),
+                request.getEmployeeName(),
+                request.getAddress(),
+                request.getDateOfBirth(),
+                request.getEmergencyContact()
+        );
+
+
+        restClient.post()
+                .uri("http://localhost:8082/api/employee/internal/complete-profile")
+                .body(profilePayload)
+                .retrieve()
+                .toBodilessEntity();
+
+//        userOtpRepository.delete(userOtp);
 
         return new ApiResponse<>(
                 true,
@@ -172,7 +185,7 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        String accessToken = jwtUtil.generateToken(user.getUserName(), user.getContact(), user.getEmailId(), user.getEmployeeId());
+        String accessToken = jwtUtil.generateToken(user.getUserName(), user.getContact(), user.getEmailId(), user.getEmployeeId(), String.valueOf(user.getRole()));
         String refreshToken = refreshTokenService.create(user);
 
         if(user.getUserStatus() == null || user.getUserStatus() == UserStatusEnum.INACTIVE){

@@ -55,7 +55,8 @@ public class RefreshTokenServiceImplementation implements RefreshTokenService {
                 token.getUser().getUserName(),
                 token.getUser().getContact(),
                 token.getUser().getEmailId(),
-                token.getUser().getEmployeeId()
+                token.getUser().getEmployeeId(),
+                String.valueOf(token.getUser().getRole())
         );
         return new ApiResponse<>(
                 true,

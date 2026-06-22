@@ -21,8 +21,6 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    @NotBlank
     private String userName;
 
     @Column(unique = true, nullable = false)
@@ -46,13 +44,13 @@ public class User {
     @Enumerated(EnumType.STRING)
     private RoleEnum role = RoleEnum.EMP;
 
+    @NotBlank
+    private String createdBy;
+
     @CreationTimestamp
-    @Column(name = "created_on",updatable = false)
+    @Column(updatable = false)
     private LocalDateTime createdOn;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Password password;
-
-//    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-//    private Employee employee;
 }

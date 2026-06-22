@@ -7,6 +7,10 @@ import java.util.Optional;
 
 public interface UserOtpRepository extends JpaRepository<UserOtp, Long> {
 
-    Optional<UserOtp> findByIdentifier(String identifier);
+//    Optional<UserOtp> findByIdentifier(String identifier);
+
+    Optional<UserOtp> findByEmailIdAndContact(String emailId, String contact);
+
+    Optional<UserOtp> findByEmailIdOrContact(String emailId, String contact);
 
 }

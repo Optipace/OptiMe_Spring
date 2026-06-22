@@ -7,9 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.catalina.User;
 
 @Entity
 @Data
@@ -22,8 +20,6 @@ public class Employee {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 50)
-    @NotBlank
     private String employeeName;
 
     @Column(nullable = false, unique = true)
@@ -38,26 +34,31 @@ public class Employee {
     @NotBlank
     private String emailId;
 
-    @Enumerated(EnumType.STRING)
-    private EmployeeDesignationEnum designation;
+    @NotBlank
+    private String designation;
 
-    @Enumerated(EnumType.STRING)
-    private EmployeeStatusEnum employeeStatus;
+    private String employeeStatus;
+
+    private String dailyStatus;
+
+    private String role;
 
     @Enumerated(EnumType.STRING)
     @NotNull
     private GenderEnum gender;
 
-    @Column(nullable = false)
-    @NotBlank
+    private String employeeProfilePath;
+
     private String address;
 
-    @Column(name = "office_id")
-    private Long office;
+    private String dateOfBirth;
 
-//    @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST,CascadeType.MERGE})
-//    @JoinColumn(name = "location_id" ,nullable = false)
-//    @NotNull
-//    @JsonBackReference
-//    private Location location;
+    private String emergencyContact;
+
+    @NotBlank
+    private String workType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "office_id")
+    private Office office;
 }

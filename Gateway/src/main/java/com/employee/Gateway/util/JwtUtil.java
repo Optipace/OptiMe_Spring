@@ -32,6 +32,7 @@ public class JwtUtil {
 
     public Claims extractClaims(String token){
         return Jwts.parser()
+                .verifyWith(getSignKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -47,6 +48,10 @@ public class JwtUtil {
 
     public String extractContact(String token){
         return extractClaims(token).get("Contact", String.class);
+    }
+
+    public String extractRole(String token) {
+        return extractClaims(token).get("Role", String.class);
     }
 
     public String extractEmployeeId(String token){

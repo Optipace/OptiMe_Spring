@@ -1,10 +1,11 @@
 package com.employee.EmployeeProfileService.enums;
 
 public enum EmployeeStatusEnum {
-    NOTICE_PERIOD,
-    ACTIVE,
+    IN_NOTICE_PERIOD,
+    TERMINATED,
+    ON_LEAVE,
     ONLINE,
     OFFLINE,
-    LEAVE,
-    LEFT;
+    ACTIVE,
+    INACTIVE
 }

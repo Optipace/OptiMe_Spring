@@ -5,7 +5,7 @@ import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
 import com.employee.EmployeeProfileService.repository.EmployeeRepository;
 import com.employee.EmployeeProfileService.service.EmployeeService;
-import com.employee.EmployeeProfileService.util.JwtUtil;
+//import com.employee.EmployeeProfileService.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
@@ -22,7 +22,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
     private final ModelMapper mapperModel;
 
-    private final JwtUtil jwtUtil;
+//    private final JwtUtil jwtUtil;
 
     @Override
     public ApiResponse<List<EmployeeResponse>> getAllEmployees() {

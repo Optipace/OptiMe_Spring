@@ -21,9 +21,14 @@ public class UserOtp {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String identifier;
+    private String emailId;
 
-    private String otp;
+    private String emailOtp;
+
+    @Column(nullable = false, unique = true)
+    private String contact;
+
+    private String mobileOtp;
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp

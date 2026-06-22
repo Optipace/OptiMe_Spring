@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/employee/")
+@RequestMapping("/api/employee")
 @RequiredArgsConstructor
 public class EmployeeController {
 
@@ -23,7 +23,7 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @GetMapping("/getEmployeDetails")
+    @GetMapping("/getEmployeeDetails")
     public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader("X-Employee-Id") String employeeId){
         ApiResponse<EmployeeResponse> response = empService.getEmployeeDetails(employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);

@@ -2,7 +2,8 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <annotationProcessing>
-      <profile name="Annotation profile for Gateway" enabled="true">
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Annotation profile for AdminService" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -10,6 +11,7 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
         </processorPath>
         <module name="EmployeeProfileService" />
+        <module name="AdminService" />
         <module name="AttendanceService" />
         <module name="Gateway" />
         <module name="LeaveService" />
@@ -19,6 +21,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="AdminService" options="-parameters" />
       <module name="AttendanceService" options="-parameters" />
       <module name="AuthService" options="-parameters" />
       <module name="EmployeeProfileService" options="-parameters" />

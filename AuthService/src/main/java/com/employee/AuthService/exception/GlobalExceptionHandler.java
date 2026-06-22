@@ -1,6 +1,6 @@
 package com.employee.AuthService.exception;
 
-import com.Employee.dto.response.ApiResponse;
+import com.employee.AuthService.dto.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
