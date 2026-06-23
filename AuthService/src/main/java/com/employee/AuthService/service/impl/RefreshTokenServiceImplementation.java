@@ -34,13 +34,13 @@ public class RefreshTokenServiceImplementation implements RefreshTokenService {
         if (token != null) {
             // Update the existing token row to avoid unique constraint violations
             token.setToken(UUID.randomUUID().toString());
-            token.setExpiryDate(LocalDateTime.now().plusDays(7));
+//            token.setExpiryDate(LocalDateTime.now().plusDays(7));
         } else {
             // Create a brand new token profile
             token = new RefreshToken();
             token.setUser(user);
             token.setToken(UUID.randomUUID().toString());
-            token.setExpiryDate(LocalDateTime.now().plusDays(7));
+//            token.setExpiryDate(LocalDateTime.now().plusDays(7));
         }
 
         refreshTokenRepository.save(token);

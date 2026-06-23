@@ -18,6 +18,8 @@ public class ValidationRequest {
             message = "Provide a valid email"
     )
     private String email;
+
+    @NotBlank(message = "Please provide OTP for validation")
     private String emailOtp;
 
     @NotBlank(message = "Contact number is mandatory")
@@ -26,6 +28,7 @@ public class ValidationRequest {
             message = "Provide a 10-digit contact number starting with 6,7,8,9"
     )
     private String contact;
+    @NotBlank(message = "Please provide OTP for validation")
     private String mobileOtp;
 
 }

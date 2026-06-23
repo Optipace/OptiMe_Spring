@@ -21,8 +21,8 @@ public class OtpRequest {
 
     @NotBlank(message = "Contact number is mandatory")
     @Pattern(
-            regexp = "$|^[6-9]\\d{9}$",
-            message = "Provide a 10-digit contact number starting with 6,7,8,9"
+            regexp = "^[6-9]\\d{9}$",
+            message = "Provide a 10-digit contact number starting with 6,7,8 or 9"
     )
     private String contact;
 }

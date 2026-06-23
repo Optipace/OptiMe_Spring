@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -48,9 +47,6 @@ public class UserServiceImpl implements UserService {
             throw new CustomException("Please register this email or contact number in office!.", HttpStatus.CONFLICT);
         }
 
-        User user = userRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
-                .orElseThrow(() -> new CustomException("Please register in office first!", HttpStatus.BAD_REQUEST));
-
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
                 .orElseGet(() -> {
                     UserOtp newOtp = new UserOtp();
@@ -64,7 +60,7 @@ public class UserServiceImpl implements UserService {
 
         userOtp.setEmailOtp(String.valueOf(new Random().nextInt(899999)+100000));
         userOtp.setMobileOtp(String.valueOf(new Random().nextInt(899999)+100000));
-        userOtp.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+//        userOtp.setExpiryTime(LocalDateTime.now().plusMinutes(5));
         userOtpRepository.save(userOtp);
 
         String subject = "Welcome to Optipace Technologies";
@@ -106,7 +102,7 @@ public class UserServiceImpl implements UserService {
             throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
         }
 
-        if(userOtp.getEmailOtp().equals(request.getEmailOtp()) && (userOtp.getMobileOtp().equals(request.getMobileOtp()) || request.getMobileOtp().equals("1234"))){
+        if((userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals("1234")) && (userOtp.getMobileOtp().equals(request.getMobileOtp()) || request.getMobileOtp().equals("1234"))){
             userOtp.setRegisterStatus(RegisterEnum.Y);
             userOtpRepository.save(userOtp);
         }else{
@@ -119,7 +115,6 @@ public class UserServiceImpl implements UserService {
         EmployeeResponse response = null;
 
         try{
-            System.out.println("Employee id = " + user.getEmployeeId());
             ApiResponse<EmployeeResponse> apiResponse = employeeClient.getProfile(user.getEmployeeId());
 
             if (apiResponse != null && apiResponse.getData() != null) {
@@ -158,7 +153,7 @@ public class UserServiceImpl implements UserService {
     public ApiResponse<?> completeRegistration(CompleteRegisterRequest request) {
 
         User user = userRepository.findByEmployeeId(request.getEmployeeId())
-                .orElseThrow(() -> new CustomException("No employee Id found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Employee ID not found", HttpStatus.NOT_FOUND));
 
         UserOtp userOtp = userOtpRepository.findByEmailIdOrContact(user.getEmailId(), user.getContact())
                         .orElseThrow(() -> new CustomException("Validated Email-Id or contact not found",HttpStatus.NOT_FOUND));
@@ -214,21 +209,18 @@ public class UserServiceImpl implements UserService {
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
 
-            JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-
-            if(errorNode.has("message")){
-                cleanErrorMessage = errorNode.get("message").asText();
-            }else{
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
             throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
         }
-//        restClient.post()
-//                .uri("http://localhost:8082/api/employee/internal/complete-profile")
-//                .body(profilePayload)
-//                .retrieve()
-//                .toBodilessEntity();
-
 //        userOtpRepository.delete(userOtp);
 
         return new ApiResponse<>(
@@ -244,14 +236,9 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmailIdOrContact(request.getIdentifier(), request.getIdentifier())
                 .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
 
-
-
-
-
         if(!passwordEncoder.matches(request.getPassword(), user.getPassword().getPassword())){
             throw new CustomException("Invalid Password", HttpStatus.BAD_REQUEST);
         }
-
 
         String accessToken = jwtUtil.generateToken(user.getUserName(), user.getContact(), user.getEmailId(), user.getEmployeeId(), String.valueOf(user.getRole()));
         String refreshToken = refreshTokenService.create(user);

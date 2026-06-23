@@ -37,10 +37,10 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         newEmployee.setEmployeeName(request.getUserName());
         newEmployee.setContact(request.getContact());
         newEmployee.setEmailId(request.getEmailId());
-        newEmployee.setDesignation(String.valueOf(request.getDesignation()));
-        newEmployee.setRole(String.valueOf(request.getRole()));
+        newEmployee.setDesignation(request.getDesignation());
+        newEmployee.setRole(request.getRole());
         newEmployee.setGender(request.getGender());
-        newEmployee.setWorkType(String.valueOf(request.getWorkType()));
+        newEmployee.setWorkType(request.getWorkType());
         newEmployee.setProfileStatus(ProfileStatusEnum.INCOMPLETE);
         Office office = officeRepository.findById(request.getOfficeId())
                         .orElseThrow(() -> new CustomException("Office not found", HttpStatus.NOT_FOUND));
@@ -70,7 +70,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         employee.setEmergencyContact(request.getEmergencyContact());
         employee.setDateOfBirth(request.getDateOfBirth());
         employee.setProfileStatus(ProfileStatusEnum.COMPLETE);
-        employee.setEmployeeStatus(String.valueOf(EmployeeStatusEnum.ACTIVE));
+        employee.setEmployeeStatus(EmployeeStatusEnum.ACTIVE);
         employeeRepository.save(employee);
 
         return new ApiResponse<>(

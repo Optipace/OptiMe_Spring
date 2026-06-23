@@ -1,10 +1,14 @@
 package com.employee.AuthService.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
 
 @Data
 @AllArgsConstructor
@@ -21,10 +25,10 @@ public class CompleteRegisterRequest {
     @NotBlank(message = "Address is mandatory and cannot be empty")
     private String address;
 
-    @NotBlank(message = "DOB is mandatory and should be in (YYYY-MM-DD) format")
-    private String dateOfBirth;
+    @NotNull(message = "DOB is mandatory and should be in (YYYY-MM-DD) format")
+    private LocalDate dateOfBirth;
 
-    @NotBlank(message = "Emergency contact is mandatory")
+    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Emergency contact must be a valid 10-digit Indian number")
     private String emergencyContact;
 
     @NotBlank(message = "Please provide your employee Id to complete registration")
