@@ -5,10 +5,7 @@ import com.employee.AuthService.dto.response.ApiResponse;
 import com.employee.AuthService.service.InternalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/auth/internal")
@@ -20,6 +17,12 @@ public class InternalController {
     @PostMapping("/create-identity")
     public ResponseEntity<ApiResponse<?>> createIdentity(@RequestBody AuthIdentityRequest request){
         ApiResponse<?> response = internalService.createIdentity(request);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @DeleteMapping("/delete-identity/{employeeId}")
+    public ResponseEntity<ApiResponse<?>> deleteIdentity(@PathVariable String employeeId){
+        ApiResponse<?> response = internalService.deleteIdentity(employeeId);
         return ResponseEntity.status(200).body(response);
     }
 }

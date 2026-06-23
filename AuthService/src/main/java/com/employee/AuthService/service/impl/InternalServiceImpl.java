@@ -34,7 +34,7 @@ public class InternalServiceImpl implements InternalService {
         newUser.setEmployeeId(request.getEmployeeId());
         newUser.setEmailId(request.getEmailId());
         newUser.setContact(request.getContact());
-        newUser.setRegisterStatus(RegisterEnum.N);
+//        newUser.setRegisterStatus(RegisterEnum.N);
         newUser.setRole(request.getRole());
         newUser.setCreatedOn(LocalDateTime.now());
         newUser.setCreatedBy(request.getCreatedBy());
@@ -43,6 +43,20 @@ public class InternalServiceImpl implements InternalService {
         return new ApiResponse<>(
                 true,
                 "Identity created successfully",
+                null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> deleteIdentity(String employeeId) {
+        User user = userRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new CustomException("Deletion not possible", HttpStatus.BAD_REQUEST));
+        userRepository.delete(user);
+        return new ApiResponse<>(
+                true,
+                "User entity deleted "+user.getEmployeeId(),
                 null,
                 LocalDateTime.now(),
                 200

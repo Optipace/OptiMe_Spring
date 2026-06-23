@@ -41,7 +41,7 @@ public class UserServiceImpl implements UserService {
     public ApiResponse<?> generateOtp(OtpRequest request){
 
         boolean isAlreadyUser = userRepository.findByEmailId(request.getEmailId()).isPresent()
-                || userRepository.findByContact(request.getContact()).isPresent();
+                && userRepository.findByContact(request.getContact()).isPresent();
 
         if (!isAlreadyUser) {
             throw new CustomException("Please register this email or contact number in office!.", HttpStatus.CONFLICT);
@@ -174,12 +174,12 @@ public class UserServiceImpl implements UserService {
 //        User user = new User();
 //        user.setUserName(request.getUserName());
 ////        user.setUserStatus(UserStatusEnum.PRESENT);
-//        user.setRegisterStatus(RegisterEnum.Y);
 //        user.setEmployeeId(request.getEmployeeId());
 //        user.setEmailId(request.getEmailId());
 //        user.setContact(request.getContact());
 //        user.setCreatedOn(LocalDateTime.now());
 
+//        user.setRegisterStatus(RegisterEnum.Y);
         user.setUserName(request.getEmployeeName());
         Password password = new Password();
         password.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -233,6 +233,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public ApiResponse<LoginResponse> login(LoginRequest request){
+
         User user = userRepository.findByEmailIdOrContact(request.getIdentifier(), request.getIdentifier())
                 .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
 

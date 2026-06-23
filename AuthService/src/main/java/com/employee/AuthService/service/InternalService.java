@@ -5,4 +5,6 @@ import com.employee.AuthService.dto.response.ApiResponse;
 
 public interface InternalService {
     public ApiResponse<?> createIdentity(AuthIdentityRequest request);
+
+    public ApiResponse<?> deleteIdentity(String employeeId);
 }

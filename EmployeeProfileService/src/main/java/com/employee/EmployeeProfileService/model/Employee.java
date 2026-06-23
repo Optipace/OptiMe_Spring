@@ -77,8 +77,8 @@ public class Employee {
     @Column(name = "work_type", length = 20)
     private WorkTypeEnum workType;
 
-    @Enumerated(EnumType.STRING)
-    private ProfileStatusEnum profileStatus;
+//    @Enumerated(EnumType.STRING)
+//    private ProfileStatusEnum profileStatus;
 
     @Column(name = "date_of_joining")
     private LocalDate dateOfJoining;
@@ -88,6 +88,8 @@ public class Employee {
 
     @Column(name = "date_of_confirmation")
     private LocalDate dateOfConfirmation;
+
+    private int status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id")

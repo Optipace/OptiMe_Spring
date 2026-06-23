@@ -7,6 +7,8 @@ import com.employee.AdminService.enums.WorkTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 @AllArgsConstructor
 public class EmployeeProfilePayload {
@@ -19,4 +21,5 @@ public class EmployeeProfilePayload {
     private GenderEnum gender;
     private WorkTypeEnum workType;
     private String officeId;
+    private LocalDate dateOfBirth;
 }

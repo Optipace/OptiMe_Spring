@@ -9,6 +9,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -37,6 +39,9 @@ public class RegisterRequest {
 
     @NotNull(message = "Role is mandatory")
     private RoleEnum role;
+
+    @NotNull(message = "Please provide DOB or Date of birth must be in YYYY-MM-DD format")
+    private LocalDate dateOfBirth;
 
     @NotNull(message = "Please provide employee designation")
     private EmployeeDesignationEnum designation;

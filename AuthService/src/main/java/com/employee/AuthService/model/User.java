@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.generator.EventType;
 
 import java.time.LocalDateTime;
@@ -42,9 +41,9 @@ public class User {
     @Column(length = 12)
     private UserStatusEnum userStatus;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 2)
-    private RegisterEnum registerStatus;
+//    @Enumerated(EnumType.STRING)
+//    @Column(length = 2)
+//    private RegisterEnum registerStatus;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 10)

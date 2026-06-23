@@ -8,13 +8,10 @@ import com.employee.AdminService.dto.request.RegisterRequest;
 import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.exception.CustomException;
 import com.employee.AdminService.service.AdminService;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import feign.FeignException;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -49,17 +46,27 @@ public class AdminServiceImpl implements AdminService {
                     request.getRole(),
                     request.getGender(),
                     request.getWorkType(),
-                    request.getOfficeId()
+                    request.getOfficeId(),
+                     request.getDateOfBirth()
             );
+             boolean isAuthCreated = false;
 
            try{
                // 3. Call Auth service via Feign
                authClient.createIdentity(authPayload);
+               isAuthCreated = true;
 
                // 4. Call Employee Profile service via Feign
                employeeClient.createProfile(profilePayload);
 
            }catch (FeignException e){
+               if(isAuthCreated){
+                   try{
+                       authClient.deleteIdentity(request.getEmployeeId());
+                   }catch (Exception ex){
+                       System.out.println("Rollback failed = "+ex.getMessage());
+                   }
+               }
                String rawErrorJson = e.contentUTF8();
                String cleanErrorMessage = "Microservice call failed";
 
