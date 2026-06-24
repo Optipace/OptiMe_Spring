@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "AUTH-SERVICE", url = "http://localhost:8081")
+@FeignClient(name = "AUTH-SERVICE", url = "http://localhost:7071")
 public interface AuthClient {
     @PostMapping("/api/auth/internal/create-identity")
     void createIdentity(@RequestBody AuthIdentityPayload payload);

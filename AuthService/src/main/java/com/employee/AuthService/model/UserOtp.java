@@ -42,9 +42,9 @@ public class UserOtp {
 
     @Transient
     public LocalDateTime getExpiryTime() {
-        if (this.createdOn == null) {
-            return null;
-        }
+//        if (this.createdOn == null) {
+//            return null;
+//        }
         return this.createdOn.plusMinutes(5);
     }
 

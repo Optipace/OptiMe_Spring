@@ -12,18 +12,12 @@ import java.util.Optional;
 
 @Repository
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
-    @Query("SELECT a FROM Attendance a WHERE a.employee.employeeId = :employeeId AND a.employeeStatus = 'ONLINE'")
-    Optional<Attendance> findEmployeeByEmployeeId(@Param("employeeId") String employeeId);
 
-//    @Query(value =
-//            "SELECT SUM(total_work_min) "+
-//            "FROM Attendance "+
-//                    "WHERE employee_id = :employeeId "+
-//                    "AND EXTRACT(WEEK FROM check_in_time) = :currentWeek "+
-//                    "AND EXTRACT(YEAR FROM check_in_time) = :currentYear",
-//            nativeQuery = true
-//    )
-//    Optional<Long> getTotalWorkMin(@Param("employeeId") Long employeeId, @Param("currentWeek") int currentWeek, @Param("currentYear") int currentYear);
+    // Used in logout to find the active record
+    Optional<Attendance> findByEmployeeIdAndCheckOutTimeIsNull(String employeeId);
+
+    // Finds if there is an ongoing session for this employee
+    boolean existsByEmployeeIdAndCheckOutTimeIsNull(String employeeId);
 
     @Query(
             value =
@@ -33,7 +27,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
                             "AND check_in_time BETWEEN :fromDate AND :toDate ",
             nativeQuery = true
     )
-    Optional<Long> getTotalWorkMin(@Param("employeeId") Long employeeId, @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate);
+    Optional<Long> getTotalWorkMin(@Param("employeeId") String employeeId, @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate);
 
     @Query(
             value = "SELECT * FROM attendance " +
@@ -42,8 +36,21 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
             nativeQuery = true
     )
     Optional<List<Attendance>> findTodayAttendanceByEmployeeId(
-            @Param("employeeId") Long employeeId,
+            @Param("employeeId") String employeeId,
             @Param("startOfDay") LocalDateTime startOfDay,
             @Param("endOfDay") LocalDateTime endOfDay
     );
+
+//        @Query(value =
+//            "SELECT SUM(total_work_min) "+
+//            "FROM Attendance "+
+//                    "WHERE employee_id = :employeeId "+
+//                    "AND EXTRACT(WEEK FROM check_in_time) = :currentWeek "+
+//                    "AND EXTRACT(YEAR FROM check_in_time) = :currentYear",
+//            nativeQuery = true
+//    )
+//    Optional<Long> getTotalWorkMin(@Param("employeeId") Long employeeId, @Param("currentWeek") int currentWeek, @Param("currentYear") int currentYear);
+
+//    @Query("SELECT a FROM Attendance a WHERE a.employeeId = :employeeId AND a.employeeStatus = 'ONLINE'")
+//    Optional<Attendance> findEmployeeByEmployeeId(@Param("employeeId") String employeeId);
 }

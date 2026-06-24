@@ -33,7 +33,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
         Employee newEmployee =  new Employee();
         newEmployee.setEmployeeId(request.getEmployeeId());
-        newEmployee.setEmployeeName(request.getUserName());
+        newEmployee.setEmployeeName(request.getEmployeeName());
         newEmployee.setContact(request.getContact());
         newEmployee.setEmailId(request.getEmailId());
         newEmployee.setDesignation(request.getDesignation());

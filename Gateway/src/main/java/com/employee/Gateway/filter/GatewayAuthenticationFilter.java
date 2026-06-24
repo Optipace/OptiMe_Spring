@@ -86,7 +86,7 @@ public class GatewayAuthenticationFilter extends AbstractGatewayFilterFactory<Ga
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
-        String jsonResponse = "{\"error\": \"Unauthorized\", \"message\": \"Full authentication is required to access this resource.\"}";
+        String jsonResponse = "{\"error\": \"Unauthorized\", \"message\": \"Invalid token or token expired.\"}";
         DataBuffer buffer = response.bufferFactory().wrap(jsonResponse.getBytes(StandardCharsets.UTF_8));
 
         return response.writeWith(Mono.just(buffer));

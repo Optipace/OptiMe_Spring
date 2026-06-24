@@ -30,11 +30,15 @@ public class User {
     @Column(name = "employee_id", unique = true, nullable = false, length = 12)
     private String employeeId;
 
-    @Email(message = "Please provide a valid email address")
-    @Column(name = "email_id", nullable = false, unique = true, length = 50)
+    @NotBlank(message = "Email Id is mandatory")
+    @Size(max = 40, message = "Email must not exceed 40 characters")
+    @Pattern(
+            regexp = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}",
+            message = "Provide valid Email-Id"
+    )
     private String emailId;
 
-    @NotBlank(message = "Email Id is mandatory")
+//    @NotBlank(message = "Email Id is mandatory")
     @Size(max = 40, message = "Email must not exceed 40 characters")
     @Pattern(
             regexp = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}",

@@ -12,6 +12,7 @@ import com.employee.AuthService.util.JwtUtil;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Random;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -98,13 +100,15 @@ public class UserServiceImpl implements UserService {
         }
 
         LocalDateTime expiryTime = userOtp.getExpiryTime();
+        System.out.println("Expiry time = "+expiryTime);
         if(expiryTime.isBefore(LocalDateTime.now())){
             throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
         }
 
-        if((userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals("1234")) && (userOtp.getMobileOtp().equals(request.getMobileOtp()) || request.getMobileOtp().equals("1234"))){
+        if((userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals("1234")) &&
+                (userOtp.getMobileOtp().equals(request.getMobileOtp()) || request.getMobileOtp().equals("1234"))){
             userOtp.setRegisterStatus(RegisterEnum.Y);
-            userOtpRepository.save(userOtp);
+            userOtpRepository.saveAndFlush(userOtp);
         }else{
             throw new CustomException("Invalid OTP", HttpStatus.BAD_REQUEST);
         }
@@ -115,7 +119,9 @@ public class UserServiceImpl implements UserService {
         EmployeeResponse response = null;
 
         try{
+            log.info("Inside try");
             ApiResponse<EmployeeResponse> apiResponse = employeeClient.getProfile(user.getEmployeeId());
+            log.info("Employee Client called");
 
             if (apiResponse != null && apiResponse.getData() != null) {
                 response = apiResponse.getData();
@@ -135,7 +141,19 @@ public class UserServiceImpl implements UserService {
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
-            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+            // Resolve status code safely.
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (e.status() > 0) {
+                try {
+                    responseStatus = HttpStatus.valueOf(e.status());
+                } catch (IllegalArgumentException ex) {
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            } else {
+                cleanErrorMessage = "Employee profile service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
         }
 
         return new ApiResponse<>(
@@ -230,7 +248,7 @@ public class UserServiceImpl implements UserService {
     public ApiResponse<LoginResponse> login(LoginRequest request){
 
         User user = userRepository.findByEmailIdOrContact(request.getIdentifier(), request.getIdentifier())
-                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
         if(!passwordEncoder.matches(request.getPassword(), user.getPassword().getPassword())){
             throw new CustomException("Invalid Password", HttpStatus.BAD_REQUEST);

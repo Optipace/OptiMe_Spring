@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class EmployeeProfileRequest {
         private String employeeId;
-        private String userName;
+        private String employeeName;
         private String contact;
         private String emailId;
         private EmployeeDesignationEnum designation;

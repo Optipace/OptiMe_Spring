@@ -1,6 +1,5 @@
 package com.employee.AttendanceService.service.impl;
 
-import com.employee.AttendanceService.dto.request.*;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.EmployeeStatusEnum;
 import com.employee.AttendanceService.exception.CustomException;
@@ -27,30 +26,21 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
 
+    //Need to check and test
     @Override
-    public ApiResponse<?> employeeLogin(EmployeeLoginRequest request) {
-//        Employee employee = employeeRepository.findEmployeeByEmployeeId(request.getEmployeeId())
-//                .orElseThrow(() -> new CustomException("Sorry! Employee not found", HttpStatus.NOT_FOUND));
+    public ApiResponse<?> employeeCheckIn(String employeeId) {
 
-//        Location location = locationRepository.findByLocationName(request.getLocation())
-//                .orElseThrow(() -> new CustomException("Location not found", HttpStatus.NOT_FOUND));
+        boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNull(employeeId);
+
+        if(isAlreadyCheckedIn)
+            throw new CustomException("You are already checked in. Please check out first.", HttpStatus.BAD_REQUEST);
 
         Attendance attendance = new Attendance();
-        attendance.setEmployeeId(request.getEmployeeId());
+        attendance.setEmployeeId(employeeId);
         attendance.setCheckInTime(LocalDateTime.now());
         attendance.setCheckOutTime(null);
         attendance.setTotalWorkMin(0L);
-//        attendance.setCheckInLocation(location);
-//        attendance.setCheckInCity(location.getCity());
-//        attendance.setCheckInState(location.getCity().getState());
         attendance.setEmployeeStatus(EmployeeStatusEnum.ONLINE);
-
-//        if(employee.getEmployeeStatus() == null){
-//            employee.setEmployeeStatus(EmployeeStatusEnum.ACTIVE);
-//            employeeRepository.save(employee);
-//        }
-//        employee.setEmployeeStatus(EmployeeStatusEnum.ACTIVE);
-//        employeeRepository.save(employee);
         attendanceRepository.save(attendance);
 
         return new ApiResponse<>(
@@ -63,9 +53,9 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
-    public ApiResponse<?> employeeLogout(EmployeeLogoutRequest request){
-        Attendance attendance = attendanceRepository.findEmployeeByEmployeeId(request.getEmployeeId())
-                .orElseThrow(() -> new CustomException("No attendance records found for today", HttpStatus.NOT_FOUND));
+    public ApiResponse<?> employeeCheckOut(String employeeId){
+        Attendance attendance = attendanceRepository.findByEmployeeIdAndCheckOutTimeIsNull(employeeId)
+                .orElseThrow(() -> new CustomException("No active check-in record found for this employee", HttpStatus.NOT_FOUND));
 
         attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), LocalDateTime.now()).toMinutes());
 
@@ -127,31 +117,26 @@ public class AttendanceServiceImpl implements AttendanceService {
 //    }
 
     @Override
-    public ApiResponse<List<AttendanceResponse>> getWorkingDetails(String employeeId){
+    public ApiResponse<WorkingDetailsResponse> getWorkingDetails(String employeeId){
         LocalDateTime fromDate = LocalDateTime.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                                                    .with(LocalTime.MIN);
+                .with(LocalTime.MIN);
         LocalDateTime toDate = LocalDateTime.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
-                                                    .with(LocalTime.MAX);
+                .with(LocalTime.MAX);
 
         LocalDateTime startOfDay = LocalDateTime.now().with(LocalTime.MIN);
         LocalDateTime endOfDay = LocalDateTime.now().with(LocalTime.MAX);
 
-//        Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-//                .orElseThrow(() -> new CustomException("Employee records not found", HttpStatus.NOT_FOUND));
-
-        List<Attendance> attendanceList = attendanceRepository.findTodayAttendanceByEmployeeId(1L/*employee.getId()*/,startOfDay,endOfDay)
+        List<Attendance> attendanceList = attendanceRepository.findTodayAttendanceByEmployeeId(employeeId,startOfDay,endOfDay)
                 .orElseThrow(() -> new CustomException("No attendance records found", HttpStatus.NOT_FOUND));
 
-        Long totalWorkMin = attendanceRepository.getTotalWorkMin(1L/*employee.getId()*/, fromDate, toDate)
+        Long totalWorkMin = attendanceRepository.getTotalWorkMin(employeeId, fromDate, toDate)
                 .orElse(0L);
 
-        List<AttendanceResponse> response = attendanceList.stream()
-                .map(attendance -> {
-                    AttendanceResponse res = mapperModel.map(attendance, AttendanceResponse.class);
-                    res.setWorkMin(totalWorkMin);
-                    return res;
-                })
+        List<AttendanceResponse> logResponse = attendanceList.stream()
+                .map(attendance -> mapperModel.map(attendance, AttendanceResponse.class))
                 .toList();
+
+        WorkingDetailsResponse response = new WorkingDetailsResponse(totalWorkMin, logResponse);
 
         return new ApiResponse<>(
                 true,

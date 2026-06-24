@@ -15,11 +15,12 @@ public class EmployeeResponse {
     private String dailyStatus;
     private String role;
     private String gender;
-    private String employeeProfilePath;
-    private String address;
+//    private String employeeProfilePath;
+    private String permanentAddress;
+    private String currentAddress;
     private String dateOfBirth;
     private String emergencyContact;
     private String workType;
     private String profileStatus;
-    private String office;
+    private OfficeResponse office;
 }

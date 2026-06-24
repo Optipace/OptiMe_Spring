@@ -1,6 +1,8 @@
 package com.employee.EmployeeProfileService.controller;
 
 
+import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
+import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/employee")
+@RequestMapping("api/employee")
 @RequiredArgsConstructor
 public class EmployeeController {
 
@@ -25,9 +27,9 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @GetMapping("/getEmployeDetails")
-    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader ("Authorization") String authHeader){
-        ApiResponse<EmployeeResponse> response = empService.getEmployeeDetails(authHeader);
+    @GetMapping("/getEmployeeDetails")
+    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader ("X-Employee-Id") String employeeId){
+        ApiResponse<EmployeeResponse> response = empService.getEmployeeDetails(employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -44,14 +46,14 @@ public class EmployeeController {
     }
 
     @PostMapping(value = "/upload/EmployeeProfile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<?>> uploadEmployeeImage(@RequestParam("image") MultipartFile file, @RequestHeader ("Authorization") String authHeader ){
-        ApiResponse<?> response = empService.uploadEmployeeProfile(file,authHeader);
+    public ResponseEntity<ApiResponse<?>> uploadEmployeeImage(@RequestParam("image") MultipartFile file, @RequestHeader ("X-Employee-Id") String employeeId ){
+        ApiResponse<?> response = empService.uploadEmployeeProfile(file,employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PostMapping("/saveFeedback")
-    public ResponseEntity<ApiResponse<?>> saveFeedback(@RequestBody FeedbackRequest request, @RequestHeader ("Authorization") String authHeader){
-        ApiResponse<?> response = empService.saveFeedback(request,authHeader);
+    public ResponseEntity<ApiResponse<?>> saveFeedback(@RequestBody FeedbackRequest request, @RequestHeader ("X-Employee-Id") String employeeId){
+        ApiResponse<?> response = empService.saveFeedback(request,employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

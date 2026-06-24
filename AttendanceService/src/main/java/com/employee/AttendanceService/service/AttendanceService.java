@@ -7,9 +7,9 @@ import java.util.List;
 
 public interface AttendanceService {
 
-    public ApiResponse<?> employeeLogin(EmployeeLoginRequest request);
+    public ApiResponse<?> employeeCheckIn(String request);
 
-    public ApiResponse<?> employeeLogout(EmployeeLogoutRequest request);
+    public ApiResponse<?> employeeCheckOut(String request);
 
-    public ApiResponse<List<AttendanceResponse>> getWorkingDetails(String employeeId);
+    public ApiResponse<WorkingDetailsResponse> getWorkingDetails(String employeeId);
 }

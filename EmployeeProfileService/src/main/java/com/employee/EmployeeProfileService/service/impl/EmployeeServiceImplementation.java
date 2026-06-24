@@ -1,13 +1,22 @@
 package com.employee.EmployeeProfileService.service.impl;
 
+import com.employee.EmployeeProfileService.config.AppProperties;
+import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
+import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.response.*;
+import com.employee.EmployeeProfileService.enums.FeedbackEnum;
+import com.employee.EmployeeProfileService.enums.FeedbackStatusEnum;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
+import com.employee.EmployeeProfileService.model.Feedback;
+import com.employee.EmployeeProfileService.model.Office;
 import com.employee.EmployeeProfileService.repository.EmployeeRepository;
+import com.employee.EmployeeProfileService.repository.FeedbackRepository;
 import com.employee.EmployeeProfileService.repository.OfficeRepository;
 import com.employee.EmployeeProfileService.service.EmployeeService;
 //import com.employee.EmployeeProfileService.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,6 +36,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmployeeServiceImplementation implements EmployeeService {
     private final EmployeeRepository employeeRepository;
 
@@ -58,16 +68,9 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
 }
 
     @Override
-    public ApiResponse<EmployeeResponse> getEmployeeDetails(String authHeader) {
+    public ApiResponse<EmployeeResponse> getEmployeeDetails(String employeeId) {
 
         Office office = null;
-        if(authHeader == null || !authHeader.startsWith("Bearer ")){
-            throw new CustomException("Invalid token or please provide token", HttpStatus.BAD_REQUEST);
-        }
-
-        String token = authHeader.substring(7);
-
-        String employeeId = jwtUtil.extractEmployeeId(token);
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
@@ -139,15 +142,7 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
     }
 
     @Override
-    public ApiResponse<?> uploadEmployeeProfile(MultipartFile file, String authHeader) {
-
-        if(authHeader == null || !authHeader.startsWith("Bearer ")){
-            throw new CustomException("Invalid token or please provide token", HttpStatus.BAD_REQUEST);
-        }
-
-        String token = authHeader.substring(7);
-
-        String employeeId = jwtUtil.extractEmployeeId(token);
+    public ApiResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId) {
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
@@ -155,16 +150,20 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
         if(file.isEmpty())
             throw new CustomException("File is empty",HttpStatus.BAD_REQUEST);
 
+        log.info("Incoming file size {}",file.getSize());
         if(file.getSize() > MAX_IMAGE_SIZE)
             throw new CustomException("Image exceeds 1MB limit", HttpStatus.BAD_REQUEST);
 
         String contentType = file.getContentType();
 
-        if(!("image/jpeg".equals(contentType) || "image/png".equals(contentType))){
+        log.info("Incoming content type {}",contentType);
+
+        if(!("image/jpeg".equals(contentType) || "image/png".equals(contentType) || "image/jpg".equals(contentType))){
             throw new CustomException("Only JPEG or PNG files are allowed", HttpStatus.BAD_REQUEST);
         }
 
-        String filePath = saveFile(file, appProperties.getImage().getUploadDir() +"EmployeeProfile/");
+        String filePath = saveFile(file, appProperties.getImage().getUploadDir() +"EmployeeProfile/"+employeeId+"/");
+        log.info("Image saved path {}",filePath);
         employee.setEmployeeProfilePath(filePath);
 
         employeeRepository.save(employee);
@@ -178,14 +177,7 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
     }
 
     @Override
-    public ApiResponse<?> saveFeedback(FeedbackRequest request, String authHeader) {
-        if(authHeader == null || !authHeader.startsWith("Bearer ")){
-            throw new CustomException("Invalid token or please provide token", HttpStatus.BAD_REQUEST);
-        }
-
-        String token = authHeader.substring(7);
-
-        String employeeId = jwtUtil.extractEmployeeId(token);
+    public ApiResponse<?> saveFeedback(FeedbackRequest request, String employeeId) {
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
