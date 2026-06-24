@@ -2,12 +2,12 @@ package com.employee.AuthService.service.impl;
 
 import com.employee.AuthService.dto.request.AuthIdentityRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
-import com.employee.AuthService.enums.RegisterEnum;
 import com.employee.AuthService.enums.UserStatusEnum;
 import com.employee.AuthService.exception.CustomException;
 import com.employee.AuthService.model.User;
 import com.employee.AuthService.repository.UserRepository;
 import com.employee.AuthService.service.InternalService;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,6 +31,7 @@ public class InternalServiceImpl implements InternalService {
         }
 
         User newUser = new User();
+        newUser.setUserName(request.getEmployeeName());
         newUser.setEmployeeId(request.getEmployeeId());
         newUser.setEmailId(request.getEmailId());
         newUser.setContact(request.getContact());
@@ -40,6 +41,7 @@ public class InternalServiceImpl implements InternalService {
         newUser.setCreatedBy(request.getCreatedBy());
         newUser.setUserStatus(UserStatusEnum.INACTIVE);
         userRepository.save(newUser);
+
         return new ApiResponse<>(
                 true,
                 "Identity created successfully",
@@ -50,13 +52,18 @@ public class InternalServiceImpl implements InternalService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<?> deleteIdentity(String employeeId) {
-        User user = userRepository.findByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException("Deletion not possible", HttpStatus.BAD_REQUEST));
-        userRepository.delete(user);
+        userRepository.findByEmployeeId(employeeId).ifPresent(user -> {
+            userRepository.delete(user);
+            System.out.println("Rollback executed: User " + employeeId + " deleted.");
+        });
+
+        // We return 200 OK even if the user wasn't found, because the end goal
+        // (making sure the user doesn't exist) is achieved either way!
         return new ApiResponse<>(
                 true,
-                "User entity deleted "+user.getEmployeeId(),
+                "User identity rollback processed",
                 null,
                 LocalDateTime.now(),
                 200

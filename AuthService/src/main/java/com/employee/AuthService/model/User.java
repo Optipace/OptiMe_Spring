@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.generator.EventType;
 
@@ -32,6 +33,14 @@ public class User {
     @Email(message = "Please provide a valid email address")
     @Column(name = "email_id", nullable = false, unique = true, length = 50)
     private String emailId;
+
+    @NotBlank(message = "Email Id is mandatory")
+    @Size(max = 40, message = "Email must not exceed 40 characters")
+    @Pattern(
+            regexp = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}",
+            message = "Provide valid Email-Id"
+    )
+    private String personalEmail;
 
     @Pattern(regexp = "^[6-9]\\d{9}$", message = "Contact must be a valid 10-digit number")
     @Column(name = "contact", nullable = false, unique = true, length = 10)

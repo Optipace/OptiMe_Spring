@@ -1,16 +1,16 @@
 package com.employee.EmployeeProfileService.dto.request;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.time.LocalDate;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 public class CompleteProfileRequest {
     private String employeeId;
-    private String employeeName;
-    private String address;
-    private LocalDate dateOfBirth;
+    private String currentAddress;
     private String emergencyContact;
+    private String bloodGroup;
 }

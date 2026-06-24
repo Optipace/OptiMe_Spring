@@ -4,16 +4,26 @@ import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
 import com.employee.EmployeeProfileService.repository.EmployeeRepository;
+import com.employee.EmployeeProfileService.repository.OfficeRepository;
 import com.employee.EmployeeProfileService.service.EmployeeService;
 //import com.employee.EmployeeProfileService.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,43 +32,71 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
     private final ModelMapper mapperModel;
 
+    private final OfficeRepository officeRepository;
+
+    private static final long MAX_IMAGE_SIZE = 1024 * 1024;
+
+    private final AppProperties appProperties;
+
+    private final FeedbackRepository feedbackRepository;
+
 //    private final JwtUtil jwtUtil;
+@Override
+public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
+    List<Employee> employees = employeeRepository.findAll();
+    List<EmployeeResponse> employeeResponse = employees.stream()
+            .map(employee -> mapperModel.map(employee, EmployeeResponse.class))
+            .toList();
+
+    return new ApiResponse<>(
+            true,
+            "List of employees",
+            employeeResponse,
+            LocalDateTime.now(),
+            200
+    );
+}
 
     @Override
-    public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
-        List<Employee> employees = employeeRepository.findAll();
-        List<EmployeeResponse> employeeResponse = employees.stream()
-                .map(employee -> mapperModel.map(employee, EmployeeResponse.class))
-                .toList();
+    public ApiResponse<EmployeeResponse> getEmployeeDetails(String authHeader) {
 
-        return new ApiResponse<>(
-                true,
-                "List of employees",
-                employeeResponse,
-                LocalDateTime.now(),
-                200
-        );
-    }
+        Office office = null;
+        if(authHeader == null || !authHeader.startsWith("Bearer ")){
+            throw new CustomException("Invalid token or please provide token", HttpStatus.BAD_REQUEST);
+        }
 
-    @Override
-    public ApiResponse<EmployeeResponse> getEmployeeDetails(String employeeId) {
+        String token = authHeader.substring(7);
 
-//        Office office = null;
+        String employeeId = jwtUtil.extractEmployeeId(token);
+
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
-//        if(employee.getOffice() != null){
-//            office = officeRepository.findById(employee.getOffice().getId())
-//                    .orElseThrow(() -> new CustomException("Something went wrong",HttpStatus.BAD_REQUEST));
-//        }
+        if(employee.getOffice() != null){
+            office = officeRepository.findById(employee.getOffice().getId())
+                    .orElseThrow(() -> new CustomException("Something went wrong",HttpStatus.BAD_REQUEST));
+        }
 
         EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class);
-//        if (office != null) {
-//            OfficeResponse officeResponse = mapperModel.map(office, OfficeResponse.class);
-//            response.setOffice(officeResponse);
-//        } else {
-//            response.setOffice(null);
-//        }
+        if (office != null) {
+            OfficeResponse officeResponse = mapperModel.map(office, OfficeResponse.class);
+            response.setOffice(officeResponse);
+        } else {
+            response.setOffice(null);
+        }
+
+        if(employee.getEmployeeProfilePath() != null){
+            try{
+                File file = new File(employee.getEmployeeProfilePath());
+                if(file.exists() && file.canRead()){
+                    byte[] fileBytes = Files.readAllBytes(file.toPath());
+                    String encodedString = Base64.getEncoder().encodeToString(fileBytes);
+                    response.setImage(encodedString);
+                }
+            } catch (IOException e) {
+                response.setImage(null);
+            }
+        }
 
         return new ApiResponse<>(
                 true,
@@ -82,5 +120,198 @@ public class EmployeeServiceImplementation implements EmployeeService {
                 LocalDateTime.now(),
                 200
         );
+    }
+
+    @Override
+    public ApiResponse<?> getOfficeNames() {
+        List<Office> office = officeRepository.findAll();
+        List<?> officeNames = office.stream()
+                .map(Office::getOfficeName)
+                .toList();
+
+        return new ApiResponse<>(
+                true,
+                "List of Office names",
+                officeNames,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> uploadEmployeeProfile(MultipartFile file, String authHeader) {
+
+        if(authHeader == null || !authHeader.startsWith("Bearer ")){
+            throw new CustomException("Invalid token or please provide token", HttpStatus.BAD_REQUEST);
+        }
+
+        String token = authHeader.substring(7);
+
+        String employeeId = jwtUtil.extractEmployeeId(token);
+
+        Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
+                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+
+        if(file.isEmpty())
+            throw new CustomException("File is empty",HttpStatus.BAD_REQUEST);
+
+        if(file.getSize() > MAX_IMAGE_SIZE)
+            throw new CustomException("Image exceeds 1MB limit", HttpStatus.BAD_REQUEST);
+
+        String contentType = file.getContentType();
+
+        if(!("image/jpeg".equals(contentType) || "image/png".equals(contentType))){
+            throw new CustomException("Only JPEG or PNG files are allowed", HttpStatus.BAD_REQUEST);
+        }
+
+        String filePath = saveFile(file, appProperties.getImage().getUploadDir() +"EmployeeProfile/");
+        employee.setEmployeeProfilePath(filePath);
+
+        employeeRepository.save(employee);
+        return new ApiResponse<>(
+                true,
+                "Image uploaded successfully",
+                null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> saveFeedback(FeedbackRequest request, String authHeader) {
+        if(authHeader == null || !authHeader.startsWith("Bearer ")){
+            throw new CustomException("Invalid token or please provide token", HttpStatus.BAD_REQUEST);
+        }
+
+        String token = authHeader.substring(7);
+
+        String employeeId = jwtUtil.extractEmployeeId(token);
+
+        Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
+                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+
+        Feedback feedback = new Feedback();
+        if(request.getFeedbackStatus().equals(FeedbackEnum.Y) || request.getFeedbackStatus() == FeedbackEnum.Y){
+            feedback.setFeedback(request.getFeedback());
+            feedback.setEmployeeName(employee.getEmployeeName());
+            feedback.setStatusEnum(FeedbackStatusEnum.PENDING);
+            feedbackRepository.save(feedback);
+        }else{
+            feedback.setFeedback(request.getFeedback());
+            feedback.setEmployeeName(null);
+            feedback.setStatusEnum(FeedbackStatusEnum.PENDING);
+            feedbackRepository.save(feedback);
+        }
+        return new ApiResponse<>(
+                true,
+                "Feedback saved successfully",
+                null,
+                LocalDateTime.now(),
+                201
+        );
+    }
+
+    @Override
+    public ApiResponse<List<FeedbackResponse>> getFeedback() {
+        List<Feedback> feedbackList = feedbackRepository.findAll();
+
+        List<FeedbackResponse> responseList = feedbackList.stream()
+                .map(f->{
+                    String employeeName = (f.getEmployeeName() == null || f.getEmployeeName().isBlank())
+                            ? "*****"
+                            : f.getEmployeeName();
+
+                    return new FeedbackResponse(f.getId(),employeeName, f.getFeedback(),f.getStatusEnum());
+                })
+                .toList();
+
+        return new ApiResponse<List<FeedbackResponse>>(
+                true,
+                "Feedback lists",
+                responseList,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request) {
+        Feedback feedback = feedbackRepository.findById(request.getFeedbackId())
+                .orElseThrow(() -> new CustomException("Feedback not found! Please recheck the given feedback", HttpStatus.NOT_FOUND));
+
+        if(request.getFeedbackStatus().equals(FeedbackStatusEnum.PENDING)){
+            feedback.setStatusEnum(request.getFeedbackStatus());
+            feedbackRepository.save(feedback);
+
+            return new ApiResponse<>(
+                    true,
+                    "Feedback is still PENDING",
+                    null,
+                    LocalDateTime.now(),
+                    200
+            );
+        }else{
+            feedback.setStatusEnum(request.getFeedbackStatus());
+            feedbackRepository.save(feedback);
+        }
+
+        return new ApiResponse<>(
+                true,
+                "Feedback is "+request.getFeedbackStatus(),
+                null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+//    @Override
+//    public ResponseEntity<Resource> getEmployeeProfile(String authHeader) {
+//        if(authHeader == null || !authHeader.startsWith("Bearer ")){
+//            throw new CustomException("Invalid token or please provide token", HttpStatus.BAD_REQUEST);
+//        }
+//
+//        String token = authHeader.substring(7);
+//
+//        String employeeId = jwtUtil.extractEmployeeId(token);
+//
+//        Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
+//                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+//
+//        if(employee.getEmployeeProfilePath() == null)
+//            throw new CustomException("No employee profile found", HttpStatus.NOT_FOUND);
+//
+//        File file = new File(employee.getEmployeeProfilePath());
+//
+//
+//        if(!file.exists() || !file.canRead()){
+//            throw new CustomException("Image file not found", HttpStatus.NOT_FOUND);
+//        }
+//
+//        Resource resource = new FileSystemResource(file);
+//
+//        HttpHeaders httpHeaders = new HttpHeaders();
+//
+//        httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+//        httpHeaders.setContentLength(file.length());
+//
+//        return ResponseEntity.ok().headers(httpHeaders).body(resource);
+//    }
+
+    private String saveFile(MultipartFile file, String folder) {
+        try {
+
+            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            Path path = Paths.get(folder + fileName);
+
+            Files.createDirectories(path.getParent());
+
+            // Use streaming (better for large files)
+            Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+
+            return path.toString(); // ✅ return file path
+
+        } catch (IOException e) {
+            throw new CustomException("File upload failed", HttpStatus.BAD_REQUEST);
+        }
     }
 }

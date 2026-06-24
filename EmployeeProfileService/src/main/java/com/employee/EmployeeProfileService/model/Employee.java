@@ -23,6 +23,7 @@ public class Employee {
     private Long id;
 
     @Column(name = "employee_name", length = 50)
+    @NotBlank(message = "Employee name is mandatory")
     private String employeeName;
 
     @NotBlank(message = "Employee ID cannot be blank")
@@ -64,7 +65,10 @@ public class Employee {
 
     private String employeeProfilePath;
 
-    private String address;
+    @NotBlank(message = "Permanent address cannot be empty")
+    private String permanentAddress;
+
+    private String currentAddress;
 
     @NotNull(message = "Date of birth must be in YYYY-MM-DD format")
     private LocalDate dateOfBirth;
@@ -77,10 +81,8 @@ public class Employee {
     @Column(name = "work_type", length = 20)
     private WorkTypeEnum workType;
 
-//    @Enumerated(EnumType.STRING)
-//    private ProfileStatusEnum profileStatus;
-
     @Column(name = "date_of_joining")
+    @NotNull(message = "Date of Joining must be in YYYY-MM-DD format")
     private LocalDate dateOfJoining;
 
     @Column(name = "date_of_relieving")
@@ -89,7 +91,9 @@ public class Employee {
     @Column(name = "date_of_confirmation")
     private LocalDate dateOfConfirmation;
 
-    private int status;
+    private int profileStatus;
+
+    private String bloodGroup;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id")

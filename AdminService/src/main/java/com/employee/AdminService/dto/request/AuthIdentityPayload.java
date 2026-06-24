@@ -2,11 +2,14 @@ package com.employee.AdminService.dto.request;
 
 import com.employee.AdminService.enums.RoleEnum;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 public class AuthIdentityPayload {
+    private String employeeName;
     private String employeeId;
     private String emailId;
     private String contact;

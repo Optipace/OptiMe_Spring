@@ -5,8 +5,10 @@ import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,9 +25,9 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @GetMapping("/getEmployeeDetails")
-    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader("X-Employee-Id") String employeeId){
-        ApiResponse<EmployeeResponse> response = empService.getEmployeeDetails(employeeId);
+    @GetMapping("/getEmployeDetails")
+    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader ("Authorization") String authHeader){
+        ApiResponse<EmployeeResponse> response = empService.getEmployeeDetails(authHeader);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -34,4 +36,40 @@ public class EmployeeController {
         ApiResponse<EmployeeResponse> response = empService.getEmployeeByEmployeeId(employeeId);
         return ResponseEntity.status((HttpStatus.OK)).body(response);
     }
+
+    @GetMapping("/officeNames")
+    public ResponseEntity<ApiResponse<?>> getOfficeNames(){
+        ApiResponse<?> response = empService.getOfficeNames();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping(value = "/upload/EmployeeProfile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<?>> uploadEmployeeImage(@RequestParam("image") MultipartFile file, @RequestHeader ("Authorization") String authHeader ){
+        ApiResponse<?> response = empService.uploadEmployeeProfile(file,authHeader);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping("/saveFeedback")
+    public ResponseEntity<ApiResponse<?>> saveFeedback(@RequestBody FeedbackRequest request, @RequestHeader ("Authorization") String authHeader){
+        ApiResponse<?> response = empService.saveFeedback(request,authHeader);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping("/getFeedback")
+    public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getFeedback(){
+        ApiResponse<List<FeedbackResponse>> response = empService.getFeedback();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PutMapping("/updateFeedback")
+    public ResponseEntity<ApiResponse<?>> updateFeedback(@RequestBody FeedbackUpdateRequest request){
+        ApiResponse<?> response = empService.updateFeedback(request);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+
+//    @GetMapping("/employeeProfile")
+//    public ResponseEntity<Resource> getEmployeeProfile(@RequestHeader ("Authorization") String authHeader){
+//        return empService.getEmployeeProfile(authHeader);
+//    }
 }

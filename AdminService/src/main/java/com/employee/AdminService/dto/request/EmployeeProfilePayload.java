@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class EmployeeProfilePayload {
     private String employeeId;
-    private String userName;
+    private String employeeName;
     private String contact;
     private String emailId;
     private EmployeeDesignationEnum designation;
@@ -22,4 +22,6 @@ public class EmployeeProfilePayload {
     private WorkTypeEnum workType;
     private String officeId;
     private LocalDate dateOfBirth;
+    private LocalDate dateOfJoining;
+    private String permanentAddress;
 }

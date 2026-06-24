@@ -29,6 +29,7 @@ public class AdminServiceImpl implements AdminService {
 
             // 1. Prepare Auth Payload (Security Data)
             AuthIdentityPayload authPayload = new AuthIdentityPayload(
+                    request.getEmployeeName(),
                     request.getEmployeeId(),
                     request.getEmailId(),
                     request.getContact(),
@@ -39,7 +40,7 @@ public class AdminServiceImpl implements AdminService {
             // 2. Prepare Profile Payload (HR Data)
              EmployeeProfilePayload profilePayload = new EmployeeProfilePayload(
                     request.getEmployeeId(),
-                    request.getUserName(),
+                    request.getEmployeeName(),
                     request.getContact(),
                     request.getEmailId(),
                     request.getDesignation(),
@@ -47,7 +48,9 @@ public class AdminServiceImpl implements AdminService {
                     request.getGender(),
                     request.getWorkType(),
                     request.getOfficeId(),
-                     request.getDateOfBirth()
+                     request.getDateOfBirth(),
+                     request.getDateOfJoining(),
+                     request.getPermanentAddress()
             );
              boolean isAuthCreated = false;
 
@@ -70,18 +73,22 @@ public class AdminServiceImpl implements AdminService {
                String rawErrorJson = e.contentUTF8();
                String cleanErrorMessage = "Microservice call failed";
 
-               JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-
-               if(errorNode.has("message")){
-                   cleanErrorMessage = errorNode.get("message").asText();
-               }else{
+               try {
+                   JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                   if (errorNode.has("message")) {
+                       cleanErrorMessage = errorNode.get("message").asText();
+                   } else {
+                       cleanErrorMessage = rawErrorJson;
+                   }
+               } catch (Exception parseException) {
+                   // If the error isn't JSON, just return the raw string
                    cleanErrorMessage = rawErrorJson;
                }
                throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
            }
             return new ApiResponse<>(
                     true,
-                    "User added successfully",
+                    "Employee added successfully",
                     null,
                     LocalDateTime.now(),
                     200

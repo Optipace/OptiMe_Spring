@@ -23,4 +23,6 @@ public class EmployeeProfileRequest {
         private GenderEnum gender;
         private WorkTypeEnum workType;
         private String officeId;
+        private LocalDate dateOfJoining;
+        private String permanentAddress;
 }

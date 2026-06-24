@@ -37,12 +37,17 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         newEmployee.setContact(request.getContact());
         newEmployee.setEmailId(request.getEmailId());
         newEmployee.setDesignation(request.getDesignation());
+
+        if(String.valueOf(request.getRole()).equals("ADMIN")){
+            newEmployee.setRole(request.getRole());
+        }
         newEmployee.setRole(request.getRole());
         newEmployee.setGender(request.getGender());
         newEmployee.setWorkType(request.getWorkType());
         newEmployee.setDateOfBirth(request.getDateOfBirth());
-//        newEmployee.setProfileStatus(ProfileStatusEnum.INCOMPLETE);
-        newEmployee.setStatus(4);
+        newEmployee.setProfileStatus(4);
+        newEmployee.setDateOfJoining(request.getDateOfJoining());
+        newEmployee.setPermanentAddress(request.getPermanentAddress());
         Office office = officeRepository.findById(request.getOfficeId())
                         .orElseThrow(() -> new CustomException("Office not found", HttpStatus.NOT_FOUND));
         newEmployee.setOffice(office);
@@ -63,18 +68,17 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(request.getEmployeeId())
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
-        int currentStatus = employee.getStatus();
+        int currentStatus = employee.getProfileStatus();
 
         if(currentStatus == 6 || currentStatus == 7){
             throw new CustomException("Profile already completed please login", HttpStatus.BAD_REQUEST);
         }
-        employee.setEmployeeName(request.getEmployeeName());
-        employee.setAddress(request.getAddress());
+        employee.setCurrentAddress(request.getCurrentAddress());
         employee.setEmergencyContact(request.getEmergencyContact());
-        employee.setDateOfBirth(request.getDateOfBirth());
+        employee.setBloodGroup(request.getBloodGroup());
 //        employee.setProfileStatus(ProfileStatusEnum.COMPLETE);
         int result = currentStatus | 2;
-        employee.setStatus(result);
+        employee.setProfileStatus(result);
         employee.setEmployeeStatus(EmployeeStatusEnum.ACTIVE);
         employeeRepository.save(employee);
 

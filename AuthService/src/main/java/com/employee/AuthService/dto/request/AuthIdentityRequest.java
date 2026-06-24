@@ -13,6 +13,9 @@ import lombok.*;
 @NoArgsConstructor
 public class AuthIdentityRequest {
 
+    @NotBlank(message = "Employee name is mandatory")
+    private String employeeName;
+
     @NotBlank(message = "Please provide your employee Id to complete registration")
     private String employeeId;
 

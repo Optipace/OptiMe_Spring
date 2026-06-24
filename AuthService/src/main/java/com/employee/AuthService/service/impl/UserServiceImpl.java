@@ -180,26 +180,21 @@ public class UserServiceImpl implements UserService {
 //        user.setCreatedOn(LocalDateTime.now());
 
 //        user.setRegisterStatus(RegisterEnum.Y);
-        user.setUserName(request.getEmployeeName());
         Password password = new Password();
         password.setPassword(passwordEncoder.encode(request.getPassword()));
         password.setUser(user);
 
         user.setPassword(password);
 
+        user.setPersonalEmail(request.getPersonalEmail());
         passwordRepository.save(password);
         userRepository.save(user);
 
-        if(request.getEmployeeName().equals(null) || request.getEmployeeName() == null){
-            request.setEmployeeName(user.getUserName());
-        }
-
         EmployeeProfilePayload profilePayload = new EmployeeProfilePayload(
                 request.getEmployeeId(),
-                request.getEmployeeName(),
-                request.getAddress(),
-                request.getDateOfBirth(),
-                request.getEmergencyContact()
+                request.getCurrentAddress(),
+                request.getEmergencyContact(),
+                request.getBloodGroup()
         );
 
         try{

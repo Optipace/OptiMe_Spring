@@ -16,8 +16,9 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class RegisterRequest {
 
+    @NotBlank(message = "Employee name is mandatory")
     @Size(min = 3, max = 50, message = "Name should be more than 2 letters")
-    private String userName;
+    private String employeeName;
 
     @NotBlank(message = "Employee ID must be provided")
     private String employeeId;
@@ -55,5 +56,10 @@ public class RegisterRequest {
     @NotNull(message = "Work type is required")
     private WorkTypeEnum workType;
 
+    @NotNull(message = "Date of Joining must be in YYYY-MM-DD format")
+    private LocalDate dateOfJoining;
+
+    @NotBlank(message = "Permanent address cannot be empty")
+    private String permanentAddress;
 
 }
