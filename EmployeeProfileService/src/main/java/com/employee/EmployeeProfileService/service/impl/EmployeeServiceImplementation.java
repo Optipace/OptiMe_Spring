@@ -1,5 +1,6 @@
 package com.employee.EmployeeProfileService.service.impl;
 
+import com.employee.EmployeeProfileService.client.AttendanceClient;
 import com.employee.EmployeeProfileService.config.AppProperties;
 import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
@@ -13,12 +14,15 @@ import com.employee.EmployeeProfileService.repository.EmployeeRepository;
 import com.employee.EmployeeProfileService.repository.FeedbackRepository;
 import com.employee.EmployeeProfileService.repository.OfficeRepository;
 import com.employee.EmployeeProfileService.service.EmployeeService;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 
 import java.io.File;
@@ -47,6 +51,10 @@ public class EmployeeServiceImplementation implements EmployeeService {
     private final AppProperties appProperties;
 
     private final FeedbackRepository feedbackRepository;
+
+    private final AttendanceClient attendanceClient;
+
+    private final ObjectMapper objectMapper;
 
 @Override
 public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
@@ -78,6 +86,53 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
         }
 
         EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class);
+        try{
+
+            ApiResponse<?> apiResponse = attendanceClient.getAttendanceStatus(employeeId);
+            log.info("Attendance service called");
+
+            System.out.println("Api data is ====== "+ apiResponse.getData());
+            if(apiResponse.getData() == null) {
+                System.out.println("Im null");
+                response.setAttendanceStatus(null);
+            }else{
+                response.setAttendanceStatus(apiResponse.getData().toString());
+            }
+
+//            if(apiResponse != null || apiResponse.getData() != null){
+//                response.setAttendanceStatus(apiResponse.getData().toString());
+//            }
+
+        }catch (FeignException e){
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice called failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+            // Resolve status code safely.
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (e.status() > 0) {
+                try {
+                    responseStatus = HttpStatus.valueOf(e.status());
+                } catch (IllegalArgumentException ex) {
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            } else {
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
+
+
         if (office != null) {
             OfficeResponse officeResponse = mapperModel.map(office, OfficeResponse.class);
             response.setOffice(officeResponse);
@@ -248,29 +303,6 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
                 true,
                 "Feedback is "+request.getFeedbackStatus(),
                 null,
-                LocalDateTime.now(),
-                200
-        );
-    }
-
-    @Override
-    public ApiResponse<?> getMasterDetails(){
-        List<Office> office = officeRepository.findAll();
-
-        List<OfficeResponse> listOfOfficeResponse = office.stream()
-                .map(o -> mapperModel.map(o, OfficeResponse.class))
-                .toList();
-        List<EmployeeDesignationEnum> employeeDesignationEnumList = List.of(EmployeeDesignationEnum.values());
-        List<RoleEnum> roleEnumList = List.of(RoleEnum.values());
-        List<WorkTypeEnum> workTypeEnumList = List.of(WorkTypeEnum.values());
-        List<EmployeeStatusEnum> employeeStatusEnumList = List.of(EmployeeStatusEnum.values());
-
-        ListOfOfficeResponse masterResponse = new ListOfOfficeResponse(listOfOfficeResponse,employeeDesignationEnumList, roleEnumList, workTypeEnumList, employeeStatusEnumList);
-
-        return new ApiResponse<>(
-                true,
-                "Master Response",
-                masterResponse,
                 LocalDateTime.now(),
                 200
         );

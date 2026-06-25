@@ -1,7 +1,11 @@
 package com.employee.AuthService.service.impl;
 
+import com.employee.AuthService.client.EmployeeClient;
 import com.employee.AuthService.dto.request.AuthIdentityRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
+import com.employee.AuthService.dto.response.ListOfOfficeResponse;
+import com.employee.AuthService.dto.response.OfficeResponse;
+import com.employee.AuthService.enums.RoleEnum;
 import com.employee.AuthService.enums.UserStatusEnum;
 import com.employee.AuthService.exception.CustomException;
 import com.employee.AuthService.model.User;
@@ -13,12 +17,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @AllArgsConstructor
 public class InternalServiceImpl implements InternalService {
 
     private final UserRepository userRepository;
+
     @Override
     public ApiResponse<?> createIdentity(AuthIdentityRequest request) {
 
@@ -27,7 +33,7 @@ public class InternalServiceImpl implements InternalService {
 
 
         if(userRepository.findByEmployeeId(request.getEmployeeId()).isPresent()){
-            throw new CustomException("User identity already exists", HttpStatus.BAD_REQUEST);
+            throw new CustomException("Employee ID already exists", HttpStatus.BAD_REQUEST);
         }
 
         User newUser = new User();

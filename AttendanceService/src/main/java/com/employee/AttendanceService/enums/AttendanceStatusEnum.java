@@ -1,10 +1,8 @@
 package com.employee.AttendanceService.enums;
 
-public enum EmployeeStatusEnum {
-    NOTICE_PERIOD,
+public enum AttendanceStatusEnum {
     ACTIVE,
     ONLINE,
     OFFLINE,
-    LEAVE,
-    LEFT;
+    ON_LEAVE,
 }

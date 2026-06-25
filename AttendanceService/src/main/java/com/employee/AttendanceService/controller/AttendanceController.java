@@ -1,6 +1,5 @@
 package com.employee.AttendanceService.controller;
 
-import com.employee.AttendanceService.dto.request.*;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.service.AttendanceService;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/attendance")
 @RequiredArgsConstructor
-public class EmployeeController {
+public class AttendanceController {
 
     private final AttendanceService attendanceService;
 

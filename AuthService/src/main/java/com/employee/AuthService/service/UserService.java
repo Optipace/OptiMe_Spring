@@ -16,4 +16,6 @@ public interface UserService {
     public ApiResponse<?> completeRegistration(CompleteRegisterRequest request);
 
     public ApiResponse<LoginResponse> login(LoginRequest request);
+
+    public ApiResponse<?> getMasterDetails();
 }

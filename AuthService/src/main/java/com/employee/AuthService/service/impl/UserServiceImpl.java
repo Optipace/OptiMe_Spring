@@ -20,6 +20,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
 
 @Slf4j
@@ -100,7 +101,6 @@ public class UserServiceImpl implements UserService {
         }
 
         LocalDateTime expiryTime = userOtp.getExpiryTime();
-        System.out.println("Expiry time = "+expiryTime);
         if(expiryTime.isBefore(LocalDateTime.now())){
             throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
         }
@@ -119,7 +119,7 @@ public class UserServiceImpl implements UserService {
         EmployeeResponse response = null;
 
         try{
-            log.info("Inside try");
+
             ApiResponse<EmployeeResponse> apiResponse = employeeClient.getProfile(user.getEmployeeId());
             log.info("Employee Client called");
 
@@ -150,7 +150,7 @@ public class UserServiceImpl implements UserService {
                     responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
                 }
             } else {
-                cleanErrorMessage = "Employee profile service is unreachable. Please try again later.";
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
                 responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
             }
             throw new CustomException(cleanErrorMessage, responseStatus);
@@ -176,15 +176,32 @@ public class UserServiceImpl implements UserService {
         UserOtp userOtp = userOtpRepository.findByEmailIdOrContact(user.getEmailId(), user.getContact())
                         .orElseThrow(() -> new CustomException("Validated Email-Id or contact not found",HttpStatus.NOT_FOUND));
 
+//        userRepository.findByEmployeeId(request.getEmployeeId())
+//                .ifPresent(u -> {throw new CustomException("Employee ID must be unique", HttpStatus.CONFLICT);});
+
         if(userOtp.getRegisterStatus() != RegisterEnum.Y){
             throw new CustomException("OTP has not been validated for this user", HttpStatus.BAD_REQUEST);
         }
 
+        // Prevent Duplicate Registration (Fixes the User ID already exists crash)
+        boolean isAlreadyRegistered = passwordRepository.existsByUserId(user.getId());
+        if (isAlreadyRegistered) {
+            throw new CustomException(
+                    "Provided employee Id is already fully registered. If not please provide your correct employee Id",
+                    HttpStatus.BAD_REQUEST);
+        }
+
+        // 3. Check if personal email is already claimed by someone else
+        boolean isEmailTaken = userRepository.existsByPersonalEmailAndEmployeeIdNot(
+                request.getPersonalEmail(), request.getEmployeeId());
+        if (isEmailTaken) {
+            throw new CustomException(
+                    "The personal email provided is already registered to another account.",
+                    HttpStatus.BAD_REQUEST);
+        }
 //        userRepository.findByEmailId(request.getEmailId())
 //                        .ifPresent(u -> {throw new CustomException("Email already registered!", HttpStatus.CONFLICT);});
 //
-//        userRepository.findByEmployeeId(request.getEmployeeId())
-//                .ifPresent(u -> {throw new CustomException("Employee ID must be unique", HttpStatus.CONFLICT);});
 //
 //        userRepository.findByContact(request.getContact())
 //                .ifPresent(u -> {throw new CustomException("Contact number already taken", HttpStatus.CONFLICT);});
@@ -241,7 +258,7 @@ public class UserServiceImpl implements UserService {
                 "Registered successfully",
                 null,
                 LocalDateTime.now(),
-                HttpStatus.CREATED
+                HttpStatus.OK
         );
     }
 
@@ -250,7 +267,11 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmailIdOrContact(request.getIdentifier(), request.getIdentifier())
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
-        if(!passwordEncoder.matches(request.getPassword(), user.getPassword().getPassword())){
+        if(user.getPassword() == null){
+            throw new CustomException("Invalid password", HttpStatus.BAD_REQUEST);
+        }
+
+        if(!passwordEncoder.matches(request.getPassword(), user.getPassword().getPassword()) || request.getPassword() == null || user.getPassword() == null){
             throw new CustomException("Invalid Password", HttpStatus.BAD_REQUEST);
         }
 
@@ -273,6 +294,23 @@ public class UserServiceImpl implements UserService {
         );
     }
 
+    @Override
+    public ApiResponse<?> getMasterDetails(){
+
+        ListOfOfficeResponse masterResponse = null;
+        ApiResponse<ListOfOfficeResponse> apiResponse = employeeClient.getMasterDetails();
+
+        if (apiResponse != null && apiResponse.getData() != null) {
+            masterResponse = apiResponse.getData();
+        }
+        return new ApiResponse<>(
+                true,
+                "Master Response",
+                masterResponse,
+                LocalDateTime.now(),
+                200
+        );
+    }
     private String buildOtpTemplate(String otpCode){
         return  "    <div style=\"font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\">" +
                 "   <div style=\"text-align: center; margin-bottom: 20px;\">" +

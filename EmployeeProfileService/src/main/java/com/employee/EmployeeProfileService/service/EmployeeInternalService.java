@@ -13,4 +13,6 @@ public interface EmployeeInternalService {
 
     public ApiResponse<EmployeeResponse> getProfile(String employeeId);
 
+    public ApiResponse<?> getMasterDetails();
+
 }

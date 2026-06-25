@@ -1,7 +1,7 @@
 package com.employee.AttendanceService.service.impl;
 
 import com.employee.AttendanceService.dto.response.*;
-import com.employee.AttendanceService.enums.EmployeeStatusEnum;
+import com.employee.AttendanceService.enums.AttendanceStatusEnum;
 import com.employee.AttendanceService.exception.CustomException;
 import com.employee.AttendanceService.model.*;
 import com.employee.AttendanceService.repository.AttendanceRepository;
@@ -39,7 +39,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setCheckInTime(LocalDateTime.now());
         attendance.setCheckOutTime(null);
         attendance.setTotalWorkMin(0L);
-        attendance.setEmployeeStatus(EmployeeStatusEnum.ONLINE);
+        attendance.setAttendanceStatus(AttendanceStatusEnum.ONLINE);
         attendanceRepository.save(attendance);
 
         return new ApiResponse<>(
@@ -61,7 +61,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         if(attendance.getCheckOutTime() == null)
             attendance.setCheckOutTime(LocalDateTime.now());
 
-        attendance.setEmployeeStatus(EmployeeStatusEnum.OFFLINE);
+        attendance.setAttendanceStatus(AttendanceStatusEnum.OFFLINE);
         attendanceRepository.save(attendance);
         return new ApiResponse<>(
                 true,

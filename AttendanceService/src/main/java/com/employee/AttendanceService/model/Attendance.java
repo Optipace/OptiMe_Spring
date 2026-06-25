@@ -1,6 +1,6 @@
 package com.employee.AttendanceService.model;
 
-import com.employee.AttendanceService.enums.EmployeeStatusEnum;
+import com.employee.AttendanceService.enums.AttendanceStatusEnum;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -29,8 +29,8 @@ public class Attendance {
     private Long totalWorkMin;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "employee_status", nullable = false)
-    private EmployeeStatusEnum employeeStatus;
+    @Column(name = "attendance_status", nullable = false)
+    private AttendanceStatusEnum attendanceStatus;
 
     @Column(name = "employee_id",nullable = false)
     private String employeeId;

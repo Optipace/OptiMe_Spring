@@ -24,7 +24,7 @@ public class EmployeeInternalController {
 
     @GetMapping("/get-profile")
     public ResponseEntity<ApiResponse<EmployeeResponse>> getProfile(@RequestParam String employeeId){
-        System.out.println("Employee id in emp internal controller = " + employeeId);
+//        System.out.println("Employee id in emp internal controller = " + employeeId);
         ApiResponse<EmployeeResponse> response = empInternalService.getProfile(employeeId);
         return ResponseEntity.status(200).body(response);
     }
@@ -32,6 +32,12 @@ public class EmployeeInternalController {
     @PostMapping("/complete-profile")
     public ResponseEntity<ApiResponse<?>> completeProfile(@RequestBody CompleteProfileRequest request){
         ApiResponse<?> response = empInternalService.completeProfile(request);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/getMasterDetails")
+    public ResponseEntity<ApiResponse<?>> getMasterDetails(){
+        ApiResponse<?> response = empInternalService.getMasterDetails();
         return ResponseEntity.status(200).body(response);
     }
 

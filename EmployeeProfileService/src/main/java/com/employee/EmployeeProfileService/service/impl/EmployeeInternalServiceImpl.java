@@ -4,7 +4,12 @@ import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
 import com.employee.EmployeeProfileService.dto.response.ApiResponse;
 import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
+import com.employee.EmployeeProfileService.dto.response.ListOfOfficeResponse;
+import com.employee.EmployeeProfileService.dto.response.OfficeResponse;
+import com.employee.EmployeeProfileService.enums.EmployeeDesignationEnum;
 import com.employee.EmployeeProfileService.enums.EmployeeStatusEnum;
+import com.employee.EmployeeProfileService.enums.RoleEnum;
+import com.employee.EmployeeProfileService.enums.WorkTypeEnum;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
 import com.employee.EmployeeProfileService.model.Office;
@@ -17,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @AllArgsConstructor
 @Service
@@ -101,6 +107,29 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 true,
                 "Employee details",
                 response,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> getMasterDetails(){
+        List<Office> office = officeRepository.findAll();
+
+        List<OfficeResponse> listOfOfficeResponse = office.stream()
+                .map(o -> modelMapper.map(o, OfficeResponse.class))
+                .toList();
+        List<EmployeeDesignationEnum> employeeDesignationEnumList = List.of(EmployeeDesignationEnum.values());
+        List<RoleEnum> roleEnumList = List.of(RoleEnum.values());
+        List<WorkTypeEnum> workTypeEnumList = List.of(WorkTypeEnum.values());
+        List<EmployeeStatusEnum> employeeStatusEnumList = List.of(EmployeeStatusEnum.values());
+
+        ListOfOfficeResponse masterResponse = new ListOfOfficeResponse(listOfOfficeResponse,employeeDesignationEnumList, roleEnumList, workTypeEnumList, employeeStatusEnumList);
+
+        return new ApiResponse<>(
+                true,
+                "Master Response",
+                masterResponse,
                 LocalDateTime.now(),
                 200
         );

@@ -69,12 +69,6 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @GetMapping("/masterDetails")
-    public ResponseEntity<ApiResponse<?>> getMasterDetails(){
-        ApiResponse<?> response = empService.getMasterDetails();
-        return ResponseEntity.status(200).body(response);
-    }
-
 
 //    @GetMapping("/employeeProfile")
 //    public ResponseEntity<Resource> getEmployeeProfile(@RequestHeader ("Authorization") String authHeader){
