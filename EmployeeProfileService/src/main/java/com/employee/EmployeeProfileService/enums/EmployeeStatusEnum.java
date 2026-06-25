@@ -7,5 +7,6 @@ public enum EmployeeStatusEnum {
     ONLINE,
     OFFLINE,
     ACTIVE,
-    INACTIVE
+    INACTIVE,
+    PERMANENT
 }

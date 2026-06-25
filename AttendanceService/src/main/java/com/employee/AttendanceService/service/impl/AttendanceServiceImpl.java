@@ -26,7 +26,6 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
 
-    //Need to check and test
     @Override
     public ApiResponse<?> employeeCheckIn(String employeeId) {
 

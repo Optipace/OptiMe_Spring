@@ -24,5 +24,7 @@ public interface EmployeeService {
 
     public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request);
 
+    public ApiResponse<?> getMasterDetails();
+
 //    public ResponseEntity<Resource> getEmployeeProfile(String authHeader);
 }

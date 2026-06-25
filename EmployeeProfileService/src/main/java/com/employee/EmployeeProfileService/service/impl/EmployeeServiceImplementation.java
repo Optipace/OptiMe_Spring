@@ -4,8 +4,7 @@ import com.employee.EmployeeProfileService.config.AppProperties;
 import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.response.*;
-import com.employee.EmployeeProfileService.enums.FeedbackEnum;
-import com.employee.EmployeeProfileService.enums.FeedbackStatusEnum;
+import com.employee.EmployeeProfileService.enums.*;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
 import com.employee.EmployeeProfileService.model.Feedback;
@@ -14,7 +13,6 @@ import com.employee.EmployeeProfileService.repository.EmployeeRepository;
 import com.employee.EmployeeProfileService.repository.FeedbackRepository;
 import com.employee.EmployeeProfileService.repository.OfficeRepository;
 import com.employee.EmployeeProfileService.service.EmployeeService;
-//import com.employee.EmployeeProfileService.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -50,7 +48,6 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
     private final FeedbackRepository feedbackRepository;
 
-//    private final JwtUtil jwtUtil;
 @Override
 public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
     List<Employee> employees = employeeRepository.findAll();
@@ -251,6 +248,29 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
                 true,
                 "Feedback is "+request.getFeedbackStatus(),
                 null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> getMasterDetails(){
+        List<Office> office = officeRepository.findAll();
+
+        List<OfficeResponse> listOfOfficeResponse = office.stream()
+                .map(o -> mapperModel.map(o, OfficeResponse.class))
+                .toList();
+        List<EmployeeDesignationEnum> employeeDesignationEnumList = List.of(EmployeeDesignationEnum.values());
+        List<RoleEnum> roleEnumList = List.of(RoleEnum.values());
+        List<WorkTypeEnum> workTypeEnumList = List.of(WorkTypeEnum.values());
+        List<EmployeeStatusEnum> employeeStatusEnumList = List.of(EmployeeStatusEnum.values());
+
+        ListOfOfficeResponse masterResponse = new ListOfOfficeResponse(listOfOfficeResponse,employeeDesignationEnumList, roleEnumList, workTypeEnumList, employeeStatusEnumList);
+
+        return new ApiResponse<>(
+                true,
+                "Master Response",
+                masterResponse,
                 LocalDateTime.now(),
                 200
         );
