@@ -34,4 +34,7 @@ public class CompleteRegisterRequest {
     private String personalEmail;
 
     private String bloodGroup;
+
+    @NotBlank(message = "Validation token should not be blank")
+    private String validationToken;
 }

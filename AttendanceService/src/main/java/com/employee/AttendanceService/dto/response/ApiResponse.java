@@ -11,17 +11,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ApiResponse<T> {
-    private boolean success;
     private String message;
     private T data;
-    private LocalDateTime timeStamp;
     private int statusCode;
 
-    public ApiResponse(boolean success, String message, T data, LocalDateTime timeStamp, HttpStatus httpStatus) {
-        this.success = success;
+    public ApiResponse(String message, T data, HttpStatus httpStatus) {
         this.message = message;
         this.data = data;
-        this.timeStamp = timeStamp;
         this.statusCode = httpStatus.value(); // Extracts the integer code (e.g., 400, 200)
     }
 

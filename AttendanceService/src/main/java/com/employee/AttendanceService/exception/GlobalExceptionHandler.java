@@ -14,13 +14,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex){
-        ApiResponse<?> response = new ApiResponse<>(false, ex.getBindingResult().getFieldError().getDefaultMessage(), null, LocalDateTime.now(), HttpStatus.BAD_REQUEST);
+        ApiResponse<?> response = new ApiResponse<>(ex.getBindingResult().getFieldError().getDefaultMessage(), null, HttpStatus.BAD_REQUEST);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ApiResponse<?>>handleCustomException(CustomException ex){
-        ApiResponse<?> response = new ApiResponse<>(false, ex.getMessage(), null, LocalDateTime.now(), ex.getHttpStatus());
+        ApiResponse<?> response = new ApiResponse<>(ex.getMessage(), null, ex.getHttpStatus());
         return new ResponseEntity<>(response, ex.getHttpStatus());
     }
 }

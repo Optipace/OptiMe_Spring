@@ -27,8 +27,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/getWorkingDetails")
-    public ResponseEntity<ApiResponse<WorkingDetailsResponse>> getWorkingDetails(@RequestHeader("X-Employee-Id") String employeeId){
-        ApiResponse<WorkingDetailsResponse> response = attendanceService.getWorkingDetails(employeeId);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+    public ApiResponse<WorkingDetailsResponse> getWorkingDetails(@RequestHeader("X-Employee-Id") String employeeId){
+        return attendanceService.getWorkingDetails(employeeId);
     }
 }

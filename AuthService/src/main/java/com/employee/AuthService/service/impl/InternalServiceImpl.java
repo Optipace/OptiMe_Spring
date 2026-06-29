@@ -1,11 +1,7 @@
 package com.employee.AuthService.service.impl;
 
-import com.employee.AuthService.client.EmployeeClient;
 import com.employee.AuthService.dto.request.AuthIdentityRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
-import com.employee.AuthService.dto.response.ListOfOfficeResponse;
-import com.employee.AuthService.dto.response.OfficeResponse;
-import com.employee.AuthService.enums.RoleEnum;
 import com.employee.AuthService.enums.UserStatusEnum;
 import com.employee.AuthService.exception.CustomException;
 import com.employee.AuthService.model.User;
@@ -13,14 +9,15 @@ import com.employee.AuthService.repository.UserRepository;
 import com.employee.AuthService.service.InternalService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class InternalServiceImpl implements InternalService {
 
     private final UserRepository userRepository;
@@ -62,7 +59,7 @@ public class InternalServiceImpl implements InternalService {
     public ApiResponse<?> deleteIdentity(String employeeId) {
         userRepository.findByEmployeeId(employeeId).ifPresent(user -> {
             userRepository.delete(user);
-            System.out.println("Rollback executed: User " + employeeId + " deleted.");
+            log.info("Rollback executed: User {} deleted.", employeeId);
         });
 
         // We return 200 OK even if the user wasn't found, because the end goal

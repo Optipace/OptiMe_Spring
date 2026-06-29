@@ -46,7 +46,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
     private final OfficeRepository officeRepository;
 
-    private static final long MAX_IMAGE_SIZE = 1024 * 1024;
+    private static final long MAX_IMAGE_SIZE = 1024 * 1024; // MAX 1MB
 
     private final AppProperties appProperties;
 
@@ -91,9 +91,7 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
             ApiResponse<?> apiResponse = attendanceClient.getAttendanceStatus(employeeId);
             log.info("Attendance service called");
 
-            System.out.println("Api data is ====== "+ apiResponse.getData());
             if(apiResponse.getData() == null) {
-                System.out.println("Im null");
                 response.setAttendanceStatus(null);
             }else{
                 response.setAttendanceStatus(apiResponse.getData().toString());
@@ -352,7 +350,7 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
             // Use streaming (better for large files)
             Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
 
-            return path.toString(); // ✅ return file path
+            return path.toString(); // return file path
 
         } catch (IOException e) {
             throw new CustomException("File upload failed", HttpStatus.BAD_REQUEST);

@@ -10,6 +10,7 @@ import com.employee.AdminService.exception.CustomException;
 import com.employee.AdminService.service.AdminService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AdminServiceImpl implements AdminService {
     private final AuthClient authClient;
     private final EmployeeClient  employeeClient;
@@ -57,6 +59,7 @@ public class AdminServiceImpl implements AdminService {
            try{
                // 3. Call Auth service via Feign
                authClient.createIdentity(authPayload);
+               log.info("Auth client is called");
                isAuthCreated = true;
 
                // 4. Call Employee Profile service via Feign
@@ -67,7 +70,7 @@ public class AdminServiceImpl implements AdminService {
                    try{
                        authClient.deleteIdentity(request.getEmployeeId());
                    }catch (Exception ex){
-                       System.out.println("Rollback failed = "+ex.getMessage());
+                       log.error("Rollback failed {} ",ex.getMessage());
                    }
                }
                String rawErrorJson = e.contentUTF8();

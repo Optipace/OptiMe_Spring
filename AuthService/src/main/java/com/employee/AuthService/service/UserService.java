@@ -6,12 +6,13 @@ import com.employee.AuthService.dto.request.CompleteRegisterRequest;
 import com.employee.AuthService.dto.request.ValidationRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
 import com.employee.AuthService.dto.response.LoginResponse;
+import com.employee.AuthService.dto.response.ValidationResponse;
 
 public interface UserService {
 
     public ApiResponse<?> generateOtp(OtpRequest request);
 
-    public ApiResponse<?> validateOtp(ValidationRequest request);
+    public ApiResponse<ValidationResponse> validateOtp(ValidationRequest request);
 
     public ApiResponse<?> completeRegistration(CompleteRegisterRequest request);
 

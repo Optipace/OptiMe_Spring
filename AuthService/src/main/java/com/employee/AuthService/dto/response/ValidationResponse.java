@@ -1,4 +1,4 @@
-package com.employee.AttendanceService.dto.response;
+package com.employee.AuthService.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,6 +9,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class AttendanceStatusResponse {
-    private String attendanceStatus;
+public class ValidationResponse {
+    private EmployeeResponse employeeData;
+    private String validationToken;
 }

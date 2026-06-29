@@ -1,9 +1,6 @@
 package com.employee.AttendanceService.service.impl;
 
 import com.employee.AttendanceService.dto.response.ApiResponse;
-import com.employee.AttendanceService.dto.response.AttendanceStatusResponse;
-import com.employee.AttendanceService.enums.AttendanceStatusEnum;
-import com.employee.AttendanceService.exception.CustomException;
 import com.employee.AttendanceService.model.Attendance;
 import com.employee.AttendanceService.repository.AttendanceRepository;
 import com.employee.AttendanceService.service.AttendanceInternalService;
@@ -45,7 +42,8 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
 //
 //        AttendanceStatusResponse attendanceResponse = finalStatus != null ? new AttendanceStatusResponse(String.valueOf(finalStatus)) : null;
 
-//use find today attendance and place if the attendance is online return present (rename attendance status to status and make another status as attendance status if offline return left the office if no records found search in the leave service
+//      use find today attendance and place if the attendance is online return present (rename attendance status to status and make another status as attendance status) if offline return left the office if no records found search in the leave service
+
         // 2. Query today's local attendance record
         Optional<List<Attendance>> todayAttendance = attendanceRepository.findTodayAttendanceByEmployeeId(employeeId, startOfDay, endOfDay);
 //
@@ -58,10 +56,8 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
 //            finalStatus = "null";
 
         return new ApiResponse<>(
-                true,
                 "Attendance Status",
                 finalStatus,
-                LocalDateTime.now(),
                 200
         );
     }

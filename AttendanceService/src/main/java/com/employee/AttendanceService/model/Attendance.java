@@ -2,6 +2,7 @@ package com.employee.AttendanceService.model;
 
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -32,7 +33,8 @@ public class Attendance {
     @Column(name = "attendance_status", nullable = false)
     private AttendanceStatusEnum attendanceStatus;
 
-    @Column(name = "employee_id",nullable = false)
+    @NotBlank
+    @Column(name = "employee_id",nullable = false, length = 12)
     private String employeeId;
 
 }

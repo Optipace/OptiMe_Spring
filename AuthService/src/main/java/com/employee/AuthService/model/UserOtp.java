@@ -1,6 +1,7 @@
 package com.employee.AuthService.model;
 
 import com.employee.AuthService.enums.RegisterEnum;
+import com.employee.AuthService.enums.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -40,13 +41,26 @@ public class UserOtp {
     @Generated(event = EventType.INSERT)
     private LocalDateTime createdOn;
 
-    @Transient
-    public LocalDateTime getExpiryTime() {
-//        if (this.createdOn == null) {
-//            return null;
-//        }
-        return this.createdOn.plusMinutes(5);
-    }
+//    @Transient
+//    public LocalDateTime getExpiryTime() {
+////        if (this.createdOn == null) {
+////            return null;
+////        }
+//        return this.createdOn.plusMinutes(5);
+//    }
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 2)
+    @NotNull
+    private RegisterEnum available;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 1)
+    @NotNull
+    private StatusEnum validated = StatusEnum.F;
+
+    @Column(unique = true)
+    private String validationToken;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 1)

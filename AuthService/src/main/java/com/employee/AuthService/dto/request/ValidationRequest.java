@@ -27,6 +27,7 @@ public class ValidationRequest {
             message = "Provide a 10-digit contact number starting with 6,7,8,9"
     )
     private String contact;
+
     @NotBlank(message = "Please provide OTP for validation")
     private String mobileOtp;
 

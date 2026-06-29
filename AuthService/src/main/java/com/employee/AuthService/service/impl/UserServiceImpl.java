@@ -20,8 +20,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -29,7 +29,6 @@ import java.util.Random;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-//    private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
     private final UserOtpRepository userOtpRepository;
     private final PasswordRepository passwordRepository;
@@ -38,6 +37,7 @@ public class UserServiceImpl implements UserService {
     private final EmailService emailService;
     private final EmployeeClient employeeClient;
     private final ObjectMapper objectMapper;
+    //    private final ModelMapper modelMapper;
 
     @Override
     @Transactional
@@ -59,11 +59,11 @@ public class UserServiceImpl implements UserService {
                 });
 
 
-        userOtp.setRegisterStatus(RegisterEnum.N);
-
+        userOtp.setRegisterStatus(RegisterEnum.N); // Register status to N (NO)
+        userOtp.setAvailable(RegisterEnum.Y); // Otp available status to Y (Not expired fresh otp)
         userOtp.setEmailOtp(String.valueOf(new Random().nextInt(899999)+100000));
         userOtp.setMobileOtp(String.valueOf(new Random().nextInt(899999)+100000));
-//        userOtp.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+
         userOtpRepository.save(userOtp);
 
         String subject = "Welcome to Optipace Technologies";
@@ -92,7 +92,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public ApiResponse<?> validateOtp(ValidationRequest request){
+    public ApiResponse<ValidationResponse> validateOtp(ValidationRequest request){
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
                 .orElseThrow(() -> new CustomException("Otp not found", HttpStatus.NOT_FOUND));
 
@@ -100,21 +100,24 @@ public class UserServiceImpl implements UserService {
             throw new CustomException("User already registered", HttpStatus.CONFLICT);
         }
 
-        LocalDateTime expiryTime = userOtp.getExpiryTime();
-        if(expiryTime.isBefore(LocalDateTime.now())){
+        LocalDateTime expiryTime = userOtp.getCreatedOn().plusMinutes(5);
+        if(expiryTime.isBefore(LocalDateTime.now()) || userOtp.getAvailable().equals(RegisterEnum.N)){
             throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
         }
 
         if((userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals("1234")) &&
                 (userOtp.getMobileOtp().equals(request.getMobileOtp()) || request.getMobileOtp().equals("1234"))){
-            userOtp.setRegisterStatus(RegisterEnum.Y);
+            userOtp.setAvailable(RegisterEnum.N);       // Expire the otp
+            userOtp.setRegisterStatus(RegisterEnum.Y);  // Employee registered successfully
+            userOtp.setValidated(StatusEnum.F);         // Set validation token to False
+            userOtp.setValidationToken(UUID.randomUUID().toString()); // Random validation token generation
             userOtpRepository.saveAndFlush(userOtp);
         }else{
             throw new CustomException("Invalid OTP", HttpStatus.BAD_REQUEST);
         }
 
         User user = userRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
-                .orElseThrow(() -> new CustomException("User with this email or contact not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Employee with this email or contact not found", HttpStatus.NOT_FOUND));
 
         EmployeeResponse response = null;
 
@@ -134,7 +137,7 @@ public class UserServiceImpl implements UserService {
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
                 if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").asText();
+                    cleanErrorMessage = errorNode.get("message").asString();
                 } else {
                     cleanErrorMessage = rawErrorJson;
                 }
@@ -155,11 +158,11 @@ public class UserServiceImpl implements UserService {
             }
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
-
+        ValidationResponse validationResponse = new ValidationResponse(response,userOtp.getValidationToken());
         return new ApiResponse<>(
                 true,
                 "OTP validated successfully",
-                response,
+                validationResponse,
                 LocalDateTime.now(),
                 HttpStatus.OK
         );
@@ -176,6 +179,9 @@ public class UserServiceImpl implements UserService {
         UserOtp userOtp = userOtpRepository.findByEmailIdOrContact(user.getEmailId(), user.getContact())
                         .orElseThrow(() -> new CustomException("Validated Email-Id or contact not found",HttpStatus.NOT_FOUND));
 
+        if(!userOtp.getValidationToken().equals(request.getValidationToken())){
+            throw new CustomException("Token not found. Invalid user!", HttpStatus.BAD_REQUEST);
+        }
 //        userRepository.findByEmployeeId(request.getEmployeeId())
 //                .ifPresent(u -> {throw new CustomException("Employee ID must be unique", HttpStatus.CONFLICT);});
 
@@ -191,7 +197,7 @@ public class UserServiceImpl implements UserService {
                     HttpStatus.BAD_REQUEST);
         }
 
-        // 3. Check if personal email is already claimed by someone else
+        // Check if personal email is already claimed by someone else
         boolean isEmailTaken = userRepository.existsByPersonalEmailAndEmployeeIdNot(
                 request.getPersonalEmail(), request.getEmployeeId());
         if (isEmailTaken) {
@@ -199,22 +205,7 @@ public class UserServiceImpl implements UserService {
                     "The personal email provided is already registered to another account.",
                     HttpStatus.BAD_REQUEST);
         }
-//        userRepository.findByEmailId(request.getEmailId())
-//                        .ifPresent(u -> {throw new CustomException("Email already registered!", HttpStatus.CONFLICT);});
-//
-//
-//        userRepository.findByContact(request.getContact())
-//                .ifPresent(u -> {throw new CustomException("Contact number already taken", HttpStatus.CONFLICT);});
 
-//        User user = new User();
-//        user.setUserName(request.getUserName());
-////        user.setUserStatus(UserStatusEnum.PRESENT);
-//        user.setEmployeeId(request.getEmployeeId());
-//        user.setEmailId(request.getEmailId());
-//        user.setContact(request.getContact());
-//        user.setCreatedOn(LocalDateTime.now());
-
-//        user.setRegisterStatus(RegisterEnum.Y);
         Password password = new Password();
         password.setPassword(passwordEncoder.encode(request.getPassword()));
         password.setUser(user);
@@ -222,6 +213,7 @@ public class UserServiceImpl implements UserService {
         user.setPassword(password);
 
         user.setPersonalEmail(request.getPersonalEmail());
+        userOtp.setValidated(StatusEnum.T); // Set validation token to true (T)
         passwordRepository.save(password);
         userRepository.save(user);
 
@@ -242,7 +234,7 @@ public class UserServiceImpl implements UserService {
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
                 if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").asText();
+                    cleanErrorMessage = errorNode.get("message").asString();
                 } else {
                     cleanErrorMessage = rawErrorJson;
                 }

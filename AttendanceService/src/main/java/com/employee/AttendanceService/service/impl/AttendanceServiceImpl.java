@@ -43,10 +43,8 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendanceRepository.save(attendance);
 
         return new ApiResponse<>(
-                true,
                 "Login Successful",
                 null,
-                LocalDateTime.now(),
                 HttpStatus.OK
         );
     }
@@ -64,10 +62,8 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setAttendanceStatus(AttendanceStatusEnum.OFFLINE);
         attendanceRepository.save(attendance);
         return new ApiResponse<>(
-                true,
                 "Logout Successful",
                 null,
-                LocalDateTime.now(),
                 HttpStatus.OK
         );
     }
@@ -138,10 +134,8 @@ public class AttendanceServiceImpl implements AttendanceService {
         WorkingDetailsResponse response = new WorkingDetailsResponse(totalWorkMin, logResponse);
 
         return new ApiResponse<>(
-                true,
                 "Total working details",
                 response,
-                LocalDateTime.now(),
                 HttpStatus.OK
         );
     }

@@ -13,4 +13,6 @@ public interface UserOtpRepository extends JpaRepository<UserOtp, Long> {
 
     Optional<UserOtp> findByEmailIdOrContact(String emailId, String contact);
 
+    Optional<UserOtp> findByValidationToken(String validationToken);
+
 }

@@ -24,8 +24,8 @@ public class AuthController {
     }
 
     @PostMapping("/validateOtp")
-    public ResponseEntity<ApiResponse<?>> validateOtp(@Valid @RequestBody ValidationRequest request){
-        ApiResponse<?> response = userService.validateOtp(request);
+    public ResponseEntity<ApiResponse<ValidationResponse>> validateOtp(@Valid @RequestBody ValidationRequest request){
+        ApiResponse<ValidationResponse> response = userService.validateOtp(request);
         return ResponseEntity.ok(response);
     }
 
