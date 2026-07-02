@@ -2,6 +2,7 @@ package com.employee.EmployeeProfileService.service.impl;
 
 import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
+import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
 import com.employee.EmployeeProfileService.dto.response.ApiResponse;
 import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
 import com.employee.EmployeeProfileService.dto.response.ListOfOfficeResponse;
@@ -130,6 +131,32 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 true,
                 "Master Response",
                 masterResponse,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public boolean checkEmployeeByEmployeeId(String employeeId) {
+        boolean employeeExists = employeeRepository.existsByEmployeeId(employeeId);
+        if(employeeExists){
+            return true;
+        }else {
+            return false;
+        }
+    }
+
+    @Override
+    public ApiResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request) {
+        Employee employee = employeeRepository.findEmployeeByEmployeeId(request.getEmployeeId())
+                .orElseThrow(() -> new CustomException("Employee Id not found", HttpStatus.NOT_FOUND));
+
+        employee.setEmployeeStatus(request.getEmployeeStatus());
+        employeeRepository.save(employee);
+        return new ApiResponse<>(
+                true,
+                "Employee status updated",
+                null,
                 LocalDateTime.now(),
                 200
         );

@@ -12,4 +12,6 @@ import java.util.Optional;
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     @Query("SELECT e FROM Employee e WHERE e.employeeId = :employeeId")
     Optional<Employee> findEmployeeByEmployeeId(@Param("employeeId") String employeeId);
+
+    boolean existsByEmployeeId(String employeeId);
 }

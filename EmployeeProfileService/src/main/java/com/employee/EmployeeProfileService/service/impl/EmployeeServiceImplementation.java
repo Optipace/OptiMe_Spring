@@ -1,9 +1,11 @@
 package com.employee.EmployeeProfileService.service.impl;
 
 import com.employee.EmployeeProfileService.client.AttendanceClient;
+import com.employee.EmployeeProfileService.client.NotificationClient;
 import com.employee.EmployeeProfileService.config.AppProperties;
 import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
+import com.employee.EmployeeProfileService.dto.request.NotificationPayload;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.enums.*;
 import com.employee.EmployeeProfileService.exception.CustomException;
@@ -40,37 +42,35 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class EmployeeServiceImplementation implements EmployeeService {
-    private final EmployeeRepository employeeRepository;
-
-    private final ModelMapper mapperModel;
-
-    private final OfficeRepository officeRepository;
-
     private static final long MAX_IMAGE_SIZE = 1024 * 1024; // MAX 1MB
-
+    private final EmployeeRepository employeeRepository;
+    private final ModelMapper mapperModel;
+    private final OfficeRepository officeRepository;
     private final AppProperties appProperties;
 
     private final FeedbackRepository feedbackRepository;
 
     private final AttendanceClient attendanceClient;
 
+    private final NotificationClient notificationClient;
+
     private final ObjectMapper objectMapper;
 
-@Override
-public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
-    List<Employee> employees = employeeRepository.findAll();
-    List<EmployeeResponse> employeeResponse = employees.stream()
-            .map(employee -> mapperModel.map(employee, EmployeeResponse.class))
-            .toList();
+    @Override
+    public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
+        List<Employee> employees = employeeRepository.findAll();
+        List<EmployeeResponse> employeeResponse = employees.stream()
+                .map(employee -> mapperModel.map(employee, EmployeeResponse.class))
+                .toList();
 
-    return new ApiResponse<>(
-            true,
-            "List of employees",
-            employeeResponse,
-            LocalDateTime.now(),
-            200
-    );
-}
+        return new ApiResponse<>(
+                true,
+                "List of employees",
+                employeeResponse,
+                LocalDateTime.now(),
+                200
+        );
+    }
 
     @Override
     public ApiResponse<EmployeeResponse> getEmployeeDetails(String employeeId) {
@@ -80,20 +80,30 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
-        if(employee.getOffice() != null){
+        if (employee.getOffice() != null) {
             office = officeRepository.findById(employee.getOffice().getId())
-                    .orElseThrow(() -> new CustomException("Something went wrong",HttpStatus.BAD_REQUEST));
+                    .orElseThrow(() -> new CustomException("Something went wrong", HttpStatus.BAD_REQUEST));
         }
 
         EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class);
-        try{
+        try {
 
+            log.info("Attendance service is calling");
             ApiResponse<?> apiResponse = attendanceClient.getAttendanceStatus(employeeId);
             log.info("Attendance service called");
 
-            if(apiResponse.getData() == null) {
+            NotificationPayload payload = new NotificationPayload(
+                    employeeId,
+                    "Employee details fetched",
+                    " " + employeeId + " details",
+                    "INFO"
+            );
+//            notificationClient.sendPrivateNotification(payload);
+//            log.info("Notification service called");
+
+            if (apiResponse.getData() == null) {
                 response.setAttendanceStatus(null);
-            }else{
+            } else {
                 response.setAttendanceStatus(apiResponse.getData().toString());
             }
 
@@ -101,14 +111,14 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
 //                response.setAttendanceStatus(apiResponse.getData().toString());
 //            }
 
-        }catch (FeignException e){
+        } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice called failed";
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
                 if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").asText();
+                    cleanErrorMessage = errorNode.get("message").asString();
                 } else {
                     cleanErrorMessage = rawErrorJson;
                 }
@@ -120,6 +130,7 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
             if (e.status() > 0) {
                 try {
                     responseStatus = HttpStatus.valueOf(e.status());
+                    System.out.println(responseStatus);
                 } catch (IllegalArgumentException ex) {
                     responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
                 }
@@ -138,10 +149,10 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
             response.setOffice(null);
         }
 
-        if(employee.getEmployeeProfilePath() != null){
-            try{
+        if (employee.getEmployeeProfilePath() != null) {
+            try {
                 File file = new File(employee.getEmployeeProfilePath());
-                if(file.exists() && file.canRead()){
+                if (file.exists() && file.canRead()) {
                     byte[] fileBytes = Files.readAllBytes(file.toPath());
                     String encodedString = Base64.getEncoder().encodeToString(fileBytes);
                     response.setImage(encodedString);
@@ -197,23 +208,23 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
-        if(file.isEmpty())
-            throw new CustomException("File is empty",HttpStatus.BAD_REQUEST);
+        if (file.isEmpty())
+            throw new CustomException("File is empty", HttpStatus.BAD_REQUEST);
 
-        log.info("Incoming file size {}",file.getSize());
-        if(file.getSize() > MAX_IMAGE_SIZE)
+        log.info("Incoming file size {}", file.getSize());
+        if (file.getSize() > MAX_IMAGE_SIZE)
             throw new CustomException("Image exceeds 1MB limit", HttpStatus.BAD_REQUEST);
 
         String contentType = file.getContentType();
 
-        log.info("Incoming content type {}",contentType);
+        log.info("Incoming content type {}", contentType);
 
-        if(!("image/jpeg".equals(contentType) || "image/png".equals(contentType) || "image/jpg".equals(contentType))){
+        if (!("image/jpeg".equals(contentType) || "image/png".equals(contentType) || "image/jpg".equals(contentType))) {
             throw new CustomException("Only JPEG or PNG files are allowed", HttpStatus.BAD_REQUEST);
         }
 
-        String filePath = saveFile(file, appProperties.getImage().getUploadDir() +"EmployeeProfile/"+employeeId+"/");
-        log.info("Image saved path {}",filePath);
+        String filePath = saveFile(file, appProperties.getImage().getUploadDir() + "EmployeeProfile/" + employeeId + "/");
+        log.info("Image saved path {}", filePath);
         employee.setEmployeeProfilePath(filePath);
 
         employeeRepository.save(employee);
@@ -233,12 +244,12 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
         Feedback feedback = new Feedback();
-        if(request.getFeedbackStatus().equals(FeedbackEnum.Y) || request.getFeedbackStatus() == FeedbackEnum.Y){
+        if (request.getFeedbackStatus().equals(FeedbackEnum.Y) || request.getFeedbackStatus() == FeedbackEnum.Y) {
             feedback.setFeedback(request.getFeedback());
             feedback.setEmployeeName(employee.getEmployeeName());
             feedback.setStatusEnum(FeedbackStatusEnum.PENDING);
             feedbackRepository.save(feedback);
-        }else{
+        } else {
             feedback.setFeedback(request.getFeedback());
             feedback.setEmployeeName(null);
             feedback.setStatusEnum(FeedbackStatusEnum.PENDING);
@@ -258,12 +269,12 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
         List<Feedback> feedbackList = feedbackRepository.findAll();
 
         List<FeedbackResponse> responseList = feedbackList.stream()
-                .map(f->{
+                .map(f -> {
                     String employeeName = (f.getEmployeeName() == null || f.getEmployeeName().isBlank())
                             ? "*****"
                             : f.getEmployeeName();
 
-                    return new FeedbackResponse(f.getId(),employeeName, f.getFeedback(),f.getStatusEnum());
+                    return new FeedbackResponse(f.getId(), employeeName, f.getFeedback(), f.getStatusEnum());
                 })
                 .toList();
 
@@ -281,7 +292,7 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
         Feedback feedback = feedbackRepository.findById(request.getFeedbackId())
                 .orElseThrow(() -> new CustomException("Feedback not found! Please recheck the given feedback", HttpStatus.NOT_FOUND));
 
-        if(request.getFeedbackStatus().equals(FeedbackStatusEnum.PENDING)){
+        if (request.getFeedbackStatus().equals(FeedbackStatusEnum.PENDING)) {
             feedback.setStatusEnum(request.getFeedbackStatus());
             feedbackRepository.save(feedback);
 
@@ -292,14 +303,14 @@ public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
                     LocalDateTime.now(),
                     200
             );
-        }else{
+        } else {
             feedback.setStatusEnum(request.getFeedbackStatus());
             feedbackRepository.save(feedback);
         }
 
         return new ApiResponse<>(
                 true,
-                "Feedback is "+request.getFeedbackStatus(),
+                "Feedback is " + request.getFeedbackStatus(),
                 null,
                 LocalDateTime.now(),
                 200

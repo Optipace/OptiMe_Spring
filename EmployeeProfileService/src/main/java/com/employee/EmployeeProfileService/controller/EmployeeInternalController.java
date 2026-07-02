@@ -2,6 +2,7 @@ package com.employee.EmployeeProfileService.controller;
 
 import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
+import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
 import com.employee.EmployeeProfileService.dto.response.ApiResponse;
 import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
@@ -39,6 +40,17 @@ public class EmployeeInternalController {
     public ResponseEntity<ApiResponse<?>> getMasterDetails(){
         ApiResponse<?> response = empInternalService.getMasterDetails();
         return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/checkEmployeeByEmployeeId")
+    public boolean checkEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId){
+        return empInternalService.checkEmployeeByEmployeeId(employeeId);
+    }
+
+    @PostMapping("/updateEmployeeStatus")
+    public ResponseEntity<ApiResponse<?>> updateEmployeeStatus(@RequestBody UpdateEmployeeStatusRequest request) {
+        ApiResponse<?> response = empInternalService.updateEmployeeStatus(request);
+        return ResponseEntity.ok(response);
     }
 
 }
