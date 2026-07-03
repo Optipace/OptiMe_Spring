@@ -43,4 +43,8 @@ public class Leave {
     @Column(name = "employee_id", nullable = false, length = 12)
     private String employeeId;
 
+    @NotBlank(message = "Employee name required")
+    @Column(name = "employee_name", nullable = false, length = 50)
+    private String employeeName;
+
 }

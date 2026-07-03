@@ -28,7 +28,12 @@ public class LeaveServiceImpl implements LeaveService {
     private final ModelMapper modelMapper;
 
     @Override
-    public ApiResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId) {
+    public ApiResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId, String employeeName) {
+
+        if(request.getToDate().isBefore(request.getFromDate())){
+            throw new CustomException("The 'To Date' cannot be earlier than the 'From Date'", HttpStatus.BAD_REQUEST);
+        }
+
         boolean employeeExists = false;
         try{
             employeeExists = employeeClient.checkEmployeeByEmployeeId(employeeId);
@@ -56,6 +61,7 @@ public class LeaveServiceImpl implements LeaveService {
         Leave leave = modelMapper.map(request, Leave.class);
         leave.setEmployeeId(employeeId);
         leave.setAppliedOn(LocalDateTime.now());
+        leave.setEmployeeName(employeeName);
         leaveRepository.save(leave);
 
         try{

@@ -25,7 +25,6 @@ public class EmployeeInternalController {
 
     @GetMapping("/get-profile")
     public ResponseEntity<ApiResponse<EmployeeResponse>> getProfile(@RequestParam String employeeId){
-//        System.out.println("Employee id in emp internal controller = " + employeeId);
         ApiResponse<EmployeeResponse> response = empInternalService.getProfile(employeeId);
         return ResponseEntity.status(200).body(response);
     }

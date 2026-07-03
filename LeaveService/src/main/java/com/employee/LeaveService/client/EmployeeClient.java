@@ -1,6 +1,7 @@
 package com.employee.LeaveService.client;
 
 import com.employee.LeaveService.dto.request.UpdateEmployeeStatusPayload;
+import com.employee.LeaveService.dto.response.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;

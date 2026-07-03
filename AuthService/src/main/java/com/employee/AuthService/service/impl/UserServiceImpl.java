@@ -76,7 +76,7 @@ public class UserServiceImpl implements UserService {
                     "Otp sent to "+userOtp.getContact()+" and "+userOtp.getEmailId()+" successfully",
                     null,
                     LocalDateTime.now(),
-                    HttpStatus.OK
+                    200
             );
         } catch (Exception e) {
             return new ApiResponse<>(

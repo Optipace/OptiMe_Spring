@@ -16,8 +16,8 @@ public class LeaveController {
     private final LeaveService leaveService;
 
     @PostMapping("/applyLeave")
-    public ResponseEntity<ApiResponse<?>> saveLeaveApplication(@RequestHeader("X-Employee-Id") String employeeId,@Valid @RequestBody LeaveRequest request){
-        ApiResponse<?> response = leaveService.saveLeaveApplication(request, employeeId);
+    public ResponseEntity<ApiResponse<?>> saveLeaveApplication(@RequestHeader("X-Employee-Id") String employeeId,@Valid @RequestBody LeaveRequest request, @RequestHeader("X-Employee-Name") String employeeName){
+        ApiResponse<?> response = leaveService.saveLeaveApplication(request, employeeId, employeeName);
         return ResponseEntity.status(200).body(response);
     }
 }

@@ -1,5 +1,7 @@
 package com.employee.LeaveService.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -15,10 +17,14 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class LeaveRequest {
 
-    @NotNull(message = "Date must be in YYYY-MM-DD format and it shouldn't be blank")
+    @NotNull(message = "From Date is required")
+    @FutureOrPresent(message = "From Date must be today or future date")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate fromDate;
 
-    @NotNull(message = "Date must be in YYYY-MM-DD format and it shouldn't be blank")
+    @NotNull(message = "To Date is required")
+    @FutureOrPresent(message = "To Date must be today or future date")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate toDate;
 
     @NotBlank(message = "Provide a valid reason")
