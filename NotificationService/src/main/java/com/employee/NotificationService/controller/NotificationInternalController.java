@@ -13,10 +13,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("api/notifications/internal")
 @RequiredArgsConstructor
 public class NotificationInternalController {
+    // this talks to the open websockets
     private final SimpMessagingTemplate messagingTemplate;
 
+    /**
+     * 1-TO-1 PRIVATE MESSAGING
+     * Sends a message to a specific employee (e.g., Leave Approval)
+     */
     @PostMapping("/send")
     public ResponseEntity<?> sendPrivateNotification(@RequestBody NotificationRequest request){
+        // Unique private channel name for this specific employee
+        // Example: /queue/notifications-EMP001
         String uniqueChannel = "/queue/notifications-"+request.getEmployeeId();
 
         messagingTemplate.convertAndSend(uniqueChannel,request);
@@ -24,6 +31,19 @@ public class NotificationInternalController {
         return ResponseEntity.ok("Notification forwarded successfully");
     }
 
-//    @PostMapping("/send/toAll")
-//    public ResponseEntity<?> sendNotificationToAll(@RequestBody NotificationRequest request);
+    /**
+     * 1-TO-MANY BROADCASTING
+     * Sends a message to EVERYONE who is currently online and listening (e.g., New Hire)
+     */
+    @PostMapping("/broadcast")
+    public ResponseEntity<String> sendPublicBroadcast(@RequestBody NotificationRequest request) {
+
+        // Target: /topic/company-announcements (Notice we use /topic instead of /queue)
+        // We don't append an employee ID because this goes to everyone!
+        String broadcastChannel = "/topic/company-announcements";
+
+        messagingTemplate.convertAndSend(broadcastChannel, request);
+
+        return ResponseEntity.ok("Public broadcast sent to all employees successfully!");
+    }
 }
