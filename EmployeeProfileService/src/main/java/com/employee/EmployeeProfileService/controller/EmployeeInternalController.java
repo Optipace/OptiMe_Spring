@@ -4,6 +4,7 @@ import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
 import com.employee.EmployeeProfileService.dto.response.ApiResponse;
+import com.employee.EmployeeProfileService.dto.response.EmployeeInternalResponse;
 import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("api/employee/internal")
+@RequestMapping("/api/employee/internal")
 @RequiredArgsConstructor
 public class EmployeeInternalController {
 
@@ -49,6 +50,12 @@ public class EmployeeInternalController {
     @PostMapping("/updateEmployeeStatus")
     public ResponseEntity<ApiResponse<?>> updateEmployeeStatus(@RequestBody UpdateEmployeeStatusRequest request) {
         ApiResponse<?> response = empInternalService.updateEmployeeStatus(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/getEmployeeByEmployeeId")
+    public ResponseEntity<ApiResponse<EmployeeInternalResponse>> getEmployeeByEmployeeId(@RequestParam("employeeId")String employeeId){
+        ApiResponse<EmployeeInternalResponse> response = empInternalService.getEmployeeByEmployeeId(employeeId);
         return ResponseEntity.ok(response);
     }
 

@@ -90,6 +90,7 @@ public class AdminServiceImpl implements AdminService {
                }
                throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
            }
+           // TODO: Need to add an email so that after admin successfully adds employee he must receive email
             return new ApiResponse<>(
                     true,
                     "Employee added successfully",

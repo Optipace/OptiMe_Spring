@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("api/notifications/internal")
+@RequestMapping("/api/notifications/internal")
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationInternalController {

@@ -13,10 +13,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface EmployeeClient {
 
     @GetMapping("/api/employee/internal/checkEmployeeByEmployeeId")
-    public boolean checkEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId);
+    boolean checkEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId);
 
     @PostMapping("/api/employee/internal/updateEmployeeStatus")
     void updateEmployeeStatus(@RequestBody UpdateEmployeeStatusPayload payload);
 
-    ApiResponse<EmployeeResponse> getEmployeeByEmployeeId(String employeeId);
+    @GetMapping("/api/employee/internal/getEmployeeByEmployeeId")
+    ApiResponse<EmployeeResponse> getEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId);
 }

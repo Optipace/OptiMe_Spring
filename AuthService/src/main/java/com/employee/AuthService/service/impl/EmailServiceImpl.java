@@ -5,6 +5,7 @@ import com.employee.AuthService.service.EmailService;
 import jakarta.mail.internet.MimeMessage;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -26,6 +27,21 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body, true);
+
+            // logo
+            helper.addInline(
+                    "logo",
+                    new ClassPathResource("images/optipace.png"));
+
+            // Account Image
+            helper.addInline(
+                    "account-created",
+                    new ClassPathResource("images/account-created.png"));
+
+            // Registration Image
+            helper.addInline(
+                    "registration-completed",
+                    new ClassPathResource("images/registration-completed.png"));
 
             mailSender.send(mimeMessage);
             log.info("Email sent successfully to {}",to);

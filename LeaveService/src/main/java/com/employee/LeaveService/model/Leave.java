@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class Leave {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "from_date", nullable = false)
@@ -46,5 +46,9 @@ public class Leave {
     @NotBlank(message = "Employee name required")
     @Column(name = "employee_name", nullable = false, length = 50)
     private String employeeName;
+
+    @ManyToOne
+    @JoinColumn(name = "leave_type_id", nullable = false)
+    private LeaveType leaveType;
 
 }

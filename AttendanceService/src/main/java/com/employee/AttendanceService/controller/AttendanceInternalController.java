@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("api/attendance/internal")
+@RequestMapping("/api/attendance/internal")
 @RequiredArgsConstructor
 public class AttendanceInternalController {
     private final AttendanceInternalService internalService;

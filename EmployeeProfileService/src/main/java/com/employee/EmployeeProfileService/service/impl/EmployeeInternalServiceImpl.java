@@ -3,10 +3,7 @@ package com.employee.EmployeeProfileService.service.impl;
 import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
-import com.employee.EmployeeProfileService.dto.response.ApiResponse;
-import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
-import com.employee.EmployeeProfileService.dto.response.ListOfOfficeResponse;
-import com.employee.EmployeeProfileService.dto.response.OfficeResponse;
+import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.enums.EmployeeDesignationEnum;
 import com.employee.EmployeeProfileService.enums.EmployeeStatusEnum;
 import com.employee.EmployeeProfileService.enums.RoleEnum;
@@ -157,6 +154,21 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 true,
                 "Employee status updated",
                 null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<EmployeeInternalResponse> getEmployeeByEmployeeId(String employeeId) {
+        Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
+                .orElseThrow(() -> new CustomException("Employee id not found", HttpStatus.NOT_FOUND));
+
+        EmployeeInternalResponse response = modelMapper.map(employee, EmployeeInternalResponse.class);
+        return new ApiResponse<>(
+                true,
+                "Employee details",
+                response,
                 LocalDateTime.now(),
                 200
         );

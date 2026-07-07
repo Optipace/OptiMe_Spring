@@ -5,6 +5,7 @@ import com.employee.AttendanceService.model.Attendance;
 import com.employee.AttendanceService.repository.AttendanceRepository;
 import com.employee.AttendanceService.service.AttendanceInternalService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ import java.util.Optional;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class AttendanceInternalServiceImpl implements AttendanceInternalService {
 
     private final AttendanceRepository attendanceRepository;
@@ -52,9 +54,9 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
                 .filter(list -> !list.isEmpty())
                 .map(list -> list.getLast().getAttendanceStatus().name())
                 .orElse(null);
+        log.info("Attendance service returning status {}", finalStatus);
 //        if(finalStatus == null)
 //            finalStatus = "null";
-
         return new ApiResponse<>(
                 "Attendance Status",
                 finalStatus,

@@ -1,5 +1,6 @@
 package com.employee.LeaveService.dto.request;
 
+import com.employee.LeaveService.enums.LeaveTypeEnum;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
@@ -29,5 +30,8 @@ public class LeaveRequest {
 
     @NotBlank(message = "Provide a valid reason")
     private String reason;
+
+    @NotBlank(message = "Provide a leave type")
+    private LeaveTypeEnum leaveType;
 
 }

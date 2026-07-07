@@ -4,6 +4,7 @@ import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
 import com.employee.EmployeeProfileService.dto.response.ApiResponse;
+import com.employee.EmployeeProfileService.dto.response.EmployeeInternalResponse;
 import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
 
 public interface EmployeeInternalService {
@@ -19,5 +20,7 @@ public interface EmployeeInternalService {
     public boolean checkEmployeeByEmployeeId(String employeeId);
 
     public ApiResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request);
+
+    public ApiResponse<EmployeeInternalResponse> getEmployeeByEmployeeId(String employeeId);
 
 }

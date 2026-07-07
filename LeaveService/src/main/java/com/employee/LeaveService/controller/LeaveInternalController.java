@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("api/leave/internal")
+@RequestMapping("/api/leave/internal")
 @RequiredArgsConstructor
 public class LeaveInternalController {
 

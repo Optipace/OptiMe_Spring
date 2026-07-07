@@ -8,9 +8,12 @@ import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.EmployeeResponse;
 import com.employee.LeaveService.enums.EmployeeDesignationEnum;
 import com.employee.LeaveService.enums.EmployeeStatusEnum;
+import com.employee.LeaveService.enums.LeaveTypeEnum;
 import com.employee.LeaveService.exception.CustomException;
 import com.employee.LeaveService.model.Leave;
+import com.employee.LeaveService.model.LeaveType;
 import com.employee.LeaveService.repository.LeaveRepository;
+import com.employee.LeaveService.repository.LeaveTypeRepository;
 import com.employee.LeaveService.service.LeaveService;
 import feign.FeignException;
 import lombok.AllArgsConstructor;
@@ -27,6 +30,7 @@ import java.time.LocalDateTime;
 public class LeaveServiceImpl implements LeaveService {
 
     private final LeaveRepository leaveRepository;
+    private final LeaveTypeRepository leaveTypeRepository;
     private final EmployeeClient employeeClient;
     private final ModelMapper modelMapper;
 
@@ -65,8 +69,12 @@ public class LeaveServiceImpl implements LeaveService {
         leave.setEmployeeId(employeeId);
         leave.setAppliedOn(LocalDateTime.now());
         leave.setEmployeeName(employeeName);
+        LeaveType leaveType = leaveTypeRepository.findByLeaveType(request.getLeaveType())
+                        .orElseThrow(() -> new CustomException("Leave type not found", HttpStatus.NOT_FOUND));
+        leave.setLeaveType(leaveType);
         leaveRepository.save(leave);
 
+//        Need to be set automatically on the day his/her leave starts
 //        try{
 //            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload(
 //                    leave.getEmployeeId(),
@@ -130,7 +138,7 @@ public class LeaveServiceImpl implements LeaveService {
         }
 
         if(leave.getApprovedBy() == null || leave.getApprovedBy().isEmpty()){
-            leave.setApprovedBy(empResponse.getData().getEmployeeName());
+            leave.setApprovedBy(empResponse.getData().getEmployeeId());
             leave.setLeaveStatus(request.getLeaveStatus());
         }else {
           // WIP: WORK IN PROGRESS
