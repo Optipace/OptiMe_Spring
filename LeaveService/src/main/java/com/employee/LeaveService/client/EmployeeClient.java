@@ -2,6 +2,7 @@ package com.employee.LeaveService.client;
 
 import com.employee.LeaveService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.LeaveService.dto.response.ApiResponse;
+import com.employee.LeaveService.dto.response.EmployeeResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,4 +17,6 @@ public interface EmployeeClient {
 
     @PostMapping("/api/employee/internal/updateEmployeeStatus")
     void updateEmployeeStatus(@RequestBody UpdateEmployeeStatusPayload payload);
+
+    ApiResponse<EmployeeResponse> getEmployeeByEmployeeId(String employeeId);
 }

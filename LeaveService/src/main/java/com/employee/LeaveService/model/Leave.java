@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class Leave {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private Long id;
 
     @Column(name = "from_date", nullable = false)

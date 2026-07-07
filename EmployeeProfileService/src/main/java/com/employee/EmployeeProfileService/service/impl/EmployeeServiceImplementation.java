@@ -98,8 +98,10 @@ public class EmployeeServiceImplementation implements EmployeeService {
                     " " + employeeId + " details",
                     "INFO"
             );
-//            notificationClient.sendPrivateNotification(payload);
-//            log.info("Notification service called");
+
+            log.info("Notification service calling");
+            notificationClient.sendPrivateNotification(payload);
+            log.info("Notification service called");
 
             if (apiResponse.getData() == null) {
                 response.setAttendanceStatus(null);

@@ -4,6 +4,7 @@ import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.dto.response.LeaveResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 

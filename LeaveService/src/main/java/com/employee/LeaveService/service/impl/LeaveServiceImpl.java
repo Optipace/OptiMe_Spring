@@ -3,7 +3,10 @@ package com.employee.LeaveService.service.impl;
 import com.employee.LeaveService.client.EmployeeClient;
 import com.employee.LeaveService.dto.request.LeaveRequest;
 import com.employee.LeaveService.dto.request.UpdateEmployeeStatusPayload;
+import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
 import com.employee.LeaveService.dto.response.ApiResponse;
+import com.employee.LeaveService.dto.response.EmployeeResponse;
+import com.employee.LeaveService.enums.EmployeeDesignationEnum;
 import com.employee.LeaveService.enums.EmployeeStatusEnum;
 import com.employee.LeaveService.exception.CustomException;
 import com.employee.LeaveService.model.Leave;
@@ -64,15 +67,47 @@ public class LeaveServiceImpl implements LeaveService {
         leave.setEmployeeName(employeeName);
         leaveRepository.save(leave);
 
+//        try{
+//            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload(
+//                    leave.getEmployeeId(),
+//                    EmployeeStatusEnum.ON_LEAVE
+//            );
+//
+//            employeeClient.updateEmployeeStatus(payload);
+//            log.info("Employee Profile Service called to update employee status to LEAVE");
+//
+//        }catch (FeignException feignException){
+//            String cleanErrorMessage = "Microservice called failed";
+//            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+//            if(feignException.status() > 0){
+//                try {
+//                    responseStatus = HttpStatus.valueOf(feignException.status());
+//                } catch (IllegalArgumentException ex) {
+//                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+//                }
+//            }else {
+//                cleanErrorMessage = "Service is unreachable. Please try again later.";
+//                responseStatus = HttpStatus.SERVICE_UNAVAILABLE;
+//            }
+//            throw new CustomException(cleanErrorMessage, responseStatus);
+//        }
+        return new ApiResponse<>(
+                true,
+                "Leave applied successfully",
+                null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId) {
+        Leave leave = leaveRepository.findById(request.getLeaveId())
+                .orElseThrow(() -> new CustomException("Leave Id not found", HttpStatus.NOT_FOUND));
+
+        ApiResponse<EmployeeResponse> empResponse = null;
         try{
-            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload(
-                    leave.getEmployeeId(),
-                    EmployeeStatusEnum.ON_LEAVE
-            );
-
-            employeeClient.updateEmployeeStatus(payload);
-            log.info("Employee Profile service called to update employee status to LEAVE");
-
+            empResponse = employeeClient.getEmployeeByEmployeeId(approvedEmployeeId);
         }catch (FeignException feignException){
             String cleanErrorMessage = "Microservice called failed";
             HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -88,12 +123,18 @@ public class LeaveServiceImpl implements LeaveService {
             }
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
-        return new ApiResponse<>(
-                true,
-                "Leave applied successfully",
-                null,
-                LocalDateTime.now(),
-                200
-        );
+
+        EmployeeDesignationEnum approverRole = EmployeeDesignationEnum.valueOf(empResponse.getData().getEmployeeDesignation());
+        if(!approverRole.canApproveLeave()) {
+            throw new CustomException("You are Unauthorised to perform this action!", HttpStatus.UNAUTHORIZED);
+        }
+
+        if(leave.getApprovedBy() == null || leave.getApprovedBy().isEmpty()){
+            leave.setApprovedBy(empResponse.getData().getEmployeeName());
+            leave.setLeaveStatus(request.getLeaveStatus());
+        }else {
+          // WIP: WORK IN PROGRESS
+        }
+        return null;
     }
 }

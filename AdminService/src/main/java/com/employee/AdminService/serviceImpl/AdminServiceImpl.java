@@ -59,11 +59,12 @@ public class AdminServiceImpl implements AdminService {
            try{
                // 3. Call Auth service via Feign
                authClient.createIdentity(authPayload);
-               log.info("Auth client is called");
+               log.info("Auth Service is called");
                isAuthCreated = true;
 
                // 4. Call Employee Profile service via Feign
                employeeClient.createProfile(profilePayload);
+               log.info("Employee Service is called");
 
            }catch (FeignException e){
                if(isAuthCreated){
