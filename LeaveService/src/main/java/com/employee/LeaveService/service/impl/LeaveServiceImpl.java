@@ -69,12 +69,15 @@ public class LeaveServiceImpl implements LeaveService {
         leave.setEmployeeId(employeeId);
         leave.setAppliedOn(LocalDateTime.now());
         leave.setEmployeeName(employeeName);
+        log.info("Leave type is {}", request.getLeaveType());
         LeaveType leaveType = leaveTypeRepository.findByLeaveType(request.getLeaveType())
                         .orElseThrow(() -> new CustomException("Leave type not found", HttpStatus.NOT_FOUND));
         leave.setLeaveType(leaveType);
         leaveRepository.save(leave);
 
-//        Need to be set automatically on the day his/her leave starts
+//        TODO: Need to send email to the employee and the respected authority
+
+//        TODO: Need to be set automatically on the day his/her leave starts (Use Scheduler)
 //        try{
 //            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload(
 //                    leave.getEmployeeId(),
@@ -113,9 +116,13 @@ public class LeaveServiceImpl implements LeaveService {
         Leave leave = leaveRepository.findById(request.getLeaveId())
                 .orElseThrow(() -> new CustomException("Leave Id not found", HttpStatus.NOT_FOUND));
 
-        ApiResponse<EmployeeResponse> empResponse = null;
+        ApiResponse<EmployeeResponse> empResponse;
         try{
+
+            log.info("Calling Employee Profile Service for {} details",approvedEmployeeId);
             empResponse = employeeClient.getEmployeeByEmployeeId(approvedEmployeeId);
+            log.info("Employee {} details got", approvedEmployeeId);
+
         }catch (FeignException feignException){
             String cleanErrorMessage = "Microservice called failed";
             HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -129,6 +136,7 @@ public class LeaveServiceImpl implements LeaveService {
                 cleanErrorMessage = "Service is unreachable. Please try again later.";
                 responseStatus = HttpStatus.SERVICE_UNAVAILABLE;
             }
+            log.error("Employee Service unreachable");
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
 
@@ -140,9 +148,22 @@ public class LeaveServiceImpl implements LeaveService {
         if(leave.getApprovedBy() == null || leave.getApprovedBy().isEmpty()){
             leave.setApprovedBy(empResponse.getData().getEmployeeId());
             leave.setLeaveStatus(request.getLeaveStatus());
+            leave = leaveRepository.save(leave);
         }else {
-          // WIP: WORK IN PROGRESS
+            return new ApiResponse<>(
+                    true,
+                    "Leave already "+leave.getLeaveStatus()+" by: "+leave.getApprovedBy(),
+                    null,
+                    LocalDateTime.now(),
+                    200
+            );
         }
-        return null;
+        return new ApiResponse<>(
+                true,
+                "Leave "+leave.getLeaveStatus(),
+                null,
+                LocalDateTime.now(),
+                200
+        );
     }
 }

@@ -91,7 +91,7 @@ public class InternalServiceImpl implements InternalService {
             emailService.sendHtmlEmail(emailId, subject, htmlBody);
             log.info("Email sent to {}",emailId);
         } catch (Exception e) {
-            System.out.println("Email sent failed");
+            log.error("Email sending failed for {}",emailId);
         }
     }
 }

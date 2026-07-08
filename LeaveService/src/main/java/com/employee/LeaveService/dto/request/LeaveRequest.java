@@ -31,7 +31,7 @@ public class LeaveRequest {
     @NotBlank(message = "Provide a valid reason")
     private String reason;
 
-    @NotBlank(message = "Provide a leave type")
+    @NotNull(message = "Provide a leave type")
     private LeaveTypeEnum leaveType;
 
 }
