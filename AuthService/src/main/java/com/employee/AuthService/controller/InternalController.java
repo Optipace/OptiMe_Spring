@@ -25,4 +25,10 @@ public class InternalController {
         ApiResponse<?> response = internalService.deleteIdentity(employeeId);
         return ResponseEntity.status(200).body(response);
     }
+
+    @PostMapping("/sendWelcomeEmail")
+    public ResponseEntity<String> sendAccountCreatedEmail(@RequestParam("emailId") String emailId){
+        internalService.sendAccountCreatedEmail(emailId);
+        return ResponseEntity.ok("Email processed");
+    }
 }

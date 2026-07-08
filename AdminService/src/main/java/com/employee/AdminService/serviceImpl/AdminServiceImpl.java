@@ -66,6 +66,9 @@ public class AdminServiceImpl implements AdminService {
                employeeClient.createProfile(profilePayload);
                log.info("Employee Service is called");
 
+               // 5. For email service
+               authClient.sendAccountCreatedEmail(request.getEmailId());
+               log.info("Triggered account created email");
            }catch (FeignException e){
                if(isAuthCreated){
                    try{
@@ -90,7 +93,6 @@ public class AdminServiceImpl implements AdminService {
                }
                throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
            }
-           // TODO: Need to add an email so that after admin successfully adds employee he must receive email
             return new ApiResponse<>(
                     true,
                     "Employee added successfully",

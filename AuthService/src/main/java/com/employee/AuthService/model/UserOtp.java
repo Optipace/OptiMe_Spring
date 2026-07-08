@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
 
@@ -37,8 +38,8 @@ public class UserOtp {
     @Column(name = "mobile_otp", length = 6)
     private String mobileOtp;
 
-    @Column(name = "created_on",insertable = false,columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP", updatable = false)
-    @Generated(event = EventType.INSERT)
+    @Column(name = "created_on",insertable = false, updatable = false)
+//    @Generated(event = EventType.INSERT)
     private LocalDateTime createdOn;
 
 //    @Transient

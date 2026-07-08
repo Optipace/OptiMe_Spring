@@ -54,15 +54,27 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setCheckOutTime(null);
         attendance.setTotalWorkMin(0L);
         attendance.setAttendanceStatus(AttendanceStatusEnum.ONLINE);
-        attendanceRepository.save(attendance);
+
+        attendance = attendanceRepository.save(attendance);
+        boolean attendanceCreated = true;
 
         try{
             UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload();
             payload.setEmployeeId(attendance.getEmployeeId());
             payload.setEmployeeStatus(EmployeeStatusEnum.ACTIVE);
             employeeClient.updateEmployeeStatus(payload);
-            log.info("Employee service called after check-in");
+            log.info("Employee service called successfully after check-in");
         }catch (FeignException fe){
+            // THE SAFE COMPENSATING TRANSACTION
+            if (attendanceCreated) {
+                try {
+                    log.warn("Feign call failed. Manually rolling back attendance for: {}", employeeId);
+                    attendanceRepository.delete(attendance);
+                } catch (Exception rollbackEx) {
+                    log.error("CRITICAL ALARM: Database rollback failed for {}. Manual cleanup required! Error: {}",
+                            employeeId, rollbackEx.getMessage());
+                }
+            }
             String rawErrorJson = fe.contentUTF8();
             String cleanErrorMessage = "Microservices failed";
 

@@ -13,15 +13,14 @@ import feign.FeignException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.UUID;
@@ -41,6 +40,7 @@ public class UserServiceImpl implements UserService {
     private final EmployeeClient employeeClient;
     private final ObjectMapper objectMapper;
     //    private final ModelMapper modelMapper;
+    private final TemplateEngine templateEngine;
 
     @Override
     @Transactional
@@ -66,14 +66,19 @@ public class UserServiceImpl implements UserService {
         userOtp.setAvailable(RegisterEnum.Y); // Otp available status to Y (Not expired fresh otp)
         userOtp.setEmailOtp(String.valueOf(new Random().nextInt(899999) + 100000));
         userOtp.setMobileOtp(String.valueOf(new Random().nextInt(899999) + 100000));
-
+        userOtp.setCreatedOn(LocalDateTime.now());
         userOtpRepository.save(userOtp);
 
+        // 1. Variable for the HTML template
+        Context context = new Context();
+        context.setVariable("otpCode", userOtp.getEmailOtp());
+
+        // 2. Process the HTML file (points to src/main/resources/templates/OtpEmailTemplate.html)
+        String htmlBody = templateEngine.process("OtpEmailTemplate", context);
         String subject = "Welcome to Optipace Technologies";
-        String body = buildOtpTemplate(userOtp.getEmailOtp());
 
         try {
-            emailService.sendHtmlEmail(userOtp.getEmailId(), subject, body);
+            emailService.sendHtmlEmail(userOtp.getEmailId(), subject, htmlBody);
             return new ApiResponse<>(
                     true,
                     "Otp sent to " + userOtp.getContact() + " and " + userOtp.getEmailId() + " successfully",
@@ -104,6 +109,8 @@ public class UserServiceImpl implements UserService {
         }
 
         LocalDateTime expiryTime = userOtp.getCreatedOn().plusMinutes(5);
+        System.out.println("Expiry time : "+expiryTime);
+        System.out.println("Is expired : "+expiryTime.isBefore(LocalDateTime.now()));
         if (expiryTime.isBefore(LocalDateTime.now()) || userOtp.getAvailable().equals(RegisterEnum.N)) {
             throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
         }
@@ -247,18 +254,17 @@ public class UserServiceImpl implements UserService {
         }
 //        userOtpRepository.delete(userOtp);
 
+        String loginUrl = "http:login.optipace.com";
+        // 1. Variable for the HTML template
+        Context context = new Context();
+        context.setVariable("loginUrl", loginUrl);
+
+        // 2. Process the HTML file (points to src/main/resources/templates/RegistrationCompletionTemplate.html)
+        String htmlBody = templateEngine.process("RegistrationCompletionTemplate", context);
         String subject = "Welcome to Optipace Technologies";
-        String body = buildRegistrationCompletedTemplate("http://loginurl.com");
 
         try {
-            emailService.sendHtmlEmail(user.getEmailId(), subject, body);
-//            return new ApiResponse<>(
-//                    true,
-//                    "Registered successfully",
-//                    null,
-//                    LocalDateTime.now(),
-//                    200
-//            );
+            emailService.sendHtmlEmail(user.getEmailId(), subject, htmlBody);
         } catch (Exception e) {
             System.out.println("Email sending failed");
         }
@@ -321,118 +327,118 @@ public class UserServiceImpl implements UserService {
         );
     }
 
-    private String buildEmailTemplate(
-            String title,
-            String body) {
+//    private String buildEmailTemplate(
+//            String title,
+//            String body) {
+//
+//        return
+//
+//                "<div style=\"font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:25px;background:#ffffff;border:1px solid #e0e0e0;border-radius:8px;\">" +
+//                        "<div style=\"display:flex;align-items:center;justify-content:center;margin-bottom:20px;\">" +
+//                        "<img src=\"cid:logo\" style=\"width:50px;height:50px;margin-right:12px;\">" +
+//                        "<h2 style=\"margin:0;color:#1a73e8;font-size:24px;\">" + "Optipace Technologies" + "</h2>" +
+//                        "</div>" +
+//                        "<hr style=\"border:none;border-top:1px solid #e0e0e0;margin-bottom:25px;\">" +
+//                        body
+//                        +
+//                        "<hr style=\"border:none;border-top:1px solid #e0e0e0;margin-top:30px;margin-bottom:15px;\">" +
+//                        "<p style=\"font-size:12px;color:#999;text-align:center;\">" +
+//                        "This is an automated operational system email.<br>" +
+//                        "Please do not reply directly to this message." +
+//                        "</p>" +
+//                        "</div>";
+//    }
 
-        return
+//    private String buildOtpTemplate(String otpCode) {
+//
+//        String body =
+//                "<p style=\"font-size:16px;color:#333;\">Hello,</p>" +
+//                        "<p style=\"font-size:16px;color:#333;line-height:1.6;\">" +
+//                        "Use the verification code below to complete your registration session. This One-Time Password (OTP) is confidential." +
+//                        "</p>" +
+//                        "<div style=\"text-align:center;margin:35px 0;\">" +
+//                        "<span style=\"display:inline-block;font-size:34px;font-weight:bold;color:#1a73e8;letter-spacing:8px;padding:14px 32px;background:#f5f8ff;border:2px dashed #1a73e8;border-radius:8px;\">" +
+//                        otpCode
+//                        + "</span>" +
+//                        "</div>" +
+//                        "<p style=\"font-size:14px;color:#666;font-style:italic;text-align:center;\">" +
+//                        "Note: This code is valid for <strong>5 minutes</strong> only." +
+//                        "</p>";
 
-                "<div style=\"font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:25px;background:#ffffff;border:1px solid #e0e0e0;border-radius:8px;\">" +
-                        "<div style=\"display:flex;align-items:center;justify-content:center;margin-bottom:20px;\">" +
-                        "<img src=\"cid:logo\" style=\"width:50px;height:50px;margin-right:12px;\">" +
-                        "<h2 style=\"margin:0;color:#1a73e8;font-size:24px;\">" + "Optipace Technologies" + "</h2>" +
-                        "</div>" +
-                        "<hr style=\"border:none;border-top:1px solid #e0e0e0;margin-bottom:25px;\">" +
-                        body
-                        +
-                        "<hr style=\"border:none;border-top:1px solid #e0e0e0;margin-top:30px;margin-bottom:15px;\">" +
-                        "<p style=\"font-size:12px;color:#999;text-align:center;\">" +
-                        "This is an automated operational system email.<br>" +
-                        "Please do not reply directly to this message." +
-                        "</p>" +
-                        "</div>";
-    }
+//        return buildEmailTemplate(
+//                "OTP Verification",
+//                body);
+//    }
 
-    private String buildOtpTemplate(String otpCode) {
+//    private String buildAccountCreatedTemplate(String email, String registrationUrl) {
+//
+//        String body =
+//                "<div style=\"text-align:center;margin-bottom:20px;\">" +
+//                        "<img src=\"cid:account-created\" " +
+//                        "style=\"width:120px;height:auto;\">" +
+//                        "</div>" +
+//                        "<h1 style=\"margin-top:10px;margin-bottom:20px;color:#1a73e8;text-align:center;font-size:30px;\">" +
+//                        "Your Account is Created!" +
+//                        "</h1>" +
+//                        "<p style=\"font-size:16px;color:#333;line-height:1.6;\">" +
+//                        "Hello," +
+//                        "</p>" +
+//                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
+//                        "Congratulations! Your employee account has been successfully created." +
+//                        "</p>" +
+//                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
+//                        "Your registered email address is:" +
+//                        "</p>" +
+//                        "<div style=\"margin:25px 0;padding:15px;background:#f5f8ff;border:1px solid #d9e6ff;border-radius:8px;text-align:center;\">" +
+//                        "<span style=\"color:#1a73e8;font-size:18px;font-weight:bold;\">" +
+//                        email
+//                        + "</span>" +
+//                        "</div>" +
+//                        "<p style=\"text-align:center;color:#555;font-size:15px;line-height:1.7;\">" +
+//                        "Please complete your registration to activate your account and access the employee portal." +
+//                        "</p>" +
+//                        "<div style=\"text-align:center;margin:35px 0;\">" +
+//                        "<a href=\"" + registrationUrl + "\" " +
+//                        "style=\"background:#1a73e8;color:#ffffff;text-decoration:none;padding:15px 35px;border-radius:6px;display:inline-block;font-size:16px;font-weight:bold;\">" +
+//                        "Complete Your Registration" +
+//                        "</a>" +
+//                        "</div>";
+//
+//        return buildEmailTemplate("Account Created", body);
+//    }
 
-        String body =
-                "<p style=\"font-size:16px;color:#333;\">Hello,</p>" +
-                        "<p style=\"font-size:16px;color:#333;line-height:1.6;\">" +
-                        "Use the verification code below to complete your registration session. This One-Time Password (OTP) is confidential." +
-                        "</p>" +
-                        "<div style=\"text-align:center;margin:35px 0;\">" +
-                        "<span style=\"display:inline-block;font-size:34px;font-weight:bold;color:#1a73e8;letter-spacing:8px;padding:14px 32px;background:#f5f8ff;border:2px dashed #1a73e8;border-radius:8px;\">" +
-                        otpCode
-                        + "</span>" +
-                        "</div>" +
-                        "<p style=\"font-size:14px;color:#666;font-style:italic;text-align:center;\">" +
-                        "Note: This code is valid for <strong>5 minutes</strong> only." +
-                        "</p>";
-
-        return buildEmailTemplate(
-                "OTP Verification",
-                body);
-    }
-
-    private String buildAccountCreatedTemplate(String email, String registrationUrl) {
-
-        String body =
-                "<div style=\"text-align:center;margin-bottom:20px;\">" +
-                        "<img src=\"cid:account-created\" " +
-                        "style=\"width:120px;height:auto;\">" +
-                        "</div>" +
-                        "<h1 style=\"margin-top:10px;margin-bottom:20px;color:#1a73e8;text-align:center;font-size:30px;\">" +
-                        "Your Account is Created!" +
-                        "</h1>" +
-                        "<p style=\"font-size:16px;color:#333;line-height:1.6;\">" +
-                        "Hello," +
-                        "</p>" +
-                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
-                        "Congratulations! Your employee account has been successfully created." +
-                        "</p>" +
-                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
-                        "Your registered email address is:" +
-                        "</p>" +
-                        "<div style=\"margin:25px 0;padding:15px;background:#f5f8ff;border:1px solid #d9e6ff;border-radius:8px;text-align:center;\">" +
-                        "<span style=\"color:#1a73e8;font-size:18px;font-weight:bold;\">" +
-                        email
-                        + "</span>" +
-                        "</div>" +
-                        "<p style=\"text-align:center;color:#555;font-size:15px;line-height:1.7;\">" +
-                        "Please complete your registration to activate your account and access the employee portal." +
-                        "</p>" +
-                        "<div style=\"text-align:center;margin:35px 0;\">" +
-                        "<a href=\"" + registrationUrl + "\" " +
-                        "style=\"background:#1a73e8;color:#ffffff;text-decoration:none;padding:15px 35px;border-radius:6px;display:inline-block;font-size:16px;font-weight:bold;\">" +
-                        "Complete Your Registration" +
-                        "</a>" +
-                        "</div>";
-
-        return buildEmailTemplate("Account Created", body);
-    }
-
-    private String buildRegistrationCompletedTemplate(String loginUrl) {
-
-        String body =
-
-                "<div style=\"text-align:center;margin-bottom:20px;\">" +
-                        "<img src=\"cid:registration-completed\" " +
-                        "style=\"width:120px;height:auto;\">" +
-                        "</div>" +
-                        "<h1 style=\"margin-top:10px;margin-bottom:20px;color:#28a745;text-align:center;font-size:30px;\">" +
-                        "Your Registration is Completed!" +
-                        "</h1>" +
-                        "<p style=\"font-size:16px;color:#333;line-height:1.6;\">" +
-                        "Hello," +
-                        "</p>" +
-                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
-                        "Congratulations! Your employee registration has been completed successfully." +
-                        "</p>" +
-                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
-                        "Your account is now active and ready to use." +
-                        "</p>" +
-                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
-                        "Click the button below to login and start using the employee portal." +
-                        "</p>" +
-                        "<div style=\"text-align:center;margin:35px 0;\">" +
-                        "<a href=\"" + loginUrl + "\" " +
-                        "style=\"background:#28a745;color:#ffffff;text-decoration:none;padding:15px 35px;border-radius:6px;display:inline-block;font-size:16px;font-weight:bold;\">" +
-                        "Login to Your Account" +
-                        "</a>" +
-                        "</div>";
-
-        return buildEmailTemplate("Registration Completed", body);
-    }
+//    private String buildRegistrationCompletedTemplate(String loginUrl) {
+//
+//        String body =
+//
+//                "<div style=\"text-align:center;margin-bottom:20px;\">" +
+//                        "<img src=\"cid:registration-completed\" " +
+//                        "style=\"width:120px;height:auto;\">" +
+//                        "</div>" +
+//                        "<h1 style=\"margin-top:10px;margin-bottom:20px;color:#28a745;text-align:center;font-size:30px;\">" +
+//                        "Your Registration is Completed!" +
+//                        "</h1>" +
+//                        "<p style=\"font-size:16px;color:#333;line-height:1.6;\">" +
+//                        "Hello," +
+//                        "</p>" +
+//                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
+//                        "Congratulations! Your employee registration has been completed successfully." +
+//                        "</p>" +
+//                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
+//                        "Your account is now active and ready to use." +
+//                        "</p>" +
+//                        "<p style=\"font-size:16px;color:#333;line-height:1.8;\">" +
+//                        "Click the button below to login and start using the employee portal." +
+//                        "</p>" +
+//                        "<div style=\"text-align:center;margin:35px 0;\">" +
+//                        "<a href=\"" + loginUrl + "\" " +
+//                        "style=\"background:#28a745;color:#ffffff;text-decoration:none;padding:15px 35px;border-radius:6px;display:inline-block;font-size:16px;font-weight:bold;\">" +
+//                        "Login to Your Account" +
+//                        "</a>" +
+//                        "</div>";
+//
+//        return buildEmailTemplate("Registration Completed", body);
+//    }
 
     //    private String buildOtpTemplate(String otpCode){
 //        return  "    <div style=\"font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\">" +

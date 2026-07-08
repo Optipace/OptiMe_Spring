@@ -28,20 +28,18 @@ public class EmailServiceImpl implements EmailService {
             helper.setSubject(subject);
             helper.setText(body, true);
 
-            // logo
-            helper.addInline(
-                    "logo",
-                    new ClassPathResource("images/optipace.png"));
+            // Only attach the image if the HTML template actually asks for it!
+            if (body.contains("cid:logo")) {
+                helper.addInline("logo", new ClassPathResource("images/optipace.png"));
+            }
 
-            // Account Image
-            helper.addInline(
-                    "account-created",
-                    new ClassPathResource("images/account-created.png"));
+            if (body.contains("cid:account-created")) {
+                helper.addInline("account-created", new ClassPathResource("images/account-created.png"));
+            }
 
-            // Registration Image
-            helper.addInline(
-                    "registration-completed",
-                    new ClassPathResource("images/registration-completed.png"));
+            if (body.contains("cid:registration-completed")) {
+                helper.addInline("registration-completed", new ClassPathResource("images/registration-completed.png"));
+            }
 
             mailSender.send(mimeMessage);
             log.info("Email sent successfully to {}",to);
