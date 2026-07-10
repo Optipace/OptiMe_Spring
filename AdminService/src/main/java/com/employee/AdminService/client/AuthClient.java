@@ -4,7 +4,8 @@ import com.employee.AdminService.dto.request.AuthIdentityPayload;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(name = "AUTH-SERVICE", url = "http://localhost:7071")
+//@FeignClient(name = "AUTH-SERVICE", url = "http://localhost:7071")
+@FeignClient(name = "AUTH-SERVICE")
 public interface AuthClient {
     @PostMapping("/api/auth/internal/create-identity")
     void createIdentity(@RequestBody AuthIdentityPayload payload);

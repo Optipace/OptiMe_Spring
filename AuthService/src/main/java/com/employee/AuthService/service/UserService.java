@@ -1,12 +1,10 @@
 package com.employee.AuthService.service;
 
-import com.employee.AuthService.dto.request.LoginRequest;
-import com.employee.AuthService.dto.request.OtpRequest;
-import com.employee.AuthService.dto.request.CompleteRegisterRequest;
-import com.employee.AuthService.dto.request.ValidationRequest;
+import com.employee.AuthService.dto.request.*;
 import com.employee.AuthService.dto.response.ApiResponse;
 import com.employee.AuthService.dto.response.LoginResponse;
 import com.employee.AuthService.dto.response.ValidationResponse;
+import org.springframework.web.bind.annotation.RequestBody;
 
 public interface UserService {
 
@@ -19,4 +17,6 @@ public interface UserService {
     public ApiResponse<LoginResponse> login(LoginRequest request);
 
     public ApiResponse<?> getMasterDetails();
+
+    public ApiResponse<?> resetPassword(ResetPasswordRequest request);
 }

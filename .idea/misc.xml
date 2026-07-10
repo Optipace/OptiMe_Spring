@@ -11,6 +11,7 @@
         <option value="$PROJECT_DIR$/Gateway/pom.xml" />
         <option value="$PROJECT_DIR$/AdminService/pom.xml" />
         <option value="$PROJECT_DIR$/NotificationService/pom.xml" />
+        <option value="$PROJECT_DIR$/Eureka/pom.xml" />
       </list>
     </option>
   </component>

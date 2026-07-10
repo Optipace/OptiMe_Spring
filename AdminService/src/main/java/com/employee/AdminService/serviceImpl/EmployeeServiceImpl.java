@@ -1,6 +1,9 @@
 package com.employee.AdminService.serviceImpl;
 
 import com.employee.AdminService.client.LeaveClient;
+import com.employee.AdminService.client.NotificationClient;
+import com.employee.AdminService.dto.request.NotificationPayload;
+import com.employee.AdminService.dto.request.NotificationRequest;
 import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.dto.response.LeaveResponse;
 import com.employee.AdminService.exception.CustomException;
@@ -27,6 +30,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final ModelMapper modelMapper;
 
     private final ObjectMapper objectMapper;
+
+    private final NotificationClient notificationClient;
 
     @Override
     public ApiResponse<?> getAllAppliedLeaves() {
@@ -72,6 +77,25 @@ public class EmployeeServiceImpl implements EmployeeService {
                 true,
                 "Applied Leaves",
                 leaveResponses,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> sendBroadcastMessage(NotificationRequest request) {
+        NotificationPayload payload = new NotificationPayload();
+        payload.setEmployeeId("ALL");
+        payload.setTitle(request.getTitle());
+        payload.setMessage(request.getMessage());
+        payload.setType(request.getType());
+
+        notificationClient.sendBroadCastNotification(payload);
+
+        return new ApiResponse<>(
+                true,
+                "Message delivered successfully",
+                null,
                 LocalDateTime.now(),
                 200
         );

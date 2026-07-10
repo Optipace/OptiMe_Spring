@@ -3,29 +3,26 @@
   <component name="CompilerConfiguration">
     <annotationProcessing>
       <profile default="true" name="Default" enabled="true" />
-      <profile name="Annotation profile for EmployeeProfileService" enabled="true">
+      <profile name="Maven default annotation processors profile" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
-        </processorPath>
-        <module name="EmployeeProfileService" />
+        <module name="Eureka" />
       </profile>
-      <profile name="Annotation profile for AuthService" enabled="true">
+      <profile name="Annotation profile for NotificationService" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
         </processorPath>
-        <module name="NotificationService" />
         <module name="AdminService" />
         <module name="AttendanceService" />
         <module name="Gateway" />
-        <module name="AuthService" />
         <module name="LeaveService" />
+        <module name="AuthService" />
+        <module name="EmployeeProfileService" />
+        <module name="NotificationService" />
       </profile>
     </annotationProcessing>
   </component>
@@ -35,6 +32,7 @@
       <module name="AttendanceService" options="-parameters" />
       <module name="AuthService" options="-parameters" />
       <module name="EmployeeProfileService" options="-parameters" />
+      <module name="Eureka" options="-parameters" />
       <module name="Gateway" options="-parameters" />
       <module name="LeaveService" options="-parameters" />
       <module name="NotificationService" options="-parameters" />

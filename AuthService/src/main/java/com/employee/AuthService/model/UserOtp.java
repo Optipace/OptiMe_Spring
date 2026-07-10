@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.generator.EventType;
 
 import java.time.LocalDateTime;
@@ -38,9 +39,13 @@ public class UserOtp {
     @Column(name = "mobile_otp", length = 6)
     private String mobileOtp;
 
-    @Column(name = "created_on",insertable = false, updatable = false)
-//    @Generated(event = EventType.INSERT)
+    @Column(name = "created_on",updatable = false)
+    @CreationTimestamp
     private LocalDateTime createdOn;
+
+    @Column(name = "updated_on", nullable = false)
+    @UpdateTimestamp
+    private LocalDateTime updatedOn;
 
 //    @Transient
 //    public LocalDateTime getExpiryTime() {
@@ -49,7 +54,6 @@ public class UserOtp {
 ////        }
 //        return this.createdOn.plusMinutes(5);
 //    }
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 2)
     @NotNull
@@ -67,5 +71,9 @@ public class UserOtp {
     @Column(nullable = false, length = 1)
     @NotNull
     private RegisterEnum registerStatus = RegisterEnum.N;
+
+    private Integer retryCount = 0;
+
+    private Integer otpCount = 0;
 
 }

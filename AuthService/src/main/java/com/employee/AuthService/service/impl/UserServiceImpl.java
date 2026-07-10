@@ -1,6 +1,7 @@
 package com.employee.AuthService.service.impl;
 
 import com.employee.AuthService.client.EmployeeClient;
+import com.employee.AuthService.config.AppProperties;
 import com.employee.AuthService.dto.request.*;
 import com.employee.AuthService.dto.response.*;
 import com.employee.AuthService.enums.*;
@@ -21,6 +22,7 @@ import org.thymeleaf.context.Context;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.UUID;
@@ -39,8 +41,12 @@ public class UserServiceImpl implements UserService {
     private final EmailService emailService;
     private final EmployeeClient employeeClient;
     private final ObjectMapper objectMapper;
-    //    private final ModelMapper modelMapper;
     private final TemplateEngine templateEngine;
+    private static final long OTP_GENERATE_COUNT= 3;
+    private static final long OTP_RETRY_COUNT= 3;
+    private static final long OTP_LOCK_DURATION_MINUTES = 60;
+    private static final long OTP_EXPIRY_MINUTES = 5;
+    private final AppProperties appProperties;
 
     @Override
     @Transactional
@@ -61,17 +67,35 @@ public class UserServiceImpl implements UserService {
                     return newOtp;
                 });
 
+        if(userOtp.getId() != null){
+            if(userOtp.getOtpCount() >= OTP_GENERATE_COUNT){
+                LocalDateTime lockTime = userOtp.getUpdatedOn();
+                LocalDateTime unlockTime =lockTime.plusMinutes(OTP_LOCK_DURATION_MINUTES);
+                if(LocalDateTime.now().isBefore(unlockTime)){
+                    Duration remaining = Duration.between(LocalDateTime.now(), unlockTime);
 
-        userOtp.setRegisterStatus(RegisterEnum.N); // Register status to N (NO)
+                    long minutes = remaining.toMinutes();
+                    long seconds = remaining.minusMinutes(minutes).getSeconds();
+                    throw new CustomException("OTP generation limit exceeded. Try again in " + minutes + " min " + seconds + " sec",
+                            HttpStatus.BAD_REQUEST);
+                }
+                // Unlock after 1 hour
+                userOtp.setRetryCount(0);
+            }
+        }
+
+        userOtp.setRegisterStatus(RegisterEnum.N); // OTP Register status to N (NO)
         userOtp.setAvailable(RegisterEnum.Y); // Otp available status to Y (Not expired fresh otp)
         userOtp.setEmailOtp(String.valueOf(new Random().nextInt(899999) + 100000));
         userOtp.setMobileOtp(String.valueOf(new Random().nextInt(899999) + 100000));
-        userOtp.setCreatedOn(LocalDateTime.now());
+        userOtp.setRetryCount(0);
+        userOtp.setOtpCount(userOtp.getOtpCount() + 1);
         userOtpRepository.save(userOtp);
 
         // 1. Variable for the HTML template
         Context context = new Context();
         context.setVariable("otpCode", userOtp.getEmailOtp());
+        context.setVariable("validMinutes", OTP_EXPIRY_MINUTES);
 
         // 2. Process the HTML file (points to src/main/resources/templates/OtpEmailTemplate.html)
         String htmlBody = templateEngine.process("OtpEmailTemplate", context);
@@ -99,32 +123,51 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional
     public ApiResponse<ValidationResponse> validateOtp(ValidationRequest request) {
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
                 .orElseThrow(() -> new CustomException("Otp not found", HttpStatus.NOT_FOUND));
 
+        // Check otp is already registered or not
         if (userOtp.getRegisterStatus() == RegisterEnum.Y) {
-            throw new CustomException("User already registered", HttpStatus.CONFLICT);
+            throw new CustomException("OTP already verified", HttpStatus.CONFLICT);
         }
 
-        LocalDateTime expiryTime = userOtp.getCreatedOn().plusMinutes(5);
-        System.out.println("Expiry time : "+expiryTime);
-        System.out.println("Is expired : "+expiryTime.isBefore(LocalDateTime.now()));
+        boolean isEmailOtpInvalid = !(userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals(String.valueOf(appProperties.getOtp().getFixed())));
+        boolean isMobileOtpInvalid = !(userOtp.getMobileOtp().equals(request.getMobileOtp()) || request.getMobileOtp().equals(String.valueOf(appProperties.getOtp().getFixed())));
+
+        LocalDateTime expiryTime = userOtp.getUpdatedOn().plusMinutes(OTP_EXPIRY_MINUTES);
         if (expiryTime.isBefore(LocalDateTime.now()) || userOtp.getAvailable().equals(RegisterEnum.N)) {
+            userOtp.setAvailable(RegisterEnum.N);
+            userOtpRepository.save(userOtp);
             throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
         }
 
-        if ((userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals("1234")) &&
-                (userOtp.getMobileOtp().equals(request.getMobileOtp()) || request.getMobileOtp().equals("1234"))) {
-            userOtp.setAvailable(RegisterEnum.N);       // Expire the otp
-            userOtp.setRegisterStatus(RegisterEnum.Y);  // Employee registered successfully
-            userOtp.setValidated(StatusEnum.F);         // Set validation token to False
-            userOtp.setValidationToken(UUID.randomUUID().toString()); // Random validation token generation
-            userOtpRepository.saveAndFlush(userOtp);
-        } else {
-            throw new CustomException("Invalid OTP", HttpStatus.BAD_REQUEST);
+        if(userOtp.getRetryCount() >= OTP_RETRY_COUNT){
+            throw new CustomException("OTP retry limit exceeded. Please generate new otp", HttpStatus.BAD_REQUEST);
         }
+
+        if(isEmailOtpInvalid && isMobileOtpInvalid){
+            userOtp.setRetryCount(userOtp.getRetryCount() + 1);
+            userOtpRepository.saveAndFlush(userOtp);
+            throw new CustomException("Both Email and Mobile OTPs are invalid", HttpStatus.BAD_REQUEST);
+        }
+        if (isEmailOtpInvalid){
+            userOtp.setRetryCount(userOtp.getRetryCount() + 1);
+            userOtpRepository.saveAndFlush(userOtp);
+            throw new CustomException("Invalid Email OTP", HttpStatus.BAD_REQUEST);
+        }
+        if (isMobileOtpInvalid){
+            userOtp.setRetryCount(userOtp.getRetryCount() + 1);
+            userOtpRepository.saveAndFlush(userOtp);
+            throw new CustomException("Invalid Mobile OTP", HttpStatus.BAD_REQUEST);
+        }
+
+        userOtp.setAvailable(RegisterEnum.N);       // Expire the otp
+        userOtp.setRegisterStatus(RegisterEnum.Y);  // Employee OTP registered successfully
+        userOtp.setValidated(StatusEnum.F); // Set validation token to False
+        userOtp.setOtpCount(0);
+        userOtp.setValidationToken(UUID.randomUUID().toString()); // Random validation token generation
+        userOtpRepository.saveAndFlush(userOtp);
 
         User user = userRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
                 .orElseThrow(() -> new CustomException("Employee with this email or contact not found", HttpStatus.NOT_FOUND));
@@ -322,6 +365,66 @@ public class UserServiceImpl implements UserService {
                 true,
                 "Master Response",
                 masterResponse,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> resetPassword(ResetPasswordRequest request) {
+        UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
+                .orElseThrow(() -> new CustomException("Email Id or Contact not found", HttpStatus.NOT_FOUND));
+
+        // Check otp is already registered or not
+        if (userOtp.getRegisterStatus() == RegisterEnum.Y) {
+            throw new CustomException("OTP already verified", HttpStatus.CONFLICT);
+        }
+
+        boolean isEmailOtpInvalid = !(userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals(String.valueOf(appProperties.getOtp().getFixed())));
+        boolean isMobileOtpInvalid = !(userOtp.getMobileOtp().equals(request.getMobileOtp()) || request.getMobileOtp().equals(String.valueOf(appProperties.getOtp().getFixed())));
+
+        LocalDateTime expiryTime = userOtp.getUpdatedOn().plusMinutes(OTP_EXPIRY_MINUTES);
+        if (expiryTime.isBefore(LocalDateTime.now()) || userOtp.getAvailable().equals(RegisterEnum.N)) {
+            userOtp.setAvailable(RegisterEnum.N);
+            userOtpRepository.save(userOtp);
+            throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
+        }
+
+        if(userOtp.getRetryCount() >= OTP_RETRY_COUNT){
+            throw new CustomException("OTP retry limit exceeded. Please generate new otp", HttpStatus.BAD_REQUEST);
+        }
+
+        if(isEmailOtpInvalid && isMobileOtpInvalid){
+            userOtp.setRetryCount(userOtp.getRetryCount() + 1);
+            userOtpRepository.saveAndFlush(userOtp);
+            throw new CustomException("Both Email and Mobile OTPs are invalid", HttpStatus.BAD_REQUEST);
+        }
+        if (isEmailOtpInvalid){
+            userOtp.setRetryCount(userOtp.getRetryCount() + 1);
+            userOtpRepository.saveAndFlush(userOtp);
+            throw new CustomException("Invalid Email OTP", HttpStatus.BAD_REQUEST);
+        }
+        if (isMobileOtpInvalid){
+            userOtp.setRetryCount(userOtp.getRetryCount() + 1);
+            userOtpRepository.saveAndFlush(userOtp);
+            throw new CustomException("Invalid Mobile OTP", HttpStatus.BAD_REQUEST);
+        }
+
+        userOtp.setAvailable(RegisterEnum.N);
+        userOtp.setRegisterStatus(RegisterEnum.Y);
+        userOtp.setOtpCount(0);
+        String rawPassword = request.getPassword();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        User user =userRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
+                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+
+        user.getPassword().setPassword(encodedPassword);
+        userRepository.save(user);
+
+        return new ApiResponse<>(
+                true,
+                "Password Reset success",
+                null,
                 LocalDateTime.now(),
                 200
         );

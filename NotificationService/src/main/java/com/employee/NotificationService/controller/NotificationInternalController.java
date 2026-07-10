@@ -42,7 +42,7 @@ public class NotificationInternalController {
     public ResponseEntity<String> sendPublicBroadcast(@RequestBody NotificationRequest request) {
 
         // Target: /topic/company-announcements
-        // Don't append an employee ID because this goes to everyone!
+        // This goes to everyone!
         String broadcastChannel = "/topic/company-announcements";
 
         log.info("Doing company announcement");

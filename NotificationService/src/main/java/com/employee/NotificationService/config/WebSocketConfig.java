@@ -54,7 +54,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         WebSocketMessageBrokerConfigurer.super.configureClientInboundChannel(registration);
         registration.interceptors(new ChannelInterceptor() {
             @Override
-            public @Nullable Message<?> preSend(Message<?> message, MessageChannel channel) {
+            public Message<?> preSend(Message<?> message, MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
                 if(accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())){
