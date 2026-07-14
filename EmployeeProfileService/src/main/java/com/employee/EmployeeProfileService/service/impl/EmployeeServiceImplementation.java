@@ -1,5 +1,6 @@
 package com.employee.EmployeeProfileService.service.impl;
 
+import com.employee.EmployeeProfileService.client.AdminClient;
 import com.employee.EmployeeProfileService.client.AttendanceClient;
 import com.employee.EmployeeProfileService.client.NotificationClient;
 import com.employee.EmployeeProfileService.config.AppProperties;
@@ -11,10 +12,10 @@ import com.employee.EmployeeProfileService.enums.*;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
 import com.employee.EmployeeProfileService.model.Feedback;
-import com.employee.EmployeeProfileService.model.Office;
+//import com.employee.EmployeeProfileService.model.Office;
 import com.employee.EmployeeProfileService.repository.EmployeeRepository;
 import com.employee.EmployeeProfileService.repository.FeedbackRepository;
-import com.employee.EmployeeProfileService.repository.OfficeRepository;
+//import com.employee.EmployeeProfileService.repository.OfficeRepository;
 import com.employee.EmployeeProfileService.service.EmployeeService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -43,9 +44,13 @@ import java.util.UUID;
 @Slf4j
 public class EmployeeServiceImplementation implements EmployeeService {
     private static final long MAX_IMAGE_SIZE = 1024 * 1024; // MAX 1MB
+
     private final EmployeeRepository employeeRepository;
+
     private final ModelMapper mapperModel;
-    private final OfficeRepository officeRepository;
+
+//    private final OfficeRepository officeRepository;
+
     private final AppProperties appProperties;
 
     private final FeedbackRepository feedbackRepository;
@@ -55,6 +60,8 @@ public class EmployeeServiceImplementation implements EmployeeService {
     private final NotificationClient notificationClient;
 
     private final ObjectMapper objectMapper;
+
+    private final AdminClient adminClient;
 
     @Override
     public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
@@ -74,19 +81,18 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
     @Override
     public ApiResponse<EmployeeResponse> getEmployeeDetails(String employeeId) {
-
-        Office office = null;
+//         TODO : CALL ADMIN CLIENT
+//        Office office = null;
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
-        if (employee.getOffice() != null) {
-            office = officeRepository.findById(employee.getOffice().getId())
-                    .orElseThrow(() -> new CustomException("Something went wrong", HttpStatus.BAD_REQUEST));
-        }
-
         EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class);
         try {
+
+            log.info("Calling Admin service for office response");
+            ApiResponse<OfficeResponse> officeApiResponse = adminClient.getOfficeDetails(employee.getOfficeId());
+            log.info("Received response from Admin service");
 
             log.info("Attendance service is calling");
             ApiResponse<?> apiResponse = attendanceClient.getAttendanceStatus(employeeId);
@@ -109,6 +115,11 @@ public class EmployeeServiceImplementation implements EmployeeService {
                 response.setAttendanceStatus(apiResponse.getData().toString());
             }
 
+            if(officeApiResponse.getData() != null){
+                response.setOffice(officeApiResponse.getData());
+            }else{
+                response.setOffice(null);
+            }
 //            if(apiResponse != null || apiResponse.getData() != null){
 //                response.setAttendanceStatus(apiResponse.getData().toString());
 //            }
@@ -144,12 +155,12 @@ public class EmployeeServiceImplementation implements EmployeeService {
         }
 
 
-        if (office != null) {
-            OfficeResponse officeResponse = mapperModel.map(office, OfficeResponse.class);
-            response.setOffice(officeResponse);
-        } else {
-            response.setOffice(null);
-        }
+//        if (office != null) {
+//            OfficeResponse officeResponse = mapperModel.map(office, OfficeResponse.class);
+//            response.setOffice(officeResponse);
+//        } else {
+//            response.setOffice(null);
+//        }
 
         if (employee.getEmployeeProfilePath() != null) {
             try {
@@ -188,21 +199,21 @@ public class EmployeeServiceImplementation implements EmployeeService {
         );
     }
 
-    @Override
-    public ApiResponse<?> getOfficeNames() {
-        List<Office> office = officeRepository.findAll();
-        List<?> officeNames = office.stream()
-                .map(Office::getOfficeName)
-                .toList();
-
-        return new ApiResponse<>(
-                true,
-                "List of Office names",
-                officeNames,
-                LocalDateTime.now(),
-                200
-        );
-    }
+//    @Override
+//    public ApiResponse<?> getOfficeNames() {
+//        List<Office> office = officeRepository.findAll();
+//        List<?> officeNames = office.stream()
+//                .map(Office::getOfficeName)
+//                .toList();
+//
+//        return new ApiResponse<>(
+//                true,
+//                "List of Office names",
+//                officeNames,
+//                LocalDateTime.now(),
+//                200
+//        );
+//    }
 
     @Override
     public ApiResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId) {

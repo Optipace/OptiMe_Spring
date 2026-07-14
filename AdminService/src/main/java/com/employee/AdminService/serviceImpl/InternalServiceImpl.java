@@ -1,0 +1,60 @@
+package com.employee.AdminService.serviceImpl;
+
+import com.employee.AdminService.dto.response.ApiResponse;
+import com.employee.AdminService.dto.response.OfficeResponse;
+import com.employee.AdminService.exception.CustomException;
+import com.employee.AdminService.model.Office;
+import com.employee.AdminService.repository.OfficeRepository;
+import com.employee.AdminService.service.InternalService;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@AllArgsConstructor
+@Slf4j
+public class InternalServiceImpl implements InternalService {
+    private final OfficeRepository officeRepository;
+    private final ModelMapper modelMapper;
+    @Override
+    public ApiResponse<List<OfficeResponse>> getOfficeList() {
+        log.info("Requested of office list");
+        List<Office> officeList = officeRepository.findAll();
+
+        List<OfficeResponse> officeResponseList = officeList.stream()
+                .map(o -> modelMapper.map(o,OfficeResponse.class))
+                .toList();
+//        ListOfOfficeResponse officeResponsesList = new ListOfOfficeResponse(officeResponseList);
+
+        log.info("Returning office list {}",officeResponseList);
+        return new ApiResponse<>(
+                true,
+                "Office response list",
+                officeResponseList,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<OfficeResponse> getOfficeDetailsByOfficeId(String officeId) {
+        log.info("Requested office details for office Id {}", officeId);
+        Office office = officeRepository.findById(officeId)
+                .orElseThrow(() -> new CustomException("No office found for this Id", HttpStatus.NOT_FOUND));
+
+        OfficeResponse response = modelMapper.map(office, OfficeResponse.class);
+        log.info("Returning office details of office Id {}",office.getId());
+        return new ApiResponse<>(
+                true,
+                "Office details",
+                response,
+                LocalDateTime.now(),
+                200
+        );
+    }
+}

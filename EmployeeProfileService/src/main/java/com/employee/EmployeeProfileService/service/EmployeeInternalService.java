@@ -6,6 +6,7 @@ import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusReque
 import com.employee.EmployeeProfileService.dto.response.ApiResponse;
 import com.employee.EmployeeProfileService.dto.response.EmployeeInternalResponse;
 import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
+import org.springframework.web.bind.annotation.RequestParam;
 
 public interface EmployeeInternalService {
 
@@ -22,5 +23,7 @@ public interface EmployeeInternalService {
     public ApiResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request);
 
     public ApiResponse<EmployeeInternalResponse> getEmployeeByEmployeeId(String employeeId);
+
+    public ApiResponse<?> deleteIdentity(String employeeId);
 
 }

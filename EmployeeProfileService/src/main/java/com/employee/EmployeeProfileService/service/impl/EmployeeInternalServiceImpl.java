@@ -10,11 +10,10 @@ import com.employee.EmployeeProfileService.enums.RoleEnum;
 import com.employee.EmployeeProfileService.enums.WorkTypeEnum;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
-import com.employee.EmployeeProfileService.model.Office;
 import com.employee.EmployeeProfileService.repository.EmployeeRepository;
-import com.employee.EmployeeProfileService.repository.OfficeRepository;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,11 +23,10 @@ import java.util.List;
 
 @AllArgsConstructor
 @Service
+@Slf4j
 public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
     private final EmployeeRepository employeeRepository;
-
-    private final OfficeRepository officeRepository;
 
     private final ModelMapper modelMapper;
 
@@ -52,9 +50,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         newEmployee.setProfileStatus(4);
         newEmployee.setDateOfJoining(request.getDateOfJoining());
         newEmployee.setPermanentAddress(request.getPermanentAddress());
-        Office office = officeRepository.findById(request.getOfficeId())
-                        .orElseThrow(() -> new CustomException("Office not found", HttpStatus.NOT_FOUND));
-        newEmployee.setOffice(office);
+        newEmployee.setOfficeId(request.getOfficeId());
 
         employeeRepository.save(newEmployee);
         return new ApiResponse<>(
@@ -112,22 +108,18 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
     @Override
     public ApiResponse<?> getMasterDetails(){
-        List<Office> office = officeRepository.findAll();
 
-        List<OfficeResponse> listOfOfficeResponse = office.stream()
-                .map(o -> modelMapper.map(o, OfficeResponse.class))
-                .toList();
         List<EmployeeDesignationEnum> employeeDesignationEnumList = List.of(EmployeeDesignationEnum.values());
         List<RoleEnum> roleEnumList = List.of(RoleEnum.values());
         List<WorkTypeEnum> workTypeEnumList = List.of(WorkTypeEnum.values());
         List<EmployeeStatusEnum> employeeStatusEnumList = List.of(EmployeeStatusEnum.values());
 
-        ListOfOfficeResponse masterResponse = new ListOfOfficeResponse(listOfOfficeResponse,employeeDesignationEnumList, roleEnumList, workTypeEnumList, employeeStatusEnumList);
+        MasterEmployeeResponse masterEmployeeResponse = new MasterEmployeeResponse(employeeDesignationEnumList, roleEnumList, workTypeEnumList, employeeStatusEnumList);
 
         return new ApiResponse<>(
                 true,
                 "Master Response",
-                masterResponse,
+                masterEmployeeResponse,
                 LocalDateTime.now(),
                 200
         );
@@ -173,4 +165,21 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 200
         );
     }
+
+    @Override
+    public ApiResponse<?> deleteIdentity(String employeeId) {
+        employeeRepository.findEmployeeByEmployeeId(employeeId).ifPresent( employee -> {
+            log.info("Rollback executed: Employee {} deleted.", employeeId);
+            employeeRepository.delete(employee);
+        });
+        return new ApiResponse<>(
+                true,
+                "Employee identity rollback processed",
+                null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+
 }

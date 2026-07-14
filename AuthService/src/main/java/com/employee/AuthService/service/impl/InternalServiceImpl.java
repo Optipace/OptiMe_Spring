@@ -6,15 +6,12 @@ import com.employee.AuthService.enums.UserStatusEnum;
 import com.employee.AuthService.exception.CustomException;
 import com.employee.AuthService.model.User;
 import com.employee.AuthService.repository.UserRepository;
-import com.employee.AuthService.service.EmailService;
 import com.employee.AuthService.service.InternalService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 
@@ -24,8 +21,6 @@ import java.time.LocalDateTime;
 public class InternalServiceImpl implements InternalService {
 
     private final UserRepository userRepository;
-    private final TemplateEngine templateEngine;
-    private final EmailService emailService;
 
     @Override
     public ApiResponse<?> createIdentity(AuthIdentityRequest request) {
@@ -76,22 +71,5 @@ public class InternalServiceImpl implements InternalService {
                 LocalDateTime.now(),
                 200
         );
-    }
-
-    @Override
-    public void sendAccountCreatedEmail(String emailId) {
-        String registrationUrl = "http://localhost:/completedregistration";
-        Context context = new Context();
-        context.setVariable("emailId",emailId);
-        context.setVariable("registrationUrl", registrationUrl);
-
-        String htmlBody = templateEngine.process("AccountCreationTemplate", context);
-        String subject = "Welcome to Optipace Technologies";
-        try {
-            emailService.sendHtmlEmail(emailId, subject, htmlBody);
-            log.info("Email sent to {}",emailId);
-        } catch (Exception e) {
-            log.error("Email sending failed for {}",emailId);
-        }
     }
 }

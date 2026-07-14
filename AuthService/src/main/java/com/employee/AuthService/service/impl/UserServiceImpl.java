@@ -1,5 +1,7 @@
 package com.employee.AuthService.service.impl;
 
+import com.employee.AuthService.client.AdminClient;
+import com.employee.AuthService.client.CommunicationClient;
 import com.employee.AuthService.client.EmployeeClient;
 import com.employee.AuthService.config.AppProperties;
 import com.employee.AuthService.dto.request.*;
@@ -17,13 +19,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
@@ -38,15 +39,15 @@ public class UserServiceImpl implements UserService {
     private final PasswordRepository passwordRepository;
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
-    private final EmailService emailService;
     private final EmployeeClient employeeClient;
     private final ObjectMapper objectMapper;
-    private final TemplateEngine templateEngine;
     private static final long OTP_GENERATE_COUNT= 3;
     private static final long OTP_RETRY_COUNT= 3;
     private static final long OTP_LOCK_DURATION_MINUTES = 60;
     private static final long OTP_EXPIRY_MINUTES = 5;
     private final AppProperties appProperties;
+    private final CommunicationClient communicationClient;
+    private final AdminClient adminClient;
 
     @Override
     @Transactional
@@ -91,35 +92,34 @@ public class UserServiceImpl implements UserService {
         userOtp.setRetryCount(0);
         userOtp.setOtpCount(userOtp.getOtpCount() + 1);
         userOtpRepository.save(userOtp);
-
-        // 1. Variable for the HTML template
-        Context context = new Context();
-        context.setVariable("otpCode", userOtp.getEmailOtp());
-        context.setVariable("validMinutes", OTP_EXPIRY_MINUTES);
-
-        // 2. Process the HTML file (points to src/main/resources/templates/OtpEmailTemplate.html)
-        String htmlBody = templateEngine.process("OtpEmailTemplate", context);
-        String subject = "Welcome to Optipace Technologies";
-
+        String message = "Otp sent successfully";
         try {
-            emailService.sendHtmlEmail(userOtp.getEmailId(), subject, htmlBody);
-            return new ApiResponse<>(
-                    true,
-                    "Otp sent to " + userOtp.getContact() + " and " + userOtp.getEmailId() + " successfully",
-                    null,
-                    LocalDateTime.now(),
-                    200
-            );
-        } catch (Exception e) {
-            return new ApiResponse<>(
-                    false,
-                    "Something went wrong! Error while sending email\n" +
-                            "Please try again",
-                    null,
-                    LocalDateTime.now(),
-                    500
-            );
+            log.info("Calling Email Service to send new otp");
+            ApiResponse<String> apiResponse = communicationClient.sendNewOtpToEmail(userOtp.getEmailId(), userOtp.getEmailOtp(), OTP_EXPIRY_MINUTES);
+            log.info("Email service called");
+
+            if(apiResponse != null && apiResponse.getStatusCode() == 200) {
+                message = apiResponse.getMessage();
+                // Call the SMS client here for userOtp.getMobileOtp()
+            }
+        } catch (FeignException e) {
+            log.error("Email service failed",e);
+            throw new CustomException("Something went wrong! Error while sending email\nPlease try again", HttpStatus.INTERNAL_SERVER_ERROR);
+//            return new ApiResponse<>(
+//                    false,
+//                    "Something went wrong! Error while sending email\nPlease try again",
+//                    null,
+//                    LocalDateTime.now(),
+//                    500
+//            );
         }
+        return new ApiResponse<>(
+                true,
+                message,
+                null,
+                LocalDateTime.now(),
+                200
+        );
     }
 
     @Override
@@ -229,7 +229,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new CustomException("Employee ID not found", HttpStatus.NOT_FOUND));
 
         UserOtp userOtp = userOtpRepository.findByEmailIdOrContact(user.getEmailId(), user.getContact())
-                .orElseThrow(() -> new CustomException("Validated Email-Id or contact not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Validated Email-Id or contact not found OR check provided employee Id", HttpStatus.NOT_FOUND));
 
         if (!userOtp.getValidationToken().equals(request.getValidationToken())) {
             throw new CustomException("Token not found. Invalid user!", HttpStatus.BAD_REQUEST);
@@ -296,24 +296,35 @@ public class UserServiceImpl implements UserService {
             throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
         }
 //        userOtpRepository.delete(userOtp);
+        String message = "Email sent";
+        try{
+            log.info("Calling email service");
+            ApiResponse<String> apiResponse = communicationClient.sendCompleteRegisteredEmail(user.getEmailId());
+            log.info("Email service called to send completed registration email");
 
-        String loginUrl = "http:login.optipace.com";
-        // 1. Variable for the HTML template
-        Context context = new Context();
-        context.setVariable("loginUrl", loginUrl);
+            if(apiResponse != null && apiResponse.getStatusCode() == 200){
+                message = apiResponse.getMessage();
+            }
+        }catch (FeignException e){
+            log.warn("Failed to completed registration email", e);
 
-        // 2. Process the HTML file (points to src/main/resources/templates/RegistrationCompletionTemplate.html)
-        String htmlBody = templateEngine.process("RegistrationCompletionTemplate", context);
-        String subject = "Welcome to Optipace Technologies";
-
-        try {
-            emailService.sendHtmlEmail(user.getEmailId(), subject, htmlBody);
-        } catch (Exception e) {
-            System.out.println("Email sending failed");
+            return new ApiResponse<>(
+                    false,
+                    "Failed to send email",
+                    null,
+                    LocalDateTime.now(),
+                    500
+            );
         }
+
+//        try {
+//            emailService.sendHtmlEmail(user.getEmailId(), subject, htmlBody);
+//        } catch (Exception e) {
+//            log.error("Email sending failed", e);
+//        }
         return new ApiResponse<>(
                 true,
-                "Registered successfully",
+                "Registered successfully \n " +message,
                 null,
                 LocalDateTime.now(),
                 HttpStatus.OK
@@ -355,11 +366,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public ApiResponse<?> getMasterDetails() {
 
-        ListOfOfficeResponse masterResponse = null;
-        ApiResponse<ListOfOfficeResponse> apiResponse = employeeClient.getMasterDetails();
+        ApiResponse<List<OfficeResponse>> officeResponse = adminClient.getOfficeList();
+        ApiResponse<MasterResponse> empResponse = employeeClient.getMasterDetails();
 
-        if (apiResponse != null && apiResponse.getData() != null) {
-            masterResponse = apiResponse.getData();
+        MasterResponse masterResponse = (empResponse != null && empResponse.getData() != null)
+                ? empResponse.getData()
+                : new MasterResponse();
+
+        if (officeResponse != null && officeResponse.getData() != null) {
+            masterResponse.setOfficeResponse(officeResponse.getData());
         }
         return new ApiResponse<>(
                 true,

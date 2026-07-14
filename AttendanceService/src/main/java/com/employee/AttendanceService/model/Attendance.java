@@ -1,6 +1,7 @@
 package com.employee.AttendanceService.model;
 
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
+import com.employee.AttendanceService.enums.WorkTypeEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -36,5 +37,19 @@ public class Attendance {
     @NotBlank
     @Column(name = "employee_id",nullable = false, length = 12)
     private String employeeId;
+
+    @NotBlank(message = "Provide latitude")
+    @Column(nullable = false, length = 13)
+    private String latitude;
+
+    @NotBlank(message = "Provide longitude")
+    @Column(nullable = false, length = 14)
+    private String longitude;
+
+    private String filePath;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "attendance_type", nullable = false)
+    private WorkTypeEnum attendanceType;
 
 }

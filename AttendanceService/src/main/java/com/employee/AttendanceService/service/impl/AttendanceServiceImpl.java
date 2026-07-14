@@ -1,10 +1,12 @@
 package com.employee.AttendanceService.service.impl;
 
 import com.employee.AttendanceService.client.EmployeeClient;
+import com.employee.AttendanceService.config.AppProperties;
 import com.employee.AttendanceService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
 import com.employee.AttendanceService.enums.EmployeeStatusEnum;
+import com.employee.AttendanceService.enums.WorkTypeEnum;
 import com.employee.AttendanceService.exception.CustomException;
 import com.employee.AttendanceService.model.*;
 import com.employee.AttendanceService.repository.AttendanceRepository;
@@ -16,15 +18,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -39,9 +48,15 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     private final ObjectMapper objectMapper;
 
+    private static final long MAX_IMAGE_SIZE = 1024 * 1024;
+
+    private final AppProperties appProperties;
+
+
     @Override
     @Transactional
-    public ApiResponse<?> employeeCheckIn(String employeeId) {
+    public ApiResponse<?> employeeCheckIn(String employeeId, MultipartFile file,
+                                          String latitude, String longitude, WorkTypeEnum attendanceType) {
 
         boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNull(employeeId);
 
@@ -54,6 +69,31 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setCheckOutTime(null);
         attendance.setTotalWorkMin(0L);
         attendance.setAttendanceStatus(AttendanceStatusEnum.ONLINE);
+        attendance.setLatitude(latitude);
+        attendance.setLongitude(longitude);
+        attendance.setAttendanceType(attendanceType);
+
+        if (file != null && !file.isEmpty()){
+//            throw new CustomException("File is empty", HttpStatus.BAD_REQUEST);
+            log.info("Incoming file size {}", file.getSize());
+            if (file.getSize() > MAX_IMAGE_SIZE)
+                throw new CustomException("Image exceeds 1MB limit", HttpStatus.BAD_REQUEST);
+
+            String contentType = file.getContentType();
+
+            log.info("Incoming content type {}", contentType);
+
+            if (!("image/jpeg".equals(contentType) || "image/png".equals(contentType) || "image/jpg".equals(contentType))) {
+                throw new CustomException("Only JPEG or PNG files are allowed", HttpStatus.BAD_REQUEST);
+            }
+
+            String filePath = saveFile(file, appProperties.getImage().getUploadDir() + "EverydayAttendanceSelfies/" + employeeId + "/");
+            log.info("Image saved path {}", filePath);
+            attendance.setFilePath(filePath);
+        }else{
+            log.info("Employee {} checked in without a photo", employeeId);
+            attendance.setFilePath("NULL");
+        }
 
         attendance = attendanceRepository.save(attendance);
         boolean attendanceCreated = true;
@@ -235,5 +275,23 @@ public class AttendanceServiceImpl implements AttendanceService {
                 response,
                 HttpStatus.OK
         );
+    }
+
+    private String saveFile(MultipartFile file, String folder) {
+        try {
+
+            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            Path path = Paths.get(folder + fileName);
+
+            Files.createDirectories(path.getParent());
+
+            // Use streaming (better for large files)
+            Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+
+            return path.toString(); // return file path
+
+        } catch (IOException e) {
+            throw new CustomException("File upload failed", HttpStatus.BAD_REQUEST);
+        }
     }
 }

@@ -1,5 +1,7 @@
 package com.employee.NotificationService.service;
 
+import com.employee.NotificationService.dto.response.ApiResponse;
+
 public interface EmailService {
-    void sendHtmlEmail(String to, String subject, String body);
+    ApiResponse<String> sendHtmlEmail(String to, String subject, String body);
 }

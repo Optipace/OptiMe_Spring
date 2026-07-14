@@ -12,7 +12,7 @@ import java.util.Properties;
 public class MailConfig {
     @Value("${MAIL_USERNAME:noreply@test.com}")
      private String username;
-    @Value("@{MAIL_PASSWORD}")
+    @Value("${MAIL_PASSWORD}")
      private String password;
 
     @Bean
@@ -26,8 +26,13 @@ public class MailConfig {
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
-        props.put("mai.smtp.starttls.enable", "true");
+        props.put("mail.smtp.starttls.enable", "true");
         props.put("mail.debug", "true");
+
+        // Injecting the timeouts as specified in properties file
+        props.put("mail.smtp.connectiontimeout", "5000");
+        props.put("mail.smtp.timeout", "5000");
+        props.put("mail.smtp.writetimeout", "5000");
 
         return mailSender;
     }

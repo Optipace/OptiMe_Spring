@@ -2,6 +2,7 @@ package com.employee.Gateway.filter;
 
 import com.employee.Gateway.config.RouteValidator;
 import com.employee.Gateway.util.JwtUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -16,6 +17,7 @@ import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
 
 @Component
+@Slf4j
 public class GatewayAuthenticationFilter extends AbstractGatewayFilterFactory<GatewayAuthenticationFilter.Config>{
 
     private final JwtUtil jwtUtil;
@@ -45,7 +47,10 @@ public class GatewayAuthenticationFilter extends AbstractGatewayFilterFactory<Ga
                 }
                 try{
                     // 1. Validate token
-                    jwtUtil.validateToken(authHeader);
+                    if(!jwtUtil.validateToken(authHeader)){
+                        log.error("JWT validation failed");
+                        return  handleUnauthorised(exchange);
+                    }
 
                     // 2. Extract employeeId and role
                     String employeeId = jwtUtil.extractEmployeeId(authHeader);
@@ -71,7 +76,7 @@ public class GatewayAuthenticationFilter extends AbstractGatewayFilterFactory<Ga
 
                     return chain.filter(mutatedExchange);
                 }catch (Exception e){
-                    System.out.println("CRITICAL JWT ERROR: " + e.getMessage());
+                    log.error("CRITICAL JWT ERROR: " + e.getMessage());
                     e.printStackTrace();
                     return handleUnauthorised(exchange);
                 }

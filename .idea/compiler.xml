@@ -9,7 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="Eureka" />
       </profile>
-      <profile name="Annotation profile for NotificationService" enabled="true">
+      <profile name="Annotation profile for AdminService" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -19,8 +19,8 @@
         <module name="AdminService" />
         <module name="AttendanceService" />
         <module name="Gateway" />
-        <module name="LeaveService" />
         <module name="AuthService" />
+        <module name="LeaveService" />
         <module name="EmployeeProfileService" />
         <module name="NotificationService" />
       </profile>

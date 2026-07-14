@@ -15,7 +15,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ListOfOfficeResponse {
+public class MasterEmployeeResponse {
 //    private String OfficeId;
 //    private String officeName;
 //    private String latitude;
@@ -24,7 +24,7 @@ public class ListOfOfficeResponse {
 //    private String address;
 //    private String contact;
 //    private String googleMap;
-    private List<OfficeResponse> officeResponseList;
+//    private List<OfficeResponse> officeResponseList;
     private List<EmployeeDesignationEnum> availableDesignations;
     private List<RoleEnum> roleEnumList;
     private List<WorkTypeEnum> workTypeEnumList;

@@ -22,15 +22,14 @@ public class JwtUtil {
 
     public String generateToken(String username, String contact,String EmailId, String EmployeeId, String role){
         Map<String, Object> claims = new HashMap<>();
-        claims.put("Contact", contact);
-        claims.put("EmailId", EmailId);
-        claims.put("EmployeeId", EmployeeId);
-        claims.put("Role",role);
+        claims.put("contact", contact);
+        claims.put("emailId", EmailId);
+        claims.put("employeeId", EmployeeId);
+        claims.put("role",role);
         return Jwts.builder()
                 .claims(claims)
                 .subject(username)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getKey())
                 .compact();
     }
@@ -52,15 +51,15 @@ public class JwtUtil {
     }
 
     public String extractContact(String token){
-        return extractClaims(token).get("Contact", String.class);
+        return extractClaims(token).get("contact", String.class);
     }
 
     public String extractEmailId(String token){
-        return extractClaims(token).get("EmailId", String.class);
+        return extractClaims(token).get("emailId", String.class);
     }
 
     public String extractEmployeeId(String token){
-        return extractClaims(token).get("EmployeeId",String.class);
+        return extractClaims(token).get("employeeId",String.class);
     }
 
     public boolean validateToken(String token){

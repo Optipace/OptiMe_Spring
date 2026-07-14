@@ -18,19 +18,19 @@ public class EmployeeInternalController {
 
     private final EmployeeInternalService empInternalService;
 
-    @PostMapping("/create-profile")
+    @PostMapping("/createProfile")
     public ResponseEntity<ApiResponse<?>> createProfile(@RequestBody EmployeeProfileRequest request){
         ApiResponse<?> response = empInternalService.createProfile(request);
         return ResponseEntity.status(200).body(response);
     }
 
-    @GetMapping("/get-profile")
+    @GetMapping("/getProfile")
     public ResponseEntity<ApiResponse<EmployeeResponse>> getProfile(@RequestParam String employeeId){
         ApiResponse<EmployeeResponse> response = empInternalService.getProfile(employeeId);
         return ResponseEntity.status(200).body(response);
     }
 
-    @PostMapping("/complete-profile")
+    @PostMapping("/completeProfile")
     public ResponseEntity<ApiResponse<?>> completeProfile(@RequestBody CompleteProfileRequest request){
         ApiResponse<?> response = empInternalService.completeProfile(request);
         return ResponseEntity.status(200).body(response);
@@ -57,6 +57,12 @@ public class EmployeeInternalController {
     public ResponseEntity<ApiResponse<EmployeeInternalResponse>> getEmployeeByEmployeeId(@RequestParam("employeeId")String employeeId){
         ApiResponse<EmployeeInternalResponse> response = empInternalService.getEmployeeByEmployeeId(employeeId);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/deleteIdentity")
+    public ResponseEntity<ApiResponse<?>> deleteIdentity(@RequestParam("employeeId") String employeeId){
+        ApiResponse<?> response = empInternalService.deleteIdentity(employeeId);
+        return ResponseEntity.status(200).body(response);
     }
 
 }

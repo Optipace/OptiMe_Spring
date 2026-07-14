@@ -95,7 +95,9 @@ public class Employee {
 
     private String bloodGroup;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "office_id")
-    private Office office;
+    @NotBlank(message = "Office Id is not provided")
+    private String officeId;
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "office_id")
+//    private Office office;
 }

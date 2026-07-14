@@ -27,7 +27,7 @@ public class JwtUtil {
     }
 
     public String extractEmployeeId(String token){
-        return extractAllClaims(token).get("EmployeeId", String.class);
+        return extractAllClaims(token).get("employeeId", String.class);
     }
 
     public void validateToken(final String token){

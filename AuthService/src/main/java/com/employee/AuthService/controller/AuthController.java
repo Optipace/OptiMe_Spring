@@ -29,10 +29,10 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/complete-registration")
+    @PostMapping("/completeRegistration")
     public ResponseEntity<ApiResponse<?>> completeRegistration(@Valid @RequestBody CompleteRegisterRequest request){
         ApiResponse<?> response = userService.completeRegistration(request);
-        return ResponseEntity.status(201).body(response);
+        return ResponseEntity.status(200).body(response);
     }
 
     @PostMapping("/login")

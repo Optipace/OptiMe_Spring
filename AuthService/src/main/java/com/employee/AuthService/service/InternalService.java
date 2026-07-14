@@ -7,6 +7,4 @@ public interface InternalService {
     public ApiResponse<?> createIdentity(AuthIdentityRequest request);
 
     public ApiResponse<?> deleteIdentity(String employeeId);
-
-    void sendAccountCreatedEmail(String emailId);
 }
