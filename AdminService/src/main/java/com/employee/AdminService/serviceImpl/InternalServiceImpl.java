@@ -2,6 +2,7 @@ package com.employee.AdminService.serviceImpl;
 
 import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.dto.response.OfficeResponse;
+import com.employee.AdminService.enums.OfficeStatus;
 import com.employee.AdminService.exception.CustomException;
 import com.employee.AdminService.model.Office;
 import com.employee.AdminService.repository.OfficeRepository;
@@ -46,9 +47,18 @@ public class InternalServiceImpl implements InternalService {
         log.info("Requested office details for office Id {}", officeId);
         Office office = officeRepository.findById(officeId)
                 .orElseThrow(() -> new CustomException("No office found for this Id", HttpStatus.NOT_FOUND));
-
+        if(office.getOfficeStatus().equals(OfficeStatus.DEACTIVATE)){
+            log.info("The details for office Id {} is DEACTIVATED so returning null", officeId);
+            return new ApiResponse<>(
+                    true,
+                    "The office with office Id "+officeId+" is deactivated",
+                    null,
+                    LocalDateTime.now(),
+                    200
+            );
+        }
         OfficeResponse response = modelMapper.map(office, OfficeResponse.class);
-        log.info("Returning office details of office Id {}",office.getId());
+        log.info("Returning office details for office Id {}",office.getId());
         return new ApiResponse<>(
                 true,
                 "Office details",
@@ -57,4 +67,23 @@ public class InternalServiceImpl implements InternalService {
                 200
         );
     }
+
+    @Override
+    public ApiResponse<?> getOfficeNames() {
+        List<Office> officeList = officeRepository.findAll();
+
+        List<String> officeNames = officeList.stream()
+                .filter(office -> !OfficeStatus.DEACTIVATE.equals(office.getOfficeStatus()))
+                .map(Office::getOfficeName)
+                .toList();
+        return new ApiResponse<>(
+                true,
+                "List of office names",
+                officeNames,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+
 }

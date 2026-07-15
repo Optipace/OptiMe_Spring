@@ -7,13 +7,20 @@ import com.employee.AdminService.client.NotificationClient;
 import com.employee.AdminService.dto.request.*;
 import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.dto.response.LeaveResponse;
+import com.employee.AdminService.dto.response.OfficeResponse;
+import com.employee.AdminService.dto.response.PageResponse;
+import com.employee.AdminService.enums.OfficeStatus;
 import com.employee.AdminService.exception.CustomException;
+import com.employee.AdminService.model.Office;
 import com.employee.AdminService.repository.OfficeRepository;
 import com.employee.AdminService.service.AdminService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.cglib.core.Local;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -139,6 +146,112 @@ public class AdminServiceImpl implements AdminService {
                 200
         );
     }
+
+    @Override
+    public ApiResponse<PageResponse<OfficeResponse>> getOfficeList(Pageable pageable) {
+        Page<Office> officePage = officeRepository.findAll(pageable);
+        List<Office> officeList = officePage.getContent();
+
+        if(officePage.isEmpty()){
+            throw new CustomException("No office records found", HttpStatus.NOT_FOUND);
+        }
+
+        List<OfficeResponse> officeResponseList = officeList.stream()
+                .map(office -> modelMapper.map(office, OfficeResponse.class))
+                .toList();
+
+        PageResponse<OfficeResponse> pageResponse = new PageResponse<>(
+                officeResponseList,
+                officePage.getNumber(),
+                officePage.getSize(),
+                officePage.getTotalElements(),
+                officePage.getTotalPages(),
+                officePage.isLast()
+        );
+        return new ApiResponse<>(
+                true,
+                "Office List",
+                pageResponse,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> updateOffice(OfficeRequest request) {
+        Office office = officeRepository.findById(request.getOfficeId())
+                .orElseThrow(() -> new CustomException("No Office records found for this office ID", HttpStatus.NOT_FOUND));
+
+        if(request.getOfficeName() != null){
+            office.setOfficeName(request.getOfficeName());
+        }
+
+        if(request.getLatitude() != null){
+            office.setLatitude(request.getLatitude());
+        }
+
+        if(request.getLongitude() != null){
+            office.setLongitude(request.getLongitude());
+        }
+
+        if(request.getHrEmpId() != null){
+            office.setHrEmpId(request.getHrEmpId());
+        }
+
+        if(request.getAddress() != null){
+            office.setAddress(request.getAddress());
+        }
+
+        if(request.getContact() != null){
+            office.setContact(request.getContact());
+        }
+
+        if(request.getGoogleMap() != null){
+            office.setGoogleMap(request.getGoogleMap());
+        }
+
+        if(request.getOfficeStatus() != null){
+            office.setOfficeStatus(request.getOfficeStatus());
+        }
+
+        officeRepository.save(office);
+        return new ApiResponse<>(
+                true,
+                "Office details updated",
+                null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<PageResponse<String>> getOfficeNames(Pageable pageable) {
+        Page<Office> officePage = officeRepository.findAll(pageable);
+        List<Office> officeList = officePage.getContent();
+
+        List<String> officeNames = officeList.stream()
+                .filter(office -> !OfficeStatus.DEACTIVATE.equals(office.getOfficeStatus()))
+                .map(Office::getOfficeName)
+                .toList();
+
+        PageResponse<String> pageResponse = new PageResponse<>(
+                officeNames,
+                officePage.getNumber(),
+                officePage.getSize(),
+                officePage.getTotalElements(),
+                officePage.getTotalPages(),
+                officePage.isLast()
+        );
+
+        return new ApiResponse<>(
+                true,
+                "ACTIVE Office Names list",
+                pageResponse,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
 
     @Override
     public ApiResponse<?> getAllAppliedLeaves() {

@@ -9,4 +9,6 @@ public interface InternalService {
     ApiResponse<List<OfficeResponse>> getOfficeList();
 
     ApiResponse<OfficeResponse> getOfficeDetailsByOfficeId(String officeId);
+
+    ApiResponse<?> getOfficeNames();
 }

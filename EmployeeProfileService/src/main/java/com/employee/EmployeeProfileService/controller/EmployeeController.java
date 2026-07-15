@@ -22,8 +22,8 @@ public class EmployeeController {
     private final EmployeeService empService;
 
     @GetMapping("/allEmp")
-    public ResponseEntity<ApiResponse<List<EmployeeResponse>>> getAllEmployees(){
-        ApiResponse<List<EmployeeResponse>> response = empService.getAllEmployees();
+    public ResponseEntity<ApiResponse<List<ListOfEmployeeResponse>>> getAllEmployees(){
+        ApiResponse<List<ListOfEmployeeResponse>> response = empService.getAllEmployees();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -39,12 +39,11 @@ public class EmployeeController {
         return ResponseEntity.status((HttpStatus.OK)).body(response);
     }
 
-//    TODO : CALl ADMIN CLIENT FOR OFFICE NAME
-//    @GetMapping("/officeNames")
-//    public ResponseEntity<ApiResponse<?>> getOfficeNames(){
-//        ApiResponse<?> response = empService.getOfficeNames();
-//        return ResponseEntity.status(HttpStatus.OK).body(response);
-//    }
+    @GetMapping("/officeNames")
+    public ResponseEntity<ApiResponse<?>> getOfficeNames(){
+        ApiResponse<?> response = empService.getOfficeNames();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 
     @PostMapping(value = "/upload/EmployeeProfile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> uploadEmployeeImage(@RequestParam("image") MultipartFile file, @RequestHeader ("X-Employee-Id") String employeeId ){

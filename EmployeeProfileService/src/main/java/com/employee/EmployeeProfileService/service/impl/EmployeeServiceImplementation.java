@@ -49,8 +49,6 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
     private final ModelMapper mapperModel;
 
-//    private final OfficeRepository officeRepository;
-
     private final AppProperties appProperties;
 
     private final FeedbackRepository feedbackRepository;
@@ -64,10 +62,40 @@ public class EmployeeServiceImplementation implements EmployeeService {
     private final AdminClient adminClient;
 
     @Override
-    public ApiResponse<List<EmployeeResponse>> getAllEmployees() {
-        List<Employee> employees = employeeRepository.findAll();
-        List<EmployeeResponse> employeeResponse = employees.stream()
-                .map(employee -> mapperModel.map(employee, EmployeeResponse.class))
+    public ApiResponse<List<ListOfEmployeeResponse>> getAllEmployees() {
+        List<Employee> employeeList = employeeRepository.findAll();
+
+        List<ListOfEmployeeResponse> employeeResponse = employeeList.stream()
+                .map((employee) ->{
+
+                    log.info("Calling admin Service to get Office details for office Id {} for the employee {}",employee.getOfficeId(), employee.getEmployeeId());
+                    ApiResponse<OfficeResponse> apiOfficeResponse = adminClient.getOfficeDetails(employee.getOfficeId());
+                    OfficeResponse officeResponse = new OfficeResponse();
+
+                    if(apiOfficeResponse.getData() != null){
+                        officeResponse = mapperModel.map(apiOfficeResponse.getData(), OfficeResponse.class);
+                    }
+
+                    ListOfEmployeeResponse response = mapperModel.map(employee, ListOfEmployeeResponse.class);
+
+//                    if (employee.getEmployeeProfilePath() != null) {
+//                        try {
+//                            File file = new File(employee.getEmployeeProfilePath());
+//                            if (file.exists() && file.canRead()) {
+//                                byte[] fileBytes = Files.readAllBytes(file.toPath());
+//                                String encodedString = Base64.getEncoder().encodeToString(fileBytes);
+//                                response.setImage(encodedString);
+//                            }
+//                        } catch (IOException e) {
+//                            response.setImage(null);
+//                        }
+//                    }
+
+                    response.setOfficeId(officeResponse.getOfficeId());
+                    response.setOfficeName(officeResponse.getOfficeName());
+
+                    return response;
+                })
                 .toList();
 
         return new ApiResponse<>(
@@ -81,8 +109,6 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
     @Override
     public ApiResponse<EmployeeResponse> getEmployeeDetails(String employeeId) {
-//         TODO : CALL ADMIN CLIENT
-//        Office office = null;
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
@@ -199,21 +225,21 @@ public class EmployeeServiceImplementation implements EmployeeService {
         );
     }
 
-//    @Override
-//    public ApiResponse<?> getOfficeNames() {
-//        List<Office> office = officeRepository.findAll();
-//        List<?> officeNames = office.stream()
-//                .map(Office::getOfficeName)
-//                .toList();
-//
-//        return new ApiResponse<>(
-//                true,
-//                "List of Office names",
-//                officeNames,
-//                LocalDateTime.now(),
-//                200
-//        );
-//    }
+    @Override
+    public ApiResponse<?> getOfficeNames() {
+        ApiResponse<List<String>> apiOfficeNames = adminClient.getOfficeNames();
+        List<String> officeNames = null;
+        if(apiOfficeNames != null && apiOfficeNames.getData() != null){
+            officeNames = apiOfficeNames.getData();
+        }
+        return new ApiResponse<>(
+                true,
+                "ACTIVE office names list",
+                officeNames,
+                LocalDateTime.now(),
+                200
+        );
+    }
 
     @Override
     public ApiResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId) {

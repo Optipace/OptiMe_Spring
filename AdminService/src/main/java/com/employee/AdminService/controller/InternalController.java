@@ -30,4 +30,10 @@ public class InternalController {
         ApiResponse<OfficeResponse> response = internalService.getOfficeDetailsByOfficeId(officeId);
         return ResponseEntity.status(200).body(response);
     }
+
+    @GetMapping("/getOfficeNames")
+    public ResponseEntity<ApiResponse<?>> getOfficeNames(){
+        ApiResponse<?> response = internalService.getOfficeNames();
+        return ResponseEntity.status(200).body(response);
+    }
 }

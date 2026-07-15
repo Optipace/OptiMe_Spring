@@ -1,13 +1,24 @@
 package com.employee.AdminService.controller;
 
+import com.employee.AdminService.dto.request.FeedbackUpdateRequest;
 import com.employee.AdminService.dto.request.NotificationRequest;
+import com.employee.AdminService.dto.request.OfficeRequest;
 import com.employee.AdminService.dto.request.RegisterRequest;
 import com.employee.AdminService.dto.response.ApiResponse;
+import com.employee.AdminService.dto.response.FeedbackResponse;
+import com.employee.AdminService.dto.response.OfficeResponse;
+import com.employee.AdminService.dto.response.PageResponse;
 import com.employee.AdminService.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -24,6 +35,40 @@ public class AdminController {
         ApiResponse<?> response = adminService.addNewUser(request, adminEmployeeId);
 
         return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/getOfficeList")
+    public ResponseEntity<ApiResponse<PageResponse<OfficeResponse>>> getOfficeList(@RequestParam(defaultValue = "0")int page, @RequestParam(defaultValue = "5") int size){
+        Pageable pageable = PageRequest.of(page, size);
+        ApiResponse<PageResponse<OfficeResponse>> response = adminService.getOfficeList(pageable);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PatchMapping("/updateOffice")
+    public ResponseEntity<ApiResponse<?>> updateOffice(@RequestBody OfficeRequest request){
+        ApiResponse<?> response = adminService.updateOffice(request);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/getOfficeNames")
+    public ResponseEntity<ApiResponse<PageResponse<String>>> getOfficeNames(@RequestParam(defaultValue = "0")int page, @RequestParam(defaultValue = "5")int size){
+        Pageable pageable = PageRequest.of(page,size);
+        ApiResponse<PageResponse<String>> response = adminService.getOfficeNames(pageable);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    //TODO
+    @GetMapping("/getFeedback")
+    public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getFeedback(){
+        ApiResponse<List<FeedbackResponse>> response = adminService.getFeedback();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    //TODO
+    @PutMapping("/updateFeedback")
+    public ResponseEntity<ApiResponse<?>> updateFeedback(@RequestBody FeedbackUpdateRequest request){
+        ApiResponse<?> response = adminService.updateFeedback(request);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/getAllAppliedLeaves")
