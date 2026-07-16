@@ -47,11 +47,11 @@ public class InternalServiceImpl implements InternalService {
         log.info("Requested office details for office Id {}", officeId);
         Office office = officeRepository.findById(officeId)
                 .orElseThrow(() -> new CustomException("No office found for this Id", HttpStatus.NOT_FOUND));
-        if(office.getOfficeStatus().equals(OfficeStatus.DEACTIVATE)){
-            log.info("The details for office Id {} is DEACTIVATED so returning null", officeId);
+        if(office.getOfficeStatus().equals(OfficeStatus.INACTIVE)){
+            log.info("The details for office Id {} is INACTIVE so returning null", officeId);
             return new ApiResponse<>(
                     true,
-                    "The office with office Id "+officeId+" is deactivated",
+                    "The office with office Id "+officeId+" is INACTIVE",
                     null,
                     LocalDateTime.now(),
                     200
@@ -73,7 +73,7 @@ public class InternalServiceImpl implements InternalService {
         List<Office> officeList = officeRepository.findAll();
 
         List<String> officeNames = officeList.stream()
-                .filter(office -> !OfficeStatus.DEACTIVATE.equals(office.getOfficeStatus()))
+                .filter(office -> !OfficeStatus.INACTIVE.equals(office.getOfficeStatus()))
                 .map(Office::getOfficeName)
                 .toList();
         return new ApiResponse<>(

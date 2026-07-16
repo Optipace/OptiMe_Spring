@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface EmployeeClient {
 
     @GetMapping("/api/employee/internal/checkEmployeeByEmployeeId")
-    boolean checkEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId);
+    ApiResponse<?> checkEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId);
 
     @PostMapping("/api/employee/internal/updateEmployeeStatus")
     void updateEmployeeStatus(@RequestBody UpdateEmployeeStatusPayload payload);

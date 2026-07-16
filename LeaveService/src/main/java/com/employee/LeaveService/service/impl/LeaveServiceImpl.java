@@ -41,10 +41,10 @@ public class LeaveServiceImpl implements LeaveService {
             throw new CustomException("The 'To Date' cannot be earlier than the 'From Date'", HttpStatus.BAD_REQUEST);
         }
 
-        boolean employeeExists = false;
+       ApiResponse<EmployeeResponse> employeeResponse;
         try{
-            employeeExists = employeeClient.checkEmployeeByEmployeeId(employeeId);
-            log.info("Checking employee exists");
+            employeeResponse = employeeClient.getEmployeeByEmployeeId(request.getAuthorityEmployeeId());
+            log.info("Employee details fetched");
         }catch (FeignException feignException){
             String cleanErrorMessage = "Microservice called failed";
             HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -60,15 +60,16 @@ public class LeaveServiceImpl implements LeaveService {
             }
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
+        EmployeeResponse response = employeeResponse.getData();
 
-        if(!employeeExists){
-            throw new CustomException("Employee Id not found", HttpStatus.NOT_FOUND);
-        }
-
-        Leave leave = modelMapper.map(request, Leave.class);
-        leave.setEmployeeId(employeeId);
+        Leave leave = new Leave();
+        leave.setFromDate(request.getFromDate());
+        leave.setToDate(request.getToDate());
+        leave.setReason(request.getReason());
+        leave.setApplicantEmployeeId(employeeId);
         leave.setAppliedOn(LocalDateTime.now());
-        leave.setEmployeeName(employeeName);
+        leave.setApplicantEmployeeName(employeeName);
+        leave.setApproverEmpId(response.getEmployeeId());
         log.info("Leave type is {}", request.getLeaveType());
         LeaveType leaveType = leaveTypeRepository.findByLeaveType(request.getLeaveType())
                         .orElseThrow(() -> new CustomException("Leave type not found", HttpStatus.NOT_FOUND));

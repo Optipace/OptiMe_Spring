@@ -2,14 +2,18 @@ package com.employee.EmployeeProfileService.controller;
 
 import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
+import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
 import com.employee.EmployeeProfileService.dto.response.ApiResponse;
 import com.employee.EmployeeProfileService.dto.response.EmployeeInternalResponse;
 import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
+import com.employee.EmployeeProfileService.dto.response.FeedbackResponse;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/employee/internal")
@@ -62,6 +66,18 @@ public class EmployeeInternalController {
     @DeleteMapping("/deleteIdentity")
     public ResponseEntity<ApiResponse<?>> deleteIdentity(@RequestParam("employeeId") String employeeId){
         ApiResponse<?> response = empInternalService.deleteIdentity(employeeId);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/getFeedback")
+    public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getFeedback(){
+        ApiResponse<List<FeedbackResponse>> response = empInternalService.getFeedback();
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PutMapping("/updateFeedback")
+    public ResponseEntity<ApiResponse<?>> updateFeedback(@RequestBody FeedbackUpdateRequest request){
+        ApiResponse<?> response = empInternalService.updateFeedback(request);
         return ResponseEntity.status(200).body(response);
     }
 

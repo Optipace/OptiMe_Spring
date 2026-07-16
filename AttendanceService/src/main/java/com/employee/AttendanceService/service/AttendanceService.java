@@ -14,4 +14,6 @@ public interface AttendanceService {
     public ApiResponse<?> employeeCheckOut(String request);
 
     public ApiResponse<WorkingDetailsResponse> getWorkingDetails(String employeeId);
+
+    public ApiResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId);
 }

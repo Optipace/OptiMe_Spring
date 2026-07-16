@@ -32,20 +32,23 @@ public class Leave {
     @Column(name = "reason", nullable = false)
     private String reason;
 
-    @Column(name = "approved_by")
+    @Column(name = "approved_by", length = 20)
     private String approvedBy;
+
+    @Column(nullable = false, length = 20)
+    private String approverEmpId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "leave_status", nullable = false)
     private LeaveStatusEnum leaveStatus = LeaveStatusEnum.PENDING;
 
     @NotBlank(message = "Provide employee Id")
-    @Column(name = "employee_id", nullable = false, length = 12)
-    private String employeeId;
+    @Column(name = "applicant_employee_id", nullable = false, length = 20)
+    private String applicantEmployeeId;
 
     @NotBlank(message = "Employee name required")
-    @Column(name = "employee_name", nullable = false, length = 50)
-    private String employeeName;
+    @Column(name = "applicant_employee_name", nullable = false, length = 50)
+    private String applicantEmployeeName;
 
     @ManyToOne
     @JoinColumn(name = "leave_type_id", nullable = false)

@@ -36,4 +36,10 @@ public class AttendanceController {
     public ApiResponse<WorkingDetailsResponse> getWorkingDetails(@RequestHeader("X-Employee-Id") String employeeId){
         return attendanceService.getWorkingDetails(employeeId);
     }
+
+    @GetMapping("/getWeeklyAttendanceLogs")
+    public ResponseEntity<ApiResponse<WeeklyAttendanceLogsOfEmployeeRes>> getWeeklyAttendanceLogs(@RequestHeader("X-Employee-Id") String employeeId){
+        ApiResponse<WeeklyAttendanceLogsOfEmployeeRes> response = attendanceService.getWeeklyAttendanceLogs(employeeId);
+        return ResponseEntity.status(200).body(response);
+    }
 }

@@ -15,7 +15,9 @@ public class RouteValidator {
             "/api/auth/validateOtp",
             "/api/auth/register",
             "/api/auth/login",
-            "/api/auth/refresh"
+            "/api/auth/refresh",
+            "/api/auth/completeRegistration",
+            "/api/auth/resetPassword"
     );
 
     public Predicate<ServerHttpRequest> isSecured =

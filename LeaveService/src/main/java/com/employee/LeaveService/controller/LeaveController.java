@@ -18,8 +18,8 @@ public class LeaveController {
 
     // TODO : Need to add authority EMPid
     @PostMapping("/applyLeave")
-    public ResponseEntity<ApiResponse<?>> saveLeaveApplication(@RequestHeader("X-Employee-Id") String employeeId,@Valid @RequestBody LeaveRequest request, @RequestHeader("X-Employee-Name") String employeeName){
-        ApiResponse<?> response = leaveService.saveLeaveApplication(request, employeeId, employeeName);
+    public ResponseEntity<ApiResponse<?>> saveLeaveApplication(@RequestHeader("X-Employee-Id") String applicantEmployeeId,@Valid @RequestBody LeaveRequest request, @RequestHeader("X-Employee-Name") String applicantEmployeeName){
+        ApiResponse<?> response = leaveService.saveLeaveApplication(request, applicantEmployeeId, applicantEmployeeName);
         return ResponseEntity.status(200).body(response);
     }
 

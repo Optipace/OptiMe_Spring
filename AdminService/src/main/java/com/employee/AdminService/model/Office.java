@@ -32,14 +32,14 @@ public class Office {
     private String longitude;
 
     @NotBlank(message = "HR Employee ID cannot be blank")
-    @Column(unique = true, nullable = false, length = 12)
+    @Column(nullable = false, length = 12)
     private String hrEmpId;
 
     @NotBlank(message = "Please provide the office address")
     @Column(nullable = false)
     private String address;
 
-    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Emergency contact must be a valid 10-digit Indian number")
+    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Contact must be a valid 10-digit Indian number")
     @Column(name = "contact", length = 10)
     private String contact;
 
@@ -50,4 +50,8 @@ public class Office {
     @Enumerated(EnumType.STRING)
     @Column(name = "office_status", length = 50)
     private OfficeStatus officeStatus;
+
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "office_status_id", nullable = false)
+//    private OfficeStatus officeStatus;
 }

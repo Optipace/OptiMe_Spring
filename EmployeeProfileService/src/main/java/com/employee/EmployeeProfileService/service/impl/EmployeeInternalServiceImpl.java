@@ -2,6 +2,7 @@ package com.employee.EmployeeProfileService.service.impl;
 
 import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
+import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.enums.EmployeeDesignationEnum;
@@ -10,7 +11,9 @@ import com.employee.EmployeeProfileService.enums.RoleEnum;
 import com.employee.EmployeeProfileService.enums.WorkTypeEnum;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
+import com.employee.EmployeeProfileService.model.Feedback;
 import com.employee.EmployeeProfileService.repository.EmployeeRepository;
+import com.employee.EmployeeProfileService.repository.FeedbackRepository;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +32,8 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     private final EmployeeRepository employeeRepository;
 
     private final ModelMapper modelMapper;
+
+    private final FeedbackRepository feedbackRepository;
 
     @Override
     public ApiResponse<?> createProfile(EmployeeProfileRequest request) {
@@ -175,6 +180,38 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         return new ApiResponse<>(
                 true,
                 "Employee identity rollback processed",
+                null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<List<FeedbackResponse>> getFeedback() {
+        List<Feedback> feedbackList = feedbackRepository.findAll();
+
+        List<FeedbackResponse> feedbackResponses = feedbackList.stream()
+                .map(f -> modelMapper.map(f, FeedbackResponse.class))
+                .toList();
+        return new ApiResponse<>(
+                true,
+                "Feedback List",
+                feedbackResponses,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request) {
+        Feedback feedback = feedbackRepository.findById(request.getFeedbackId())
+                .orElseThrow(() -> new CustomException("Respected Feedback Id not found", HttpStatus.NOT_FOUND));
+
+        feedback.setStatusEnum(request.getFeedbackStatus());
+        feedbackRepository.save(feedback);
+        return new ApiResponse<>(
+                true,
+                "Feedback Updated",
                 null,
                 LocalDateTime.now(),
                 200

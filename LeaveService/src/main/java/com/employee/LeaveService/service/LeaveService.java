@@ -6,7 +6,7 @@ import com.employee.LeaveService.dto.response.ApiResponse;
 import org.springframework.web.bind.annotation.RequestBody;
 
 public interface LeaveService {
-    public ApiResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId, String employeeName);
+    public ApiResponse<?> saveLeaveApplication(LeaveRequest request, String applicantEmployeeId, String applicantEmployeeName);
 
     ApiResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId);
 }

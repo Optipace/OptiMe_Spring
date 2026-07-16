@@ -5,10 +5,7 @@ import com.employee.AdminService.client.EmployeeClient;
 import com.employee.AdminService.client.LeaveClient;
 import com.employee.AdminService.client.NotificationClient;
 import com.employee.AdminService.dto.request.*;
-import com.employee.AdminService.dto.response.ApiResponse;
-import com.employee.AdminService.dto.response.LeaveResponse;
-import com.employee.AdminService.dto.response.OfficeResponse;
-import com.employee.AdminService.dto.response.PageResponse;
+import com.employee.AdminService.dto.response.*;
 import com.employee.AdminService.enums.OfficeStatus;
 import com.employee.AdminService.exception.CustomException;
 import com.employee.AdminService.model.Office;
@@ -18,7 +15,6 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -148,6 +144,34 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public ApiResponse<?> addNewOffice(AddNewOfficeRequest request) {
+        officeRepository.findById(request.getOfficeId())
+                .orElseThrow(() -> new CustomException("Office id already exists", HttpStatus.BAD_REQUEST));
+
+        Office newOffice = new Office();
+        newOffice.setId(request.getOfficeId());
+        newOffice.setOfficeName(request.getOfficeName());
+        newOffice.setContact(request.getContact());
+        newOffice.setAddress(request.getAddress());
+        newOffice.setLatitude(request.getLatitude());
+        newOffice.setLongitude(request.getLongitude());
+        newOffice.setHrEmpId(request.getHrEmpId());
+        newOffice.setGoogleMap(request.getGoogleMap());
+        newOffice.setOfficeStatus(OfficeStatus.ACTIVE);
+
+        officeRepository.save(newOffice);
+
+        return new ApiResponse<>(
+                true,
+                "New office added successfully",
+                null,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+
+    @Override
     public ApiResponse<PageResponse<OfficeResponse>> getOfficeList(Pageable pageable) {
         Page<Office> officePage = officeRepository.findAll(pageable);
         List<Office> officeList = officePage.getContent();
@@ -210,10 +234,6 @@ public class AdminServiceImpl implements AdminService {
             office.setGoogleMap(request.getGoogleMap());
         }
 
-        if(request.getOfficeStatus() != null){
-            office.setOfficeStatus(request.getOfficeStatus());
-        }
-
         officeRepository.save(office);
         return new ApiResponse<>(
                 true,
@@ -230,7 +250,7 @@ public class AdminServiceImpl implements AdminService {
         List<Office> officeList = officePage.getContent();
 
         List<String> officeNames = officeList.stream()
-                .filter(office -> !OfficeStatus.DEACTIVATE.equals(office.getOfficeStatus()))
+                .filter(office -> !OfficeStatus.INACTIVE.equals(office.getOfficeStatus()))
                 .map(Office::getOfficeName)
                 .toList();
 
@@ -247,6 +267,96 @@ public class AdminServiceImpl implements AdminService {
                 true,
                 "ACTIVE Office Names list",
                 pageResponse,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    public ApiResponse<List<FeedbackResponse>> getFeedback(){
+        List<FeedbackResponse> feedbackResponses = null;
+        try{
+            log.info("Calling employee service");
+            ApiResponse<List<FeedbackResponse>> apiResponse = employeeClient.getFeedback();
+            log.info("Employee service called for feedbacks list");
+
+            if(apiResponse != null && apiResponse.getData() != null){
+                feedbackResponses = apiResponse.getData();
+            }
+        }catch (FeignException fe){
+            String rawErrorJson = fe.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+
+            try{
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if(errorNode.has("message")){
+                    cleanErrorMessage = errorNode.get("message").toString();
+                }else{
+                    cleanErrorMessage = rawErrorJson;
+                }
+            }catch (Exception e){
+                cleanErrorMessage = rawErrorJson;
+            }
+
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if(fe.status() > 0){
+                try{
+                    responseStatus = HttpStatus.valueOf(fe.status());
+                }catch (IllegalArgumentException ex){
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            }else {
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
+        return new ApiResponse<>(
+                true,
+                "List of feedbacks",
+                feedbackResponses,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request) {
+        String message= "";
+        try{
+           ApiResponse<?> apiResponse = employeeClient.updateFeedback(request);
+           message = apiResponse.getMessage();
+        }catch (FeignException fe){
+            String rawErrorJson = fe.contentUTF8();
+            String cleanErrorMessage = "Microservices call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").toString();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (fe.status() > 0) {
+                try {
+                    responseStatus = HttpStatus.valueOf(fe.status());
+                } catch (IllegalArgumentException ex) {
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            } else {
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
+        return new ApiResponse<>(
+                true,
+                message,
+                null,
                 LocalDateTime.now(),
                 200
         );

@@ -16,6 +16,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,10 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.DayOfWeek;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.UUID;
@@ -58,10 +56,13 @@ public class AttendanceServiceImpl implements AttendanceService {
     public ApiResponse<?> employeeCheckIn(String employeeId, MultipartFile file,
                                           String latitude, String longitude, WorkTypeEnum attendanceType) {
 
-        boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNull(employeeId);
+        // TODO: Need to check today check in and need to be checked out the previous day check in history by the scheduler
+//        boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNull(employeeId);
+        LocalDateTime checkInTime = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+        boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(employeeId, checkInTime);
 
         if(isAlreadyCheckedIn)
-            throw new CustomException("You are already checked in. Please check out first.", HttpStatus.BAD_REQUEST);
+            throw new CustomException("You are already checked in!", HttpStatus.BAD_REQUEST);
 
         Attendance attendance = new Attendance();
         attendance.setEmployeeId(employeeId);
@@ -153,8 +154,12 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     @Transactional
     public ApiResponse<?> employeeCheckOut(String employeeId){
-        Attendance attendance = attendanceRepository.findByEmployeeIdAndCheckOutTimeIsNull(employeeId)
-                .orElseThrow(() -> new CustomException("No active check-in record found for this employee", HttpStatus.NOT_FOUND));
+//        Attendance attendance = attendanceRepository.findByEmployeeIdAndCheckOutTimeIsNull(employeeId)
+//                .orElseThrow(() -> new CustomException("No active check-in record found for this employee", HttpStatus.NOT_FOUND));
+
+        LocalDateTime checkInTime = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+        Attendance attendance = attendanceRepository.findByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(employeeId, checkInTime)
+                        .orElseThrow(() -> new CustomException("No active check-in records found today for this employee", HttpStatus.NOT_FOUND));
 
         attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), LocalDateTime.now()).toMinutes());
 
@@ -274,6 +279,32 @@ public class AttendanceServiceImpl implements AttendanceService {
                 "Total working details",
                 response,
                 HttpStatus.OK
+        );
+    }
+
+    public ApiResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId){
+        LocalDate mondayDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        log.info("Extracting present week Monday date {}",mondayDate);
+
+        LocalDateTime startOfWeek = LocalDateTime.of(mondayDate, LocalTime.MIDNIGHT);
+
+        List<Attendance> weeklyLogs = attendanceRepository.findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeAsc(employeeId, startOfWeek);
+
+        List<AttendanceResponse> logResponse = weeklyLogs.stream()
+                .map(attendance -> mapperModel.map(attendance, AttendanceResponse.class))
+                .toList();
+
+        Long totalWorkedMinutes = weeklyLogs.stream()
+                .filter(log -> log.getCheckInTime() != null && log.getCheckOutTime() != null)
+                .mapToLong(log -> Duration.between(log.getCheckInTime(), log.getCheckOutTime()).toMinutes())
+                .sum();
+
+        WeeklyAttendanceLogsOfEmployeeRes response = new WeeklyAttendanceLogsOfEmployeeRes(totalWorkedMinutes, logResponse);
+
+        return new ApiResponse<>(
+                "Weekly attendance records",
+                response,
+                200
         );
     }
 

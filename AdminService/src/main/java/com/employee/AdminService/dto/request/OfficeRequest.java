@@ -1,6 +1,5 @@
 package com.employee.AdminService.dto.request;
 
-import com.employee.AdminService.enums.OfficeStatus;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,5 +20,4 @@ public class OfficeRequest {
     private String address;
     private String contact;
     private String googleMap;
-    private OfficeStatus officeStatus;
 }

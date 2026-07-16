@@ -1,9 +1,6 @@
 package com.employee.AdminService.controller;
 
-import com.employee.AdminService.dto.request.FeedbackUpdateRequest;
-import com.employee.AdminService.dto.request.NotificationRequest;
-import com.employee.AdminService.dto.request.OfficeRequest;
-import com.employee.AdminService.dto.request.RegisterRequest;
+import com.employee.AdminService.dto.request.*;
 import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.dto.response.FeedbackResponse;
 import com.employee.AdminService.dto.response.OfficeResponse;
@@ -37,6 +34,12 @@ public class AdminController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @PostMapping("/addOffice")
+    public ResponseEntity<ApiResponse<?>> addNewOffice(@Valid @RequestBody AddNewOfficeRequest request){
+        ApiResponse<?> response = adminService.addNewOffice(request);
+        return ResponseEntity.status(200).body(response);
+    }
+
     @GetMapping("/getOfficeList")
     public ResponseEntity<ApiResponse<PageResponse<OfficeResponse>>> getOfficeList(@RequestParam(defaultValue = "0")int page, @RequestParam(defaultValue = "5") int size){
         Pageable pageable = PageRequest.of(page, size);
@@ -57,14 +60,12 @@ public class AdminController {
         return ResponseEntity.status(200).body(response);
     }
 
-    //TODO
     @GetMapping("/getFeedback")
     public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getFeedback(){
         ApiResponse<List<FeedbackResponse>> response = adminService.getFeedback();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    //TODO
     @PutMapping("/updateFeedback")
     public ResponseEntity<ApiResponse<?>> updateFeedback(@RequestBody FeedbackUpdateRequest request){
         ApiResponse<?> response = adminService.updateFeedback(request);

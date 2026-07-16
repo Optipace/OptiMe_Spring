@@ -17,7 +17,14 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     Optional<Attendance> findByEmployeeIdAndCheckOutTimeIsNull(String employeeId);
 
     // Finds if there is an ongoing session for this employee
-    boolean existsByEmployeeIdAndCheckOutTimeIsNull(String employeeId);
+//    boolean existsByEmployeeIdAndCheckOutTimeIsNull(String employeeId);
+    boolean existsByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(String employeeId, LocalDateTime time);
+
+    // Finds today's active check-in session
+    Optional<Attendance> findByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(String employeeId, LocalDateTime time);
+
+    // Fetches all logs from Monday 12:00 AM up to the current moment
+    List<Attendance> findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeAsc(String employeeId, LocalDateTime startOfWeek);
 
     @Query(
             value =
