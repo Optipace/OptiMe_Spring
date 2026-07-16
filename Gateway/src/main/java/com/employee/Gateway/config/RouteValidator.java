@@ -21,9 +21,23 @@ public class RouteValidator {
     public Predicate<ServerHttpRequest> isSecured =
             request -> openApiEndpoints
                     .stream()
-                    .noneMatch(uri -> request.getURI().getPath().contains(uri));
+//                    .noneMatch(uri -> request.getURI().getPath().contains(uri));
+//                   CHANGED from .contains(uri) to .equals(uri)
+                    .noneMatch(uri -> request.getURI().getPath().equals(uri));
 
 //    TODO: It's skipping all url with /api/auth
+//public Predicate<ServerHttpRequest> isSecured =
+//        request -> openApiEndpoints
+//                .stream()
+//                .noneMatch(uri -> {
+//                    String incomingPath = request.getURI().getPath();
+//                    // Remove trailing slash if it exists
+//                    if (incomingPath.endsWith("/")) {
+//                        incomingPath = incomingPath.substring(0, incomingPath.length() - 1);
+//                    }
+//                    return incomingPath.equals(uri);
+//                });
+
 //    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 //
 //    public Predicate<ServerHttpRequest> isSecured = request -> {
