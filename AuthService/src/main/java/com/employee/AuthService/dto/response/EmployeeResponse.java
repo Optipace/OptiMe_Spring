@@ -20,7 +20,7 @@ public class EmployeeResponse {
     private String currentAddress;
     private String dateOfBirth;
     private String emergencyContact;
-    private String workType;
+    private Long workTypeId;
     private String profileStatus;
     private OfficeResponse office;
 }

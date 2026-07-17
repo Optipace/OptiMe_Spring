@@ -1,6 +1,5 @@
 package com.employee.LeaveService.dto.response;
 
-import com.employee.LeaveService.enums.EmployeeStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,5 +15,6 @@ public class EmployeeResponse {
     private String emailId;
     private String employeeDesignation;
     private String role;
-    private EmployeeStatusEnum employeeStatus;
+    private String employeeStatus;
+    private boolean canApproveLeave;
 }

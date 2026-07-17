@@ -1,25 +1,22 @@
 package com.employee.EmployeeProfileService.service.impl;
 
-import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
-import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
+import com.employee.EmployeeProfileService.client.AdminClient;
+import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
-import com.employee.EmployeeProfileService.enums.EmployeeDesignationEnum;
-import com.employee.EmployeeProfileService.enums.EmployeeStatusEnum;
+import com.employee.EmployeeProfileService.enums.AccountStatus;
 import com.employee.EmployeeProfileService.enums.RoleEnum;
-import com.employee.EmployeeProfileService.enums.WorkTypeEnum;
 import com.employee.EmployeeProfileService.exception.CustomException;
-import com.employee.EmployeeProfileService.model.Employee;
-import com.employee.EmployeeProfileService.model.Feedback;
-import com.employee.EmployeeProfileService.repository.EmployeeRepository;
-import com.employee.EmployeeProfileService.repository.FeedbackRepository;
+import com.employee.EmployeeProfileService.model.*;
+import com.employee.EmployeeProfileService.repository.*;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
+import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,6 +32,16 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
     private final FeedbackRepository feedbackRepository;
 
+    private final EmployeeDesignationRepository designationRepository;
+
+    private final WorkTypeRepository workTypeRepository;
+
+    private final EmployeeStatusRepository employeeStatusRepository;
+
+    private final AdminClient adminClient;
+
+    private final ObjectMapper objectMapper;
+
     @Override
     public ApiResponse<?> createProfile(EmployeeProfileRequest request) {
 
@@ -43,14 +50,20 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         newEmployee.setEmployeeName(request.getEmployeeName());
         newEmployee.setContact(request.getContact());
         newEmployee.setEmailId(request.getEmailId());
-        newEmployee.setDesignation(request.getDesignation());
+
+        EmployeeDesignation designation = designationRepository.findById(request.getEmployeeDesignationId())
+                        .orElseThrow(() -> new CustomException("No such designation found", HttpStatus.NOT_FOUND));
+        newEmployee.setDesignation(designation);
 
         if(String.valueOf(request.getRole()).equals("ADMIN")){
             newEmployee.setRole(request.getRole());
         }
         newEmployee.setRole(request.getRole());
         newEmployee.setGender(request.getGender());
-        newEmployee.setWorkType(request.getWorkType());
+
+        WorkType workType = workTypeRepository.findById(request.getWorkTypeId())
+                        .orElseThrow(() -> new CustomException("No such work type found", HttpStatus.NOT_FOUND));
+        newEmployee.setWorkType(workType);
         newEmployee.setDateOfBirth(request.getDateOfBirth());
         newEmployee.setProfileStatus(4);
         newEmployee.setDateOfJoining(request.getDateOfJoining());
@@ -84,7 +97,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 //        employee.setProfileStatus(ProfileStatusEnum.COMPLETE);
         int result = currentStatus | 2;
         employee.setProfileStatus(result);
-        employee.setEmployeeStatus(EmployeeStatusEnum.ACTIVE);
+        employee.setAccountStatus(AccountStatus.ACTIVE);
         employeeRepository.save(employee);
 
         return new ApiResponse<>(
@@ -101,7 +114,49 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
+
         EmployeeResponse response = modelMapper.map(employee,EmployeeResponse.class);
+        try {
+
+            log.info("Calling Admin service for office response");
+            ApiResponse<OfficeResponse> officeApiResponse = adminClient.getOfficeDetails(employee.getOfficeId());
+            log.info("Received response from Admin service");
+
+            if(officeApiResponse.getData() != null){
+                response.setOffice(officeApiResponse.getData());
+            }else{
+                response.setOffice(null);
+            }
+
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice called failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asString();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+            // Resolve status code safely.
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (e.status() > 0) {
+                try {
+                    responseStatus = HttpStatus.valueOf(e.status());
+                    System.out.println(responseStatus);
+                } catch (IllegalArgumentException ex) {
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            } else {
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
         return new ApiResponse<>(
                 true,
                 "Employee details",
@@ -114,12 +169,24 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     @Override
     public ApiResponse<?> getMasterDetails(){
 
-        List<EmployeeDesignationEnum> employeeDesignationEnumList = List.of(EmployeeDesignationEnum.values());
+        List<EmployeeDesignation> employeeDesignationList = designationRepository.findAll();
         List<RoleEnum> roleEnumList = List.of(RoleEnum.values());
-        List<WorkTypeEnum> workTypeEnumList = List.of(WorkTypeEnum.values());
-        List<EmployeeStatusEnum> employeeStatusEnumList = List.of(EmployeeStatusEnum.values());
+        List<WorkType> workTypeList = workTypeRepository.findAll();
+        List<EmployeeStatus> employeeStatusList = employeeStatusRepository.findAll();
 
-        MasterEmployeeResponse masterEmployeeResponse = new MasterEmployeeResponse(employeeDesignationEnumList, roleEnumList, workTypeEnumList, employeeStatusEnumList);
+        List<EmployeeDesignationResponse> employeeDesignationResponseList = employeeDesignationList.stream()
+                .map(designation -> modelMapper.map(designation, EmployeeDesignationResponse.class))
+                .toList();
+
+        List<WorkTypeResponse> workTypeResponseList = workTypeList.stream()
+                .map(workType -> modelMapper.map(workType, WorkTypeResponse.class))
+                .toList();
+
+        List<EmployeeStatusResponse> employeeStatusResponseList = employeeStatusList.stream()
+                .map(status -> modelMapper.map(status, EmployeeStatusResponse.class))
+                .toList();
+
+        MasterEmployeeResponse masterEmployeeResponse = new MasterEmployeeResponse(employeeDesignationResponseList, roleEnumList, workTypeResponseList, employeeStatusResponseList);
 
         return new ApiResponse<>(
                 true,
@@ -132,20 +199,15 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
     @Override
     public boolean checkEmployeeByEmployeeId(String employeeId) {
-        boolean employeeExists = employeeRepository.existsByEmployeeId(employeeId);
-        if(employeeExists){
-            return true;
-        }else {
-            return false;
-        }
+        return employeeRepository.existsByEmployeeId(employeeId);
     }
 
     @Override
     public ApiResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request) {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(request.getEmployeeId())
-                .orElseThrow(() -> new CustomException("Employee Id not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Employee-Id not found", HttpStatus.NOT_FOUND));
 
-        employee.setEmployeeStatus(request.getEmployeeStatus());
+        employee.setAccountStatus(request.getAccountStatus());
         employeeRepository.save(employee);
         return new ApiResponse<>(
                 true,
@@ -162,6 +224,14 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 .orElseThrow(() -> new CustomException("Employee id not found", HttpStatus.NOT_FOUND));
 
         EmployeeInternalResponse response = modelMapper.map(employee, EmployeeInternalResponse.class);
+        response.setEmployeeDesignation(employee.getDesignation().getDesignation());
+        response.setEmployeeStatus(employee.getStatus().getStatus());
+        String designation = employee.getDesignation().getDesignation().toUpperCase();
+        boolean canApproveLeave = designation.contains("MANAGER") || designation.contains("HR") ||
+                designation.contains("PROJECT_MANAGER") || designation.contains("TEAM LEADER") || designation.contains("CEO") ||
+                designation.contains("CTO");
+        response.setCanApproveLeave(canApproveLeave);
+
         return new ApiResponse<>(
                 true,
                 "Employee details",

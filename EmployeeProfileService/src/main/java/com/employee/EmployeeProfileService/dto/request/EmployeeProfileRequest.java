@@ -1,9 +1,7 @@
 package com.employee.EmployeeProfileService.dto.request;
 
-import com.employee.EmployeeProfileService.enums.EmployeeDesignationEnum;
 import com.employee.EmployeeProfileService.enums.GenderEnum;
 import com.employee.EmployeeProfileService.enums.RoleEnum;
-import com.employee.EmployeeProfileService.enums.WorkTypeEnum;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -17,11 +15,11 @@ public class EmployeeProfileRequest {
         private String employeeName;
         private String contact;
         private String emailId;
-        private EmployeeDesignationEnum designation;
+        private Long employeeDesignationId;
         private LocalDate dateOfBirth;
         private RoleEnum role;
         private GenderEnum gender;
-        private WorkTypeEnum workType;
+        private Long workTypeId;
         private String officeId;
         private LocalDate dateOfJoining;
         private String permanentAddress;

@@ -2,13 +2,9 @@ package com.employee.LeaveService.service.impl;
 
 import com.employee.LeaveService.client.EmployeeClient;
 import com.employee.LeaveService.dto.request.LeaveRequest;
-import com.employee.LeaveService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.EmployeeResponse;
-import com.employee.LeaveService.enums.EmployeeDesignationEnum;
-import com.employee.LeaveService.enums.EmployeeStatusEnum;
-import com.employee.LeaveService.enums.LeaveTypeEnum;
 import com.employee.LeaveService.exception.CustomException;
 import com.employee.LeaveService.model.Leave;
 import com.employee.LeaveService.model.LeaveType;
@@ -61,7 +57,6 @@ public class LeaveServiceImpl implements LeaveService {
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
         EmployeeResponse response = employeeResponse.getData();
-
         Leave leave = new Leave();
         leave.setFromDate(request.getFromDate());
         leave.setToDate(request.getToDate());
@@ -70,9 +65,9 @@ public class LeaveServiceImpl implements LeaveService {
         leave.setAppliedOn(LocalDateTime.now());
         leave.setApplicantEmployeeName(employeeName);
         leave.setApproverEmpId(response.getEmployeeId());
-        log.info("Leave type is {}", request.getLeaveType());
-        LeaveType leaveType = leaveTypeRepository.findByLeaveType(request.getLeaveType())
+        LeaveType leaveType = leaveTypeRepository.findById(request.getLeaveTypeId())
                         .orElseThrow(() -> new CustomException("Leave type not found", HttpStatus.NOT_FOUND));
+        log.info("Leave type is {}", leaveType.getLeaveType().toUpperCase());
         leave.setLeaveType(leaveType);
         leaveRepository.save(leave);
 
@@ -124,16 +119,16 @@ public class LeaveServiceImpl implements LeaveService {
             empResponse = employeeClient.getEmployeeByEmployeeId(approvedEmployeeId);
             log.info("Employee {} details got", approvedEmployeeId);
 
-        }catch (FeignException feignException){
+        }catch (FeignException feignException) {
             String cleanErrorMessage = "Microservice called failed";
             HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if(feignException.status() > 0){
+            if (feignException.status() > 0) {
                 try {
                     responseStatus = HttpStatus.valueOf(feignException.status());
                 } catch (IllegalArgumentException ex) {
                     responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
                 }
-            }else {
+            } else {
                 cleanErrorMessage = "Service is unreachable. Please try again later.";
                 responseStatus = HttpStatus.SERVICE_UNAVAILABLE;
             }
@@ -141,9 +136,11 @@ public class LeaveServiceImpl implements LeaveService {
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
 
-        EmployeeDesignationEnum approverRole = EmployeeDesignationEnum.valueOf(empResponse.getData().getEmployeeDesignation());
-        if(!approverRole.canApproveLeave()) {
-            throw new CustomException("You are Unauthorised to perform this action!", HttpStatus.UNAUTHORIZED);
+//        if(){
+//         // TODO The higher authority can't approve their leave by themselves
+//        }
+        if(!empResponse.getData().isCanApproveLeave()) {
+            throw new CustomException("Only higher authorities can approve leave!", HttpStatus.UNAUTHORIZED);
         }
 
         if(leave.getApprovedBy() == null || leave.getApprovedBy().isEmpty()){

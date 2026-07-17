@@ -1,6 +1,5 @@
 package com.employee.EmployeeProfileService.dto.response;
 
-import com.employee.EmployeeProfileService.enums.EmployeeStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,10 +23,10 @@ public class EmployeeResponse {
     private String currentAddress;
     private String dateOfBirth;
     private String emergencyContact;
-    private String workType;
+    private Long workTypeId;
     private String profileStatus;
     private String attendanceStatus;
-    private EmployeeStatusEnum employeeStatus;
+    private Long employeeStatusId;
     private OfficeResponse office;
     private String image;
 }

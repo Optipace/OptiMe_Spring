@@ -21,8 +21,8 @@ public class AttendanceController {
                                                           @RequestParam(value = "image", required = false) MultipartFile file,
                                                           @RequestParam("latitude") String latitude,
                                                           @RequestParam("longitude") String longitude,
-                                                          @RequestParam("attendanceType")WorkTypeEnum attendanceType){
-        ApiResponse<?> response = attendanceService.employeeCheckIn(employeeId, file, latitude, longitude, attendanceType);
+                                                          @RequestParam("attendanceTypeId")Long attendanceTypeId){
+        ApiResponse<?> response = attendanceService.employeeCheckIn(employeeId, file, latitude, longitude, attendanceTypeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

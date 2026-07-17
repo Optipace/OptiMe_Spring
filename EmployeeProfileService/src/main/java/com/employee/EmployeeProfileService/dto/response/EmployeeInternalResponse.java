@@ -1,6 +1,5 @@
 package com.employee.EmployeeProfileService.dto.response;
 
-import com.employee.EmployeeProfileService.enums.EmployeeStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,5 +15,6 @@ public class EmployeeInternalResponse {
     private String emailId;
     private String employeeDesignation;
     private String role;
-    private EmployeeStatusEnum employeeStatus;
+    private String employeeStatus;
+    private boolean canApproveLeave;
 }

@@ -1,7 +1,6 @@
 package com.employee.LeaveService.dto.response;
 
 import com.employee.LeaveService.enums.LeaveStatusEnum;
-import com.employee.LeaveService.enums.LeaveTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,7 +20,7 @@ public class LeaveResponse {
     private LocalDate toDate;
     private LocalDateTime appliedOn;
     private String reason;
-    private LeaveTypeEnum leaveType;
+    private String leaveType;
     private String approvedBy;
     private LeaveStatusEnum leaveStatus;
 }

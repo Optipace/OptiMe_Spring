@@ -5,8 +5,7 @@ import com.employee.AttendanceService.config.AppProperties;
 import com.employee.AttendanceService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
-import com.employee.AttendanceService.enums.EmployeeStatusEnum;
-import com.employee.AttendanceService.enums.WorkTypeEnum;
+import com.employee.AttendanceService.enums.EmployeeAccountStatus;
 import com.employee.AttendanceService.exception.CustomException;
 import com.employee.AttendanceService.model.*;
 import com.employee.AttendanceService.repository.AttendanceRepository;
@@ -16,7 +15,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +29,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -54,7 +53,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     @Transactional
     public ApiResponse<?> employeeCheckIn(String employeeId, MultipartFile file,
-                                          String latitude, String longitude, WorkTypeEnum attendanceType) {
+                                          String latitude, String longitude, Long attendanceTypeId) {
 
         // TODO: Need to check today check in and need to be checked out the previous day check in history by the scheduler
 //        boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNull(employeeId);
@@ -72,7 +71,8 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setAttendanceStatus(AttendanceStatusEnum.ONLINE);
         attendance.setLatitude(latitude);
         attendance.setLongitude(longitude);
-        attendance.setAttendanceType(attendanceType);
+        ApiResponse<Long> apiResponse = employeeClient.getWorkTypeById(attendanceTypeId);
+        attendance.setAttendanceTypeId((apiResponse != null && apiResponse.getData()!= null ) ? apiResponse.getData() : null);
 
         if (file != null && !file.isEmpty()){
 //            throw new CustomException("File is empty", HttpStatus.BAD_REQUEST);
@@ -99,51 +99,55 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance = attendanceRepository.save(attendance);
         boolean attendanceCreated = true;
 
-        try{
-            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload();
-            payload.setEmployeeId(attendance.getEmployeeId());
-            payload.setEmployeeStatus(EmployeeStatusEnum.ACTIVE);
-            employeeClient.updateEmployeeStatus(payload);
-            log.info("Employee service called successfully after check-in");
-        }catch (FeignException fe){
-            // THE SAFE COMPENSATING TRANSACTION
-            if (attendanceCreated) {
-                try {
-                    log.warn("Feign call failed. Manually rolling back attendance for: {}", employeeId);
-                    attendanceRepository.delete(attendance);
-                } catch (Exception rollbackEx) {
-                    log.error("CRITICAL ALARM: Database rollback failed for {}. Manual cleanup required! Error: {}",
-                            employeeId, rollbackEx.getMessage());
-                }
-            }
-            String rawErrorJson = fe.contentUTF8();
-            String cleanErrorMessage = "Microservices failed";
-
-            try {
-                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").asString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
-                }
-            } catch (Exception parseException) {
-                cleanErrorMessage = rawErrorJson;
-            }
-            // Resolve status code safely.
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (fe.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-                log.error("Employee profile service unavailable");
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
-        }
+//        try{
+//            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload();
+//            payload.setEmployeeId(attendance.getEmployeeId());
+//            if(apiResponse != null && apiResponse.getData() != null && apiResponse.getData().equalsIgnoreCase("WFO")){
+//                payload.setEmployeeAccountStatus(EmployeeAccountStatus.IN_OFFICE);
+//            }else {
+//                payload.setEmployeeAccountStatus(EmployeeAccountStatus.ONLINE);
+//            }
+//            employeeClient.updateEmployeeStatus(payload);
+//            log.info("Employee service called successfully after check-in");
+//        }catch (FeignException fe){
+//            // THE SAFE COMPENSATING TRANSACTION
+//            if (attendanceCreated) {
+//                try {
+//                    log.warn("Feign call failed. Manually rolling back attendance for: {}", employeeId);
+//                    attendanceRepository.delete(attendance);
+//                } catch (Exception rollbackEx) {
+//                    log.error("CRITICAL ALARM: Database rollback failed for {}. Manual cleanup required! Error: {}",
+//                            employeeId, rollbackEx.getMessage());
+//                }
+//            }
+//            String rawErrorJson = fe.contentUTF8();
+//            String cleanErrorMessage = "Microservices failed";
+//
+//            try {
+//                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+//                if (errorNode.has("message")) {
+//                    cleanErrorMessage = errorNode.get("message").asString();
+//                } else {
+//                    cleanErrorMessage = rawErrorJson;
+//                }
+//            } catch (Exception parseException) {
+//                cleanErrorMessage = rawErrorJson;
+//            }
+//            // Resolve status code safely.
+//            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+//            if (fe.status() > 0) {
+//                try {
+//                    responseStatus = HttpStatus.valueOf(fe.status());
+//                } catch (IllegalArgumentException ex) {
+//                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+//                }
+//            } else {
+//                cleanErrorMessage = "Service is unreachable. Please try again later.";
+//                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+//                log.error("Employee profile service unavailable");
+//            }
+//            throw new CustomException(cleanErrorMessage, responseStatus);
+//        }
         return new ApiResponse<>(
                 "CHECK-IN Successful",
                 null,
@@ -168,41 +172,40 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         attendance.setAttendanceStatus(AttendanceStatusEnum.OFFLINE);
         attendanceRepository.save(attendance);
-//        try{
-//            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload(
-//                    attendance.getEmployeeId(),
-//                    EmployeeStatusEnum.valueOf(String.valueOf(attendance.getAttendanceStatus()))
-//            );
-//            employeeClient.updateEmployeeStatus(payload);
-//            log.info("Employee service called after check-out");
-//        }catch (FeignException fe){
-//            String rawErrorJson = fe.contentUTF8();
-//            String cleanErrorMessage = "Micro-Services failed";
-//            try{
-//                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-//                if(errorNode.has("message")){
-//                    cleanErrorMessage = errorNode.get("message").toString();
-//                }else{
-//                    cleanErrorMessage = rawErrorJson;
-//                }
-//            }catch (Exception parseException) {
-//                cleanErrorMessage = rawErrorJson;
-//            }
-//            // Resolve status code safely.
-//            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-//            if (fe.status() > 0) {
-//                try {
-//                    responseStatus = HttpStatus.valueOf(fe.status());
-//                } catch (IllegalArgumentException ex) {
-//                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-//                }
-//            } else {
-//                cleanErrorMessage = "Service is unreachable. Please try again later.";
-//                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-//                log.error("Employee profile service unavailable");
-//            }
-//            throw new CustomException(cleanErrorMessage, responseStatus);
-//        }
+        try{
+            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload();
+            payload.setEmployeeId(employeeId);
+            payload.setEmployeeAccountStatus(EmployeeAccountStatus.ACTIVE);
+            employeeClient.updateEmployeeStatus(payload);
+            log.info("Employee service called after check-out");
+        }catch (FeignException fe){
+            String rawErrorJson = fe.contentUTF8();
+            String cleanErrorMessage = "Micro-Services failed";
+            try{
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if(errorNode.has("message")){
+                    cleanErrorMessage = errorNode.get("message").toString();
+                }else{
+                    cleanErrorMessage = rawErrorJson;
+                }
+            }catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+            // Resolve status code safely.
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (fe.status() > 0) {
+                try {
+                    responseStatus = HttpStatus.valueOf(fe.status());
+                } catch (IllegalArgumentException ex) {
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            } else {
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+                log.error("Employee profile service unavailable");
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
         return new ApiResponse<>(
                 "CHECK-OUT Successful",
                 null,

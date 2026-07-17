@@ -1,9 +1,7 @@
 package com.employee.EmployeeProfileService.dto.response;
 
-import com.employee.EmployeeProfileService.enums.EmployeeDesignationEnum;
-import com.employee.EmployeeProfileService.enums.EmployeeStatusEnum;
 import com.employee.EmployeeProfileService.enums.RoleEnum;
-import com.employee.EmployeeProfileService.enums.WorkTypeEnum;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,17 +14,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MasterEmployeeResponse {
-//    private String OfficeId;
-//    private String officeName;
-//    private String latitude;
-//    private String longitude;
-//    private String hr;
-//    private String address;
-//    private String contact;
-//    private String googleMap;
-//    private List<OfficeResponse> officeResponseList;
-    private List<EmployeeDesignationEnum> availableDesignations;
+    private List<EmployeeDesignationResponse> availableDesignationsList;
     private List<RoleEnum> roleEnumList;
-    private List<WorkTypeEnum> workTypeEnumList;
-    private List<EmployeeStatusEnum> employeeStatusEnumList;
+    private List<WorkTypeResponse> workTypeList;
+    private List<EmployeeStatusResponse> EmployeeStatusList;
 }

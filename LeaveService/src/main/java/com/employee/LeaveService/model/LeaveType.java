@@ -1,7 +1,7 @@
 package com.employee.LeaveService.model;
 
-import com.employee.LeaveService.enums.LeaveTypeEnum;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,8 +18,9 @@ public class LeaveType {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long Id;
 
-    @Enumerated(EnumType.STRING)
-    private LeaveTypeEnum leaveType;
+    @NotBlank(message = "Leave Type cannot be blank")
+    @Column(nullable = false, length = 100, unique = true)
+    private String leaveType;
 
     @Column(nullable = false)
     private Long totalDays;

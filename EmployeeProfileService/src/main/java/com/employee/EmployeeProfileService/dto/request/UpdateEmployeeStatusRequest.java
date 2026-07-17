@@ -1,6 +1,6 @@
 package com.employee.EmployeeProfileService.dto.request;
 
-import com.employee.EmployeeProfileService.enums.EmployeeStatusEnum;
+import com.employee.EmployeeProfileService.enums.AccountStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UpdateEmployeeStatusRequest {
     private String employeeId;
-    private EmployeeStatusEnum employeeStatus;
+    private AccountStatus accountStatus;
 }

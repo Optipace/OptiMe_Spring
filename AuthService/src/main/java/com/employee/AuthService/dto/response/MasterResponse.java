@@ -13,17 +13,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MasterResponse {
-//    private String OfficeId;
-//    private String officeName;
-//    private String latitude;
-//    private String longitude;
-//    private String hr;
-//    private String address;
-//    private String contact;
-//    private String googleMap;
     private List<OfficeResponse> OfficeResponse;
     private List<EmployeeDesignationEnum> availableDesignations;
     private List<RoleEnum> roleEnumList;
     private List<WorkTypeEnum> workTypeEnumList;
     private List<EmployeeStatusEnum> employeeStatusEnumList;
+    private List<LeaveTypeResponse> leaveTypeResponseList;
 }

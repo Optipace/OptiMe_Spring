@@ -42,14 +42,9 @@ public class Employee {
     @Column(name = "email_id", nullable = false, unique = true, length = 50)
     private String emailId;
 
-    @NotNull(message = "Designation is mandatory")
     @Enumerated(EnumType.STRING)
-    @Column(name = "designation", length = 30)
-    private EmployeeDesignationEnum designation;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "employee_status", length = 20)
-    private EmployeeStatusEnum employeeStatus;
+    @Column(name = "account_status", length = 20)
+    private AccountStatus accountStatus;
 
     @Column(name = "daily_status", length = 20)
     private String dailyStatus;
@@ -77,10 +72,6 @@ public class Employee {
     @Column(name = "emergency_contact", length = 10)
     private String emergencyContact;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "work_type", length = 20)
-    private WorkTypeEnum workType;
-
     @Column(name = "date_of_joining")
     @NotNull(message = "Date of Joining must be in YYYY-MM-DD format")
     private LocalDate dateOfJoining;
@@ -95,9 +86,21 @@ public class Employee {
 
     private String bloodGroup;
 
+    @NotNull(message = "Work type is mandatory")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "work_type_id", nullable = false)
+    private WorkType workType;
+
+    @NotNull(message = "Designation is mandatory")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "designation_id", nullable = false) 
+    private EmployeeDesignation designation;
+
+    @NotNull(message = "Employee status is mandatory")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_status_id", nullable = false)
+    private EmployeeStatus status;
+
     @NotBlank(message = "Office Id is not provided")
     private String officeId;
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "office_id")
-//    private Office office;
 }

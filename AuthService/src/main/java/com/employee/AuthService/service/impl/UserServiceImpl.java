@@ -3,6 +3,7 @@ package com.employee.AuthService.service.impl;
 import com.employee.AuthService.client.AdminClient;
 import com.employee.AuthService.client.CommunicationClient;
 import com.employee.AuthService.client.EmployeeClient;
+import com.employee.AuthService.client.LeaveClient;
 import com.employee.AuthService.config.AppProperties;
 import com.employee.AuthService.dto.request.*;
 import com.employee.AuthService.dto.response.*;
@@ -48,6 +49,7 @@ public class UserServiceImpl implements UserService {
     private final AppProperties appProperties;
     private final CommunicationClient communicationClient;
     private final AdminClient adminClient;
+    private final LeaveClient leaveClient;
 
     @Override
     @Transactional
@@ -368,6 +370,7 @@ public class UserServiceImpl implements UserService {
 
         ApiResponse<List<OfficeResponse>> officeResponse = adminClient.getOfficeList();
         ApiResponse<MasterResponse> empResponse = employeeClient.getMasterDetails();
+        ApiResponse<List<LeaveTypeResponse>> leaveResponse = leaveClient.getLeaveTypeList();
 
         MasterResponse masterResponse = (empResponse != null && empResponse.getData() != null)
                 ? empResponse.getData()
@@ -375,6 +378,10 @@ public class UserServiceImpl implements UserService {
 
         if (officeResponse != null && officeResponse.getData() != null) {
             masterResponse.setOfficeResponse(officeResponse.getData());
+        }
+
+        if(leaveResponse != null && leaveResponse.getData() != null){
+            masterResponse.setLeaveTypeResponseList(leaveResponse.getData());
         }
         return new ApiResponse<>(
                 true,

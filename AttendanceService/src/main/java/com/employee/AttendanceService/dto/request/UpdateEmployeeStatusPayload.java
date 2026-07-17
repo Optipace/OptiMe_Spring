@@ -1,6 +1,6 @@
 package com.employee.AttendanceService.dto.request;
 
-import com.employee.AttendanceService.enums.EmployeeStatusEnum;
+import com.employee.AttendanceService.enums.EmployeeAccountStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,5 +12,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class UpdateEmployeeStatusPayload {
     private String employeeId;
-    private EmployeeStatusEnum employeeStatus;
+    private EmployeeAccountStatus employeeAccountStatus;
 }

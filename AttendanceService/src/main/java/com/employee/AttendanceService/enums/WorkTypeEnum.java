@@ -1,8 +1,8 @@
-package com.employee.AttendanceService.enums;
-
-public enum WorkTypeEnum {
-        WFH,
-        WFO,
-        HYBRID,
-        OTHERS
-}
+//package com.employee.AttendanceService.enums;
+//
+//public enum WorkTypeEnum {
+//        WFH,
+//        WFO,
+//        HYBRID,
+//        OTHERS
+//}

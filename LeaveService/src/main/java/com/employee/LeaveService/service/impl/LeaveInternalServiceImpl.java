@@ -2,8 +2,11 @@ package com.employee.LeaveService.service.impl;
 
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.LeaveResponse;
+import com.employee.LeaveService.dto.response.LeaveTypeResponse;
 import com.employee.LeaveService.model.Leave;
+import com.employee.LeaveService.model.LeaveType;
 import com.employee.LeaveService.repository.LeaveRepository;
+import com.employee.LeaveService.repository.LeaveTypeRepository;
 import com.employee.LeaveService.service.LeaveInternalService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +25,8 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
     private final LeaveRepository leaveRepository;
 
     private final ModelMapper modelMapper;
+
+    private final LeaveTypeRepository leaveTypeRepository;
 
     @Override
     public ApiResponse<?> getAllAppliedLeaves() {
@@ -48,4 +53,22 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
                 200
         );
     }
+
+    @Override
+    public ApiResponse<List<LeaveTypeResponse>> getLeaveTypeList() {
+        List<LeaveType> leaveTypeList = leaveTypeRepository.findAll();
+
+        List<LeaveTypeResponse> leaveTypeResponseList = leaveTypeList.stream()
+                .map(leaveType -> modelMapper.map(leaveType, LeaveTypeResponse.class))
+                .toList();
+        return new ApiResponse<>(
+                true,
+                "List of Leave types",
+                leaveTypeResponseList,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+
 }

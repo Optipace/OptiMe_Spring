@@ -145,8 +145,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public ApiResponse<?> addNewOffice(AddNewOfficeRequest request) {
-        officeRepository.findById(request.getOfficeId())
-                .orElseThrow(() -> new CustomException("Office id already exists", HttpStatus.BAD_REQUEST));
+        if (officeRepository.existsById(request.getOfficeId())) {
+            throw new CustomException("Office id already exists", HttpStatus.BAD_REQUEST);
+        }
 
         Office newOffice = new Office();
         newOffice.setId(request.getOfficeId());

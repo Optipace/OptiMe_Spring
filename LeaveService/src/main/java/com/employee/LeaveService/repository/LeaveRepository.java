@@ -12,5 +12,5 @@ import java.util.Optional;
 public interface LeaveRepository extends JpaRepository<Leave, Long> {
     List<Leave> findByFromDateGreaterThanEqual(LocalDate date);
 
-    Optional<Leave> findByEmployeeId(String employeeId);
+//    Optional<Leave> findByEmployeeId(String employeeId);
 }
