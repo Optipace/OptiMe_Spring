@@ -145,7 +145,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
         return new ApiResponse<>(
-                "Login Successful",
+                "CHECK-IN Successful",
                 null,
                 HttpStatus.OK
         );
@@ -204,7 +204,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 //            throw new CustomException(cleanErrorMessage, responseStatus);
 //        }
         return new ApiResponse<>(
-                "Logout Successful",
+                "CHECK-OUT Successful",
                 null,
                 HttpStatus.OK
         );
