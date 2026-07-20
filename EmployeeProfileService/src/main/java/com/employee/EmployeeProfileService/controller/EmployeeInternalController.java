@@ -9,7 +9,9 @@ import com.employee.EmployeeProfileService.dto.response.EmployeeInternalResponse
 import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
 import com.employee.EmployeeProfileService.dto.response.FeedbackResponse;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,7 +25,7 @@ public class EmployeeInternalController {
     private final EmployeeInternalService empInternalService;
 
     @PostMapping("/createProfile")
-    public ResponseEntity<ApiResponse<?>> createProfile(@RequestBody EmployeeProfileRequest request){
+    public ResponseEntity<ApiResponse<?>> createProfile(@Valid @RequestBody EmployeeProfileRequest request){
         ApiResponse<?> response = empInternalService.createProfile(request);
         return ResponseEntity.status(200).body(response);
     }
@@ -79,6 +81,11 @@ public class EmployeeInternalController {
     public ResponseEntity<ApiResponse<?>> updateFeedback(@RequestBody FeedbackUpdateRequest request){
         ApiResponse<?> response = empInternalService.updateFeedback(request);
         return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/checkWorkTypeById")
+    public boolean getWorkTypeId(@RequestParam("workTypeId")Long workTypeId){
+        return empInternalService.getWorkTypeId(workTypeId);
     }
 
 }

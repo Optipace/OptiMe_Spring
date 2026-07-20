@@ -45,7 +45,7 @@ public class RegisterRequest {
     private LocalDate dateOfBirth;
 
     @NotNull(message = "Please provide employee designation")
-    private EmployeeDesignationEnum designation;
+    private Long designationId;
 
     @NotNull(message = "Gender is mandatory")
     private GenderEnum gender;
@@ -54,7 +54,7 @@ public class RegisterRequest {
     private String officeId;
 
     @NotNull(message = "Work type is required")
-    private WorkTypeEnum workType;
+    private Long workTypeId;
 
     @NotNull(message = "Date of Joining must be in YYYY-MM-DD format")
     private LocalDate dateOfJoining;

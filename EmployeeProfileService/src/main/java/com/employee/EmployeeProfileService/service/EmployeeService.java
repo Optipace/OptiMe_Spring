@@ -8,21 +8,21 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface EmployeeService {
-    public ApiResponse<List<ListOfEmployeeResponse>> getAllEmployees();
+    public SingleResponse<List<ListOfEmployeeResponse>> getAllEmployees();
 
-    public ApiResponse<EmployeeResponse> getEmployeeDetails(String employeeId);
+    public SingleResponse<EmployeeResponse> getEmployeeDetails(String employeeId);
 
-    public ApiResponse<EmployeeResponse> getEmployeeByEmployeeId(String employeeId);
+    public SingleResponse<EmployeeResponse> getEmployeeByEmployeeId(String employeeId);
 
-    public ApiResponse<?> getOfficeNames();
+    public ListResponse<?> getOfficeNames();
 
-    public ApiResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId);
+    public SingleResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId);
 
-    public ApiResponse<?> saveFeedback(FeedbackRequest request, String authHeader);
+    public SingleResponse<?> saveFeedback(FeedbackRequest request, String authHeader);
 
-    public ApiResponse<List<FeedbackResponse>> getFeedback();
+    public SingleResponse<List<FeedbackResponse>> getFeedback();
 
-    public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request);
+    public SingleResponse<?> updateFeedback(FeedbackUpdateRequest request);
 
 //    public ResponseEntity<Resource> getEmployeeProfile(String authHeader);
 }

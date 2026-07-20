@@ -15,12 +15,12 @@ public class EmployeeProfileRequest {
         private String employeeName;
         private String contact;
         private String emailId;
-        private Long employeeDesignationId;
-        private LocalDate dateOfBirth;
+        private Long designationId;
         private RoleEnum role;
         private GenderEnum gender;
         private Long workTypeId;
         private String officeId;
+        private LocalDate dateOfBirth;
         private LocalDate dateOfJoining;
         private String permanentAddress;
 }

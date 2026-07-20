@@ -1,6 +1,5 @@
 package com.employee.AuthService.dto.response;
 
-import com.employee.AuthService.enums.GenderEnum;
 import lombok.Getter;
 import lombok.Setter;
 

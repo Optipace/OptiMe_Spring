@@ -15,6 +15,6 @@ public interface EmployeeClient {
     @PostMapping("/api/employee/internal/updateEmployeeStatus")
     void updateEmployeeStatus(@RequestBody UpdateEmployeeStatusPayload payload);
 
-    @GetMapping("/api/employee/internal/getWorkTypeById")
-    ApiResponse<Long> getWorkTypeById(@RequestParam("workTypeId")Long workTypeId);
+    @GetMapping("/api/employee/internal/checkWorkTypeById")
+    boolean checkWorkTypeIdExists(@RequestParam("workTypeId")Long workTypeId);
 }

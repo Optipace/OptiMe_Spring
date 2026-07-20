@@ -18,44 +18,44 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/getOtp")
-    public ResponseEntity<ApiResponse<?>> generateOtp(@Valid @RequestBody OtpRequest request){
-        ApiResponse<?> response = userService.generateOtp(request);
+    public ResponseEntity<SingleResponse<?>> generateOtp(@Valid @RequestBody OtpRequest request){
+        SingleResponse<?> response = userService.generateOtp(request);
         return ResponseEntity.status(200).body(response);
     }
 
     @PostMapping("/validateOtp")
-    public ResponseEntity<ApiResponse<ValidationResponse>> validateOtp(@Valid @RequestBody ValidationRequest request){
-        ApiResponse<ValidationResponse> response = userService.validateOtp(request);
+    public ResponseEntity<SingleResponse<ValidationResponse>> validateOtp(@Valid @RequestBody ValidationRequest request){
+        SingleResponse<ValidationResponse> response = userService.validateOtp(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/completeRegistration")
-    public ResponseEntity<ApiResponse<?>> completeRegistration(@Valid @RequestBody CompleteRegisterRequest request){
-        ApiResponse<?> response = userService.completeRegistration(request);
+    public ResponseEntity<SingleResponse<?>> completeRegistration(@Valid @RequestBody CompleteRegisterRequest request){
+        SingleResponse<?> response = userService.completeRegistration(request);
         return ResponseEntity.status(200).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request){
-        ApiResponse<LoginResponse> response = userService.login(request);
+    public ResponseEntity<SingleResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request){
+        SingleResponse<LoginResponse> response = userService.login(request);
         return  ResponseEntity.status(200).body(response);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<?>> refresh(@RequestBody RefreshTokenRequest request){
-        ApiResponse<?> response = refreshTokenService.getNewAccessToken(request);
+    public ResponseEntity<SingleResponse<?>> refresh(@RequestBody RefreshTokenRequest request){
+        SingleResponse<?> response = refreshTokenService.getNewAccessToken(request);
         return ResponseEntity.status(200).body(response);
     }
 
     @GetMapping("/getMasterDetails")
-    public ResponseEntity<ApiResponse<?>> getMasterDetails(){
-        ApiResponse<?> response = userService.getMasterDetails();
+    public ResponseEntity<SingleResponse<MasterResponse>> getMasterDetails(){
+        SingleResponse<MasterResponse> response = userService.getMasterDetails();
         return ResponseEntity.status(200).body(response);
     }
 
     @PostMapping("/resetPassword")
-    public ResponseEntity<ApiResponse<?>> resetPassword(@RequestBody ResetPasswordRequest request){
-        ApiResponse<?> response = userService.resetPassword(request);
+    public ResponseEntity<SingleResponse<?>> resetPassword(@RequestBody ResetPasswordRequest request){
+        SingleResponse<?> response = userService.resetPassword(request);
         return ResponseEntity.ok(response);
     }
 }

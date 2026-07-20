@@ -4,6 +4,7 @@ import com.employee.AdminService.dto.request.EmployeeProfilePayload;
 import com.employee.AdminService.dto.request.FeedbackUpdateRequest;
 import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.dto.response.FeedbackResponse;
+import com.employee.AdminService.dto.response.MasterEmployeeResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,4 +24,7 @@ public interface EmployeeClient {
 
     @PutMapping("/api/employee/internal/updateFeedback")
     ApiResponse<?> updateFeedback(@RequestBody FeedbackUpdateRequest request);
+
+    @GetMapping("/api/employee/internal/getMasterDetails")
+    ApiResponse<MasterEmployeeResponse> getMasterDetails();
 }

@@ -6,7 +6,9 @@ import com.employee.AdminService.client.LeaveClient;
 import com.employee.AdminService.client.NotificationClient;
 import com.employee.AdminService.dto.request.*;
 import com.employee.AdminService.dto.response.*;
+import com.employee.AdminService.enums.CustomStatus;
 import com.employee.AdminService.enums.OfficeStatus;
+import com.employee.AdminService.enums.RoleEnum;
 import com.employee.AdminService.exception.CustomException;
 import com.employee.AdminService.model.Office;
 import com.employee.AdminService.repository.OfficeRepository;
@@ -23,6 +25,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -44,7 +47,7 @@ public class AdminServiceImpl implements AdminService {
     private final OfficeRepository officeRepository;
 
     @Override
-    public ApiResponse<?> addNewUser(RegisterRequest request, String adminEmployeeId) {
+    public SingleResponse<?> addNewUser(RegisterRequest request, String adminEmployeeId) {
 
         officeRepository.findById(request.getOfficeId())
                 .orElseThrow(() -> new CustomException("Office Id not found", HttpStatus.NOT_FOUND));
@@ -65,10 +68,10 @@ public class AdminServiceImpl implements AdminService {
                 request.getEmployeeName(),
                 request.getContact(),
                 request.getEmailId(),
-                request.getDesignation(),
+                request.getDesignationId(),
                 request.getRole(),
                 request.getGender(),
-                request.getWorkType(),
+                request.getWorkTypeId(),
                 request.getOfficeId(),
                 request.getDateOfBirth(),
                 request.getDateOfJoining(),
@@ -134,19 +137,16 @@ public class AdminServiceImpl implements AdminService {
             }
             throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
         }
-        return new ApiResponse<>(
-                true,
-                "Employee added successfully",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> addNewOffice(AddNewOfficeRequest request) {
+    public SingleResponse<?> addNewOffice(AddNewOfficeRequest request) {
         if (officeRepository.existsById(request.getOfficeId())) {
-            throw new CustomException("Office id already exists", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.OFFICE_ALREADY_EXISTS, 201);
         }
 
         Office newOffice = new Office();
@@ -162,23 +162,20 @@ public class AdminServiceImpl implements AdminService {
 
         officeRepository.save(newOffice);
 
-        return new ApiResponse<>(
-                true,
-                "New office added successfully",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
 
     @Override
-    public ApiResponse<PageResponse<OfficeResponse>> getOfficeList(Pageable pageable) {
+    public SingleResponse<PageResponse<OfficeResponse>> getOfficeList(Pageable pageable) {
         Page<Office> officePage = officeRepository.findAll(pageable);
         List<Office> officeList = officePage.getContent();
 
         if(officePage.isEmpty()){
-            throw new CustomException("No office records found", HttpStatus.NOT_FOUND);
+            throw new CustomException(null, CustomStatus.NO_OFFICE_RECORDS_FOUND, 201);
         }
 
         List<OfficeResponse> officeResponseList = officeList.stream()
@@ -193,19 +190,16 @@ public class AdminServiceImpl implements AdminService {
                 officePage.getTotalPages(),
                 officePage.isLast()
         );
-        return new ApiResponse<>(
-                true,
-                "Office List",
+        return new SingleResponse<>(
                 pageResponse,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> updateOffice(OfficeRequest request) {
+    public SingleResponse<?> updateOffice(OfficeRequest request) {
         Office office = officeRepository.findById(request.getOfficeId())
-                .orElseThrow(() -> new CustomException("No Office records found for this office ID", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.NO_OFFICE_RECORDS_FOUND, 201));
 
         if(request.getOfficeName() != null){
             office.setOfficeName(request.getOfficeName());
@@ -236,17 +230,14 @@ public class AdminServiceImpl implements AdminService {
         }
 
         officeRepository.save(office);
-        return new ApiResponse<>(
-                true,
-                "Office details updated",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<PageResponse<String>> getOfficeNames(Pageable pageable) {
+    public SingleResponse<PageResponse<String>> getOfficeNames(Pageable pageable) {
         Page<Office> officePage = officeRepository.findAll(pageable);
         List<Office> officeList = officePage.getContent();
 
@@ -264,16 +255,13 @@ public class AdminServiceImpl implements AdminService {
                 officePage.isLast()
         );
 
-        return new ApiResponse<>(
-                true,
-                "ACTIVE Office Names list",
+        return new SingleResponse<>(
                 pageResponse,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
-    public ApiResponse<List<FeedbackResponse>> getFeedback(){
+    public SingleResponse<List<FeedbackResponse>> getFeedback(){
         List<FeedbackResponse> feedbackResponses = null;
         try{
             log.info("Calling employee service");
@@ -311,17 +299,14 @@ public class AdminServiceImpl implements AdminService {
             }
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
-        return new ApiResponse<>(
-                true,
-                "List of feedbacks",
+        return new SingleResponse<>(
                 feedbackResponses,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request) {
+    public SingleResponse<?> updateFeedback(FeedbackUpdateRequest request) {
         String message= "";
         try{
            ApiResponse<?> apiResponse = employeeClient.updateFeedback(request);
@@ -354,18 +339,15 @@ public class AdminServiceImpl implements AdminService {
             }
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
-        return new ApiResponse<>(
-                true,
+        return new SingleResponse<>(
                 message,
-                null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
 
     @Override
-    public ApiResponse<?> getAllAppliedLeaves() {
+    public SingleResponse<?> getAllAppliedLeaves() {
 
         List<LeaveResponse> leaveResponses = null;
         try {
@@ -404,17 +386,14 @@ public class AdminServiceImpl implements AdminService {
             }
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
-        return new ApiResponse<>(
-                true,
-                "Applied Leaves",
+        return new SingleResponse<>(
                 leaveResponses,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> sendBroadcastMessage(NotificationRequest request) {
+    public SingleResponse<?> sendBroadcastMessage(NotificationRequest request) {
         NotificationPayload payload = new NotificationPayload();
         payload.setEmployeeId("ALL");
         payload.setTitle(request.getTitle());
@@ -423,13 +402,49 @@ public class AdminServiceImpl implements AdminService {
 
         notificationClient.sendBroadCastNotification(payload);
 
-        return new ApiResponse<>(
-                true,
-                "Message delivered successfully",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+               CustomStatus.SUCCESS
         );
     }
 
+    @Override
+    public SingleResponse<MasterResponse> getMasterDetails() {
+        List<Office> officeList = officeRepository.findAll();
+        List<OfficeResponse> officeResponse = officeList.stream()
+                .map(office -> modelMapper.map(office, OfficeResponse.class))
+                .toList();
+        ApiResponse<MasterEmployeeResponse> empResponse = employeeClient.getMasterDetails();
+        ApiResponse<List<LeaveTypeResponse>> leaveResponse = leaveClient.getLeaveTypeList();
+
+        List<EmployeeDesignationResponse> employeeDesignationResponseList = new ArrayList<>();
+        List<RoleEnum> roleEnumList = new ArrayList<>();
+        List<WorkTypeResponse> workTypeList = new ArrayList<>();
+        List<EmployeeStatusResponse> employeeStatusList = new ArrayList<>();
+        if(empResponse != null && empResponse.getData() != null){
+            employeeDesignationResponseList = empResponse.getData().getAvailableDesignationsList();
+            roleEnumList = empResponse.getData().getRoleEnumList();
+            workTypeList = empResponse.getData().getWorkTypeList();
+            employeeStatusList = empResponse.getData().getEmployeeStatusList();
+        }else{
+            throw new CustomException(null, CustomStatus.MICROSERVICE_CALL_FAILED, 500);
+        }
+
+        MasterResponse masterResponse = new MasterResponse();
+
+        if(leaveResponse != null && leaveResponse.getData() != null){
+            masterResponse.setLeaveTypeResponseList(leaveResponse.getData());
+        }
+
+        masterResponse.setOfficeResponse(officeResponse);
+        masterResponse.setAvailableDesignations(employeeDesignationResponseList);
+        masterResponse.setWorkTypeList(workTypeList);
+        masterResponse.setRoleEnumList(roleEnumList);
+        masterResponse.setEmployeeStatusList(employeeStatusList);
+
+        return new SingleResponse<>(
+                masterResponse,
+                CustomStatus.SUCCESS
+        );
+    }
 }

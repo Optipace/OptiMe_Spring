@@ -1,22 +1,20 @@
 package com.employee.AuthService.service;
 
 import com.employee.AuthService.dto.request.*;
-import com.employee.AuthService.dto.response.ApiResponse;
-import com.employee.AuthService.dto.response.LoginResponse;
-import com.employee.AuthService.dto.response.ValidationResponse;
+import com.employee.AuthService.dto.response.*;
 import org.springframework.web.bind.annotation.RequestBody;
 
 public interface UserService {
 
-    public ApiResponse<?> generateOtp(OtpRequest request);
+    public SingleResponse<?> generateOtp(OtpRequest request);
 
-    public ApiResponse<ValidationResponse> validateOtp(ValidationRequest request);
+    public SingleResponse<ValidationResponse> validateOtp(ValidationRequest request);
 
-    public ApiResponse<?> completeRegistration(CompleteRegisterRequest request);
+    public SingleResponse<?> completeRegistration(CompleteRegisterRequest request);
 
-    public ApiResponse<LoginResponse> login(LoginRequest request);
+    public SingleResponse<LoginResponse> login(LoginRequest request);
 
-    public ApiResponse<?> getMasterDetails();
+    public SingleResponse<MasterResponse> getMasterDetails();
 
-    public ApiResponse<?> resetPassword(ResetPasswordRequest request);
+    public SingleResponse<?> resetPassword(ResetPasswordRequest request);
 }

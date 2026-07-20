@@ -3,6 +3,7 @@ package com.employee.AttendanceService.model;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -47,8 +48,8 @@ public class Attendance {
 
     private String filePath;
 
-    @NotBlank(message = "Provide attendance type")
-    @Column(name = "attendance_type", nullable = false, length = 50)
+    @NotNull(message = "Provide attendance type")
+    @Column(name = "attendance_type_id", nullable = false, length = 50)
     private Long attendanceTypeId;
 
 }

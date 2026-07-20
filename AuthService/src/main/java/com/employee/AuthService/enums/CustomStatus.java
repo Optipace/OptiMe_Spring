@@ -1,16 +1,21 @@
-package com.employee.AttendanceService.enums;
+package com.employee.AuthService.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum CustomStatus2 {
+public enum CustomStatus {
     UNKNOWN(-999,"Something went wrong"),
 
     // 200 Business Logic Failures
 
     // 201: Authentication & OTP Failures
+    INVALID_REFRESH_TOKEN(-76, "Refresh token is invalid."),
+    REFRESH_TOKEN_EXPIRED(-77, "Token expired login again."),
+    IDENTITY_NOT_FOUND(-75, "Validated Email-Id or contact not found OR check provided employee Id"),
+    NOT_REGISTERED(-74, "Please register this email or contact number in office!."),
+    OTP_NOT_FOUND(-75, "OTP not found for this user."),
     OTP_ALREADY_VERIFIED(-20, "OTP already verified."),
     OTP_EXPIRED(-21, "OTP has expired."),
     OTP_RETRY_LIMIT_EXCEEDED(-22, "OTP retry limit exceeded."),

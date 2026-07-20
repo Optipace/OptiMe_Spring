@@ -22,50 +22,50 @@ public class EmployeeController {
     private final EmployeeService empService;
 
     @GetMapping("/allEmp")
-    public ResponseEntity<ApiResponse<List<ListOfEmployeeResponse>>> getAllEmployees(){
-        ApiResponse<List<ListOfEmployeeResponse>> response = empService.getAllEmployees();
+    public ResponseEntity<SingleResponse<List<ListOfEmployeeResponse>>> getAllEmployees(){
+        SingleResponse<List<ListOfEmployeeResponse>> response = empService.getAllEmployees();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/getEmployeeDetails")
-    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader ("X-Employee-Id") String employeeId){
-        ApiResponse<EmployeeResponse> response = empService.getEmployeeDetails(employeeId);
+    public ResponseEntity<SingleResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader ("X-Employee-Id") String employeeId){
+        SingleResponse<EmployeeResponse> response = empService.getEmployeeDetails(employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/getEmployeeByID")
-    public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeByEmployeeId(@RequestParam("employeeId")String employeeId){
-        ApiResponse<EmployeeResponse> response = empService.getEmployeeByEmployeeId(employeeId);
+    public ResponseEntity<SingleResponse<EmployeeResponse>> getEmployeeByEmployeeId(@RequestParam("employeeId")String employeeId){
+        SingleResponse<EmployeeResponse> response = empService.getEmployeeByEmployeeId(employeeId);
         return ResponseEntity.status((HttpStatus.OK)).body(response);
     }
 
     @GetMapping("/officeNames")
-    public ResponseEntity<ApiResponse<?>> getOfficeNames(){
-        ApiResponse<?> response = empService.getOfficeNames();
+    public ResponseEntity<ListResponse<?>> getOfficeNames(){
+        ListResponse<?> response = empService.getOfficeNames();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PostMapping(value = "/upload/EmployeeProfile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<?>> uploadEmployeeImage(@RequestParam("image") MultipartFile file, @RequestHeader ("X-Employee-Id") String employeeId ){
-        ApiResponse<?> response = empService.uploadEmployeeProfile(file,employeeId);
+    public ResponseEntity<SingleResponse<?>> uploadEmployeeImage(@RequestParam("image") MultipartFile file, @RequestHeader ("X-Employee-Id") String employeeId ){
+        SingleResponse<?> response = empService.uploadEmployeeProfile(file,employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PostMapping("/saveFeedback")
-    public ResponseEntity<ApiResponse<?>> saveFeedback(@RequestBody FeedbackRequest request, @RequestHeader ("X-Employee-Id") String employeeId){
-        ApiResponse<?> response = empService.saveFeedback(request,employeeId);
+    public ResponseEntity<SingleResponse<?>> saveFeedback(@RequestBody FeedbackRequest request, @RequestHeader ("X-Employee-Id") String employeeId){
+        SingleResponse<?> response = empService.saveFeedback(request,employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/getFeedback")
-    public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getFeedback(){
-        ApiResponse<List<FeedbackResponse>> response = empService.getFeedback();
+    public ResponseEntity<SingleResponse<List<FeedbackResponse>>> getFeedback(){
+        SingleResponse<List<FeedbackResponse>> response = empService.getFeedback();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PutMapping("/updateFeedback")
-    public ResponseEntity<ApiResponse<?>> updateFeedback(@RequestBody FeedbackUpdateRequest request){
-        ApiResponse<?> response = empService.updateFeedback(request);
+    public ResponseEntity<SingleResponse<?>> updateFeedback(@RequestBody FeedbackUpdateRequest request){
+        SingleResponse<?> response = empService.updateFeedback(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

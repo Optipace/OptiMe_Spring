@@ -17,5 +17,5 @@ public class MasterEmployeeResponse {
     private List<EmployeeDesignationResponse> availableDesignationsList;
     private List<RoleEnum> roleEnumList;
     private List<WorkTypeResponse> workTypeList;
-    private List<EmployeeStatusResponse> EmployeeStatusList;
+    private List<EmployeeStatusResponse> employeeStatusList;
 }

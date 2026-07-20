@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
@@ -24,6 +25,9 @@ public class ApiResponse<T> {
         this.data = data;
         this.timeStamp = timeStamp;
         this.statusCode = httpStatus.value(); // Extracts the integer code (e.g., 400, 200)
+    }
+
+    public ApiResponse(String defaultMessage, Object o, HttpStatus httpStatus) {
     }
 
     // Getter for status

@@ -1,24 +1,30 @@
 package com.employee.AuthService.exception;
 
-import lombok.Getter;
+import com.employee.AuthService.enums.CustomStatus;
 import org.springframework.http.HttpStatus;
 
-@Getter
 public class CustomException extends RuntimeException {
 
-	private final String errorCode;
-    private final HttpStatus httpStatus;
+    private final CustomStatus customStatus;
+    private final int statusCode;
 
-    public CustomException(String message, String errorCode, HttpStatus httpStatus) {
-        super(message);
-        this.errorCode = errorCode;
-        this.httpStatus = httpStatus;
-    }
-    
     public CustomException(String message, HttpStatus httpStatus) {
         super(message);
-        this.httpStatus = httpStatus;
-        this.errorCode = String.valueOf(httpStatus.value()); // derive from HttpStatus
+        this.customStatus = null;
+        this.statusCode = httpStatus.value();
+    }
+    public CustomException(String message, CustomStatus customStatus, int statusCode) {
+        super(message); // message can be null here safely
+        this.customStatus = customStatus;
+        this.statusCode = statusCode;
+    }
+
+    // Getters so your Exception Handler can read these values
+    public CustomStatus getCustomStatus() {
+        return customStatus;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
     }
 }
-

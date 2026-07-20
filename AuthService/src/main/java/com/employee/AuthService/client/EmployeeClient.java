@@ -3,6 +3,7 @@ package com.employee.AuthService.client;
 import com.employee.AuthService.dto.request.EmployeeProfilePayload;
 import com.employee.AuthService.dto.response.ApiResponse;
 import com.employee.AuthService.dto.response.EmployeeResponse;
+import com.employee.AuthService.dto.response.MasterEmployeeResponse;
 import com.employee.AuthService.dto.response.MasterResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,6 @@ public interface EmployeeClient {
     void completeProfile(@RequestBody EmployeeProfilePayload profilePayload);
 
     @GetMapping("/api/employee/internal/getMasterDetails")
-    ApiResponse<MasterResponse> getMasterDetails();
+    ApiResponse<MasterEmployeeResponse> getMasterDetails();
 
 }

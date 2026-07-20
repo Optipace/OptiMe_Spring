@@ -14,9 +14,9 @@ import java.util.List;
 @NoArgsConstructor
 public class MasterResponse {
     private List<OfficeResponse> OfficeResponse;
-    private List<EmployeeDesignationEnum> availableDesignations;
-    private List<RoleEnum> roleEnumList;
-    private List<WorkTypeEnum> workTypeEnumList;
-    private List<EmployeeStatusEnum> employeeStatusEnumList;
     private List<LeaveTypeResponse> leaveTypeResponseList;
+    private List<EmployeeDesignationResponse> availableDesignations;
+    private List<RoleEnum> roleEnumList;
+    private List<WorkTypeResponse> workTypeList;
+    private List<EmployeeStatusResponse> employeeStatusList;
 }

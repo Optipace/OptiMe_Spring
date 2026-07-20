@@ -45,30 +45,34 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     @Override
     public ApiResponse<?> createProfile(EmployeeProfileRequest request) {
 
+        EmployeeDesignation designation = designationRepository.findById(request.getDesignationId())
+                .orElseThrow(() -> new CustomException("No such designation found", HttpStatus.NOT_FOUND));
+
+        WorkType workType = workTypeRepository.findById(request.getWorkTypeId())
+                .orElseThrow(() -> new CustomException("No such work type found", HttpStatus.NOT_FOUND));
+
         Employee newEmployee =  new Employee();
         newEmployee.setEmployeeId(request.getEmployeeId());
         newEmployee.setEmployeeName(request.getEmployeeName());
         newEmployee.setContact(request.getContact());
         newEmployee.setEmailId(request.getEmailId());
-
-        EmployeeDesignation designation = designationRepository.findById(request.getEmployeeDesignationId())
-                        .orElseThrow(() -> new CustomException("No such designation found", HttpStatus.NOT_FOUND));
         newEmployee.setDesignation(designation);
 
         if(String.valueOf(request.getRole()).equals("ADMIN")){
             newEmployee.setRole(request.getRole());
         }
+
         newEmployee.setRole(request.getRole());
         newEmployee.setGender(request.getGender());
-
-        WorkType workType = workTypeRepository.findById(request.getWorkTypeId())
-                        .orElseThrow(() -> new CustomException("No such work type found", HttpStatus.NOT_FOUND));
         newEmployee.setWorkType(workType);
         newEmployee.setDateOfBirth(request.getDateOfBirth());
         newEmployee.setProfileStatus(4);
         newEmployee.setDateOfJoining(request.getDateOfJoining());
         newEmployee.setPermanentAddress(request.getPermanentAddress());
         newEmployee.setOfficeId(request.getOfficeId());
+        EmployeeStatus status = employeeStatusRepository.findById(5L)
+                        .orElseThrow(() -> new CustomException("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR));
+        newEmployee.setStatus(status);
 
         employeeRepository.save(newEmployee);
         return new ApiResponse<>(
@@ -288,5 +292,9 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         );
     }
 
+    @Override
+    public boolean getWorkTypeId(Long workTypeId) {
+        return workTypeRepository.existsById(workTypeId);
+    }
 
 }

@@ -5,6 +5,7 @@ import com.employee.AttendanceService.config.AppProperties;
 import com.employee.AttendanceService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
+import com.employee.AttendanceService.enums.CustomStatus;
 import com.employee.AttendanceService.enums.EmployeeAccountStatus;
 import com.employee.AttendanceService.exception.CustomException;
 import com.employee.AttendanceService.model.*;
@@ -29,7 +30,6 @@ import java.nio.file.StandardCopyOption;
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -52,7 +52,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional
-    public ApiResponse<?> employeeCheckIn(String employeeId, MultipartFile file,
+    public SingleResponse<?> employeeCheckIn(String employeeId, MultipartFile file,
                                           String latitude, String longitude, Long attendanceTypeId) {
 
         // TODO: Need to check today check in and need to be checked out the previous day check in history by the scheduler
@@ -61,7 +61,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(employeeId, checkInTime);
 
         if(isAlreadyCheckedIn)
-            throw new CustomException("You are already checked in!", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.ALREADY_CHECKED_IN, 201);
 
         Attendance attendance = new Attendance();
         attendance.setEmployeeId(employeeId);
@@ -71,8 +71,12 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setAttendanceStatus(AttendanceStatusEnum.ONLINE);
         attendance.setLatitude(latitude);
         attendance.setLongitude(longitude);
-        ApiResponse<Long> apiResponse = employeeClient.getWorkTypeById(attendanceTypeId);
-        attendance.setAttendanceTypeId((apiResponse != null && apiResponse.getData()!= null ) ? apiResponse.getData() : null);
+        boolean workTypeIdExists = employeeClient.checkWorkTypeIdExists(attendanceTypeId);
+        log.info("Work type exists :{}",workTypeIdExists);
+        if(!workTypeIdExists)
+            throw new CustomException("Work Type not found", HttpStatus.NOT_FOUND);
+        log.info("{} it exists saving attendance type id as {}",workTypeIdExists,attendanceTypeId);
+        attendance.setAttendanceTypeId(attendanceTypeId);
 
         if (file != null && !file.isEmpty()){
 //            throw new CustomException("File is empty", HttpStatus.BAD_REQUEST);
@@ -148,22 +152,21 @@ public class AttendanceServiceImpl implements AttendanceService {
 //            }
 //            throw new CustomException(cleanErrorMessage, responseStatus);
 //        }
-        return new ApiResponse<>(
-                "CHECK-IN Successful",
+        return new SingleResponse<>(
                 null,
-                HttpStatus.OK
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
     @Transactional
-    public ApiResponse<?> employeeCheckOut(String employeeId){
+    public SingleResponse<?> employeeCheckOut(String employeeId){
 //        Attendance attendance = attendanceRepository.findByEmployeeIdAndCheckOutTimeIsNull(employeeId)
 //                .orElseThrow(() -> new CustomException("No active check-in record found for this employee", HttpStatus.NOT_FOUND));
 
         LocalDateTime checkInTime = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         Attendance attendance = attendanceRepository.findByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(employeeId, checkInTime)
-                        .orElseThrow(() -> new CustomException("No active check-in records found today for this employee", HttpStatus.NOT_FOUND));
+                        .orElseThrow(() -> new CustomException(null, CustomStatus.CHECK_IN_RECORD_NOT_FOUND, 201));
 
         attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), LocalDateTime.now()).toMinutes());
 
@@ -206,10 +209,9 @@ public class AttendanceServiceImpl implements AttendanceService {
             }
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
-        return new ApiResponse<>(
-                "CHECK-OUT Successful",
+        return new SingleResponse<>(
                 null,
-                HttpStatus.OK
+                CustomStatus.SUCCESS
         );
     }
 
@@ -257,7 +259,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 //    }
 
     @Override
-    public ApiResponse<WorkingDetailsResponse> getWorkingDetails(String employeeId){
+    public SingleResponse<WorkingDetailsResponse> getWorkingDetails(String employeeId){
         LocalDateTime fromDate = LocalDateTime.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                 .with(LocalTime.MIN);
         LocalDateTime toDate = LocalDateTime.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
@@ -267,7 +269,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         LocalDateTime endOfDay = LocalDateTime.now().with(LocalTime.MAX);
 
         List<Attendance> attendanceList = attendanceRepository.findTodayAttendanceByEmployeeId(employeeId,startOfDay,endOfDay)
-                .orElseThrow(() -> new CustomException("No attendance records found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND, 201));
 
         Long totalWorkMin = attendanceRepository.getTotalWorkMin(employeeId, fromDate, toDate)
                 .orElse(0L);
@@ -278,14 +280,13 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         WorkingDetailsResponse response = new WorkingDetailsResponse(totalWorkMin, logResponse);
 
-        return new ApiResponse<>(
-                "Total working details",
+        return new SingleResponse<>(
                 response,
-                HttpStatus.OK
+                CustomStatus.SUCCESS
         );
     }
 
-    public ApiResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId){
+    public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId){
         LocalDate mondayDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         log.info("Extracting present week Monday date {}",mondayDate);
 
@@ -304,10 +305,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         WeeklyAttendanceLogsOfEmployeeRes response = new WeeklyAttendanceLogsOfEmployeeRes(totalWorkedMinutes, logResponse);
 
-        return new ApiResponse<>(
-                "Weekly attendance records",
+        return new SingleResponse<>(
                 response,
-                200
+                CustomStatus.SUCCESS
         );
     }
 
@@ -325,7 +325,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             return path.toString(); // return file path
 
         } catch (IOException e) {
-            throw new CustomException("File upload failed", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.FILE_UPLOAD_FAILED, 201);
         }
     }
 }

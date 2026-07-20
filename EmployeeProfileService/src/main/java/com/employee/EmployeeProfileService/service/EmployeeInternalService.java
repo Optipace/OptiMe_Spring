@@ -33,4 +33,6 @@ public interface EmployeeInternalService {
 
     public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request);
 
+    public boolean getWorkTypeId(Long workTypeId);
+
 }

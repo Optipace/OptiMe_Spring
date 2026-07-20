@@ -1,13 +1,12 @@
 package com.employee.AttendanceService.exception;
 
 import com.employee.AttendanceService.dto.response.ApiResponse;
+import com.employee.AttendanceService.dto.response.SingleResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -19,8 +18,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ApiResponse<?>>handleCustomException(CustomException ex){
-        ApiResponse<?> response = new ApiResponse<>(ex.getMessage(), null, ex.getHttpStatus());
-        return new ResponseEntity<>(response, ex.getHttpStatus());
+    public ResponseEntity<SingleResponse<?>> handleCustomizedException(CustomException e){
+        SingleResponse<?> response = new SingleResponse<>(null,e.getCustomStatus());
+        return ResponseEntity
+                .status(e.getStatusCode())
+                .body(response);
     }
 }

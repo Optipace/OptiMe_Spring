@@ -25,6 +25,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -53,13 +54,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public ApiResponse<?> generateOtp(OtpRequest request) {
+    public SingleResponse<?> generateOtp(OtpRequest request) {
 
         boolean isAlreadyUser = userRepository.findByEmailId(request.getEmailId()).isPresent()
                 && userRepository.findByContact(request.getContact()).isPresent();
 
         if (!isAlreadyUser) {
-            throw new CustomException("Please register this email or contact number in office!.", HttpStatus.CONFLICT);
+            throw new CustomException(null, CustomStatus.NOT_REGISTERED, 201);
         }
 
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
@@ -79,8 +80,8 @@ public class UserServiceImpl implements UserService {
 
                     long minutes = remaining.toMinutes();
                     long seconds = remaining.minusMinutes(minutes).getSeconds();
-                    throw new CustomException("OTP generation limit exceeded. Try again in " + minutes + " min " + seconds + " sec",
-                            HttpStatus.BAD_REQUEST);
+                    throw new CustomException("Try again in " + minutes + " min " + seconds + " sec",
+                            CustomStatus.OTP_RETRY_LIMIT_EXCEEDED, 201);
                 }
                 // Unlock after 1 hour
                 userOtp.setRetryCount(0);
@@ -106,32 +107,22 @@ public class UserServiceImpl implements UserService {
             }
         } catch (FeignException e) {
             log.error("Email service failed",e);
-            throw new CustomException("Something went wrong! Error while sending email\nPlease try again", HttpStatus.INTERNAL_SERVER_ERROR);
-//            return new ApiResponse<>(
-//                    false,
-//                    "Something went wrong! Error while sending email\nPlease try again",
-//                    null,
-//                    LocalDateTime.now(),
-//                    500
-//            );
+            throw new CustomException(null, CustomStatus.EMAIL_SENDING_FAILED, 201);
         }
-        return new ApiResponse<>(
-                true,
-                message,
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<ValidationResponse> validateOtp(ValidationRequest request) {
+    public SingleResponse<ValidationResponse> validateOtp(ValidationRequest request) {
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
-                .orElseThrow(() -> new CustomException("Otp not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.OTP_NOT_FOUND, 201));
 
         // Check otp is already registered or not
         if (userOtp.getRegisterStatus() == RegisterEnum.Y) {
-            throw new CustomException("OTP already verified", HttpStatus.CONFLICT);
+            throw new CustomException(null, CustomStatus.OTP_ALREADY_VERIFIED, 201);
         }
 
         boolean isEmailOtpInvalid = !(userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals(String.valueOf(appProperties.getOtp().getFixed())));
@@ -141,27 +132,27 @@ public class UserServiceImpl implements UserService {
         if (expiryTime.isBefore(LocalDateTime.now()) || userOtp.getAvailable().equals(RegisterEnum.N)) {
             userOtp.setAvailable(RegisterEnum.N);
             userOtpRepository.save(userOtp);
-            throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.OTP_EXPIRED, 201);
         }
 
         if(userOtp.getRetryCount() >= OTP_RETRY_COUNT){
-            throw new CustomException("OTP retry limit exceeded. Please generate new otp", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.OTP_RETRY_LIMIT_EXCEEDED, 201);
         }
 
         if(isEmailOtpInvalid && isMobileOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException("Both Email and Mobile OTPs are invalid", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_OTP, 201);
         }
         if (isEmailOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException("Invalid Email OTP", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_EMAIL_OTP, 201);
         }
         if (isMobileOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException("Invalid Mobile OTP", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_MOBILE_OTP, 201);
         }
 
         userOtp.setAvailable(RegisterEnum.N);       // Expire the otp
@@ -172,7 +163,7 @@ public class UserServiceImpl implements UserService {
         userOtpRepository.saveAndFlush(userOtp);
 
         User user = userRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
-                .orElseThrow(() -> new CustomException("Employee with this email or contact not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
 
         EmployeeResponse response = null;
 
@@ -214,50 +205,43 @@ public class UserServiceImpl implements UserService {
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
         ValidationResponse validationResponse = new ValidationResponse(response, userOtp.getValidationToken());
-        return new ApiResponse<>(
-                true,
-                "OTP validated successfully",
+        return new SingleResponse<>(
                 validationResponse,
-                LocalDateTime.now(),
-                HttpStatus.OK
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
     @Transactional
-    public ApiResponse<?> completeRegistration(CompleteRegisterRequest request) {
+    public SingleResponse<?> completeRegistration(CompleteRegisterRequest request) {
 
         User user = userRepository.findByEmployeeId(request.getEmployeeId())
-                .orElseThrow(() -> new CustomException("Employee ID not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 201));
 
         UserOtp userOtp = userOtpRepository.findByEmailIdOrContact(user.getEmailId(), user.getContact())
-                .orElseThrow(() -> new CustomException("Validated Email-Id or contact not found OR check provided employee Id", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.IDENTITY_NOT_FOUND, 201));
 
         if (!userOtp.getValidationToken().equals(request.getValidationToken())) {
-            throw new CustomException("Token not found. Invalid user!", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_VALIDATION_TOKEN, 201);
         }
 //        userRepository.findByEmployeeId(request.getEmployeeId())
 //                .ifPresent(u -> {throw new CustomException("Employee ID must be unique", HttpStatus.CONFLICT);});
 
         if (userOtp.getRegisterStatus() != RegisterEnum.Y) {
-            throw new CustomException("OTP has not been validated for this user", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.OTP_NOT_VALIDATED, 201);
         }
 
         // Prevent Duplicate Registration (Fixes the User ID already exists crash)
         boolean isAlreadyRegistered = passwordRepository.existsByUserId(user.getId());
         if (isAlreadyRegistered) {
-            throw new CustomException(
-                    "Provided employee Id is already fully registered. If not please provide your correct employee Id",
-                    HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.EMPLOYEE_ID_ALREADY_REGISTERED, 201);
         }
 
         // Check if personal email is already claimed by someone else
         boolean isEmailTaken = userRepository.existsByPersonalEmailAndEmployeeIdNot(
                 request.getPersonalEmail(), request.getEmployeeId());
         if (isEmailTaken) {
-            throw new CustomException(
-                    "The personal email provided is already registered to another account.",
-                    HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.PERSONAL_EMAIL_ALREADY_EXISTS, 201);
         }
 
         Password password = new Password();
@@ -310,12 +294,9 @@ public class UserServiceImpl implements UserService {
         }catch (FeignException e){
             log.warn("Failed to completed registration email", e);
 
-            return new ApiResponse<>(
-                    false,
-                    "Failed to send email",
+            return new SingleResponse<>(
                     null,
-                    LocalDateTime.now(),
-                    500
+                    CustomStatus.EMAIL_SENDING_FAILED
             );
         }
 
@@ -324,26 +305,23 @@ public class UserServiceImpl implements UserService {
 //        } catch (Exception e) {
 //            log.error("Email sending failed", e);
 //        }
-        return new ApiResponse<>(
-                true,
-                "Registered successfully \n " +message,
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                HttpStatus.OK
+                CustomStatus.SUCCESS
         );
     }
 
-    public ApiResponse<LoginResponse> login(LoginRequest request) {
+    public SingleResponse<LoginResponse> login(LoginRequest request) {
 
         User user = userRepository.findByEmailIdOrContact(request.getIdentifier(), request.getIdentifier())
-                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
 
         if (user.getPassword() == null) {
-            throw new CustomException("Invalid password", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 201);
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword().getPassword()) || request.getPassword() == null || user.getPassword() == null) {
-            throw new CustomException("Invalid Password", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 201);
         }
 
         String accessToken = jwtUtil.generateToken(user.getUserName(), user.getContact(), user.getEmailId(), user.getEmployeeId(), String.valueOf(user.getRole()));
@@ -356,25 +334,37 @@ public class UserServiceImpl implements UserService {
 
         LoginResponse loginResponse = new LoginResponse(accessToken, refreshToken);
 
-        return new ApiResponse<>(
-                true,
-                "Login successful",
+        return new SingleResponse<>(
                 loginResponse,
-                LocalDateTime.now(),
-                HttpStatus.OK
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> getMasterDetails() {
+    public SingleResponse<MasterResponse> getMasterDetails() {
 
         ApiResponse<List<OfficeResponse>> officeResponse = adminClient.getOfficeList();
-        ApiResponse<MasterResponse> empResponse = employeeClient.getMasterDetails();
+        ApiResponse<MasterEmployeeResponse> empResponse = employeeClient.getMasterDetails();
         ApiResponse<List<LeaveTypeResponse>> leaveResponse = leaveClient.getLeaveTypeList();
 
-        MasterResponse masterResponse = (empResponse != null && empResponse.getData() != null)
-                ? empResponse.getData()
-                : new MasterResponse();
+        List<EmployeeDesignationResponse> employeeDesignationResponseList = new ArrayList<>();
+        List<RoleEnum> roleEnumList = new ArrayList<>();
+        List<WorkTypeResponse> workTypeList = new ArrayList<>();
+        List<EmployeeStatusResponse> employeeStatusList = new ArrayList<>();
+        if(empResponse != null && empResponse.getData() != null){
+            employeeDesignationResponseList = empResponse.getData().getAvailableDesignationsList();
+            roleEnumList = empResponse.getData().getRoleEnumList();
+            workTypeList = empResponse.getData().getWorkTypeList();
+            employeeStatusList = empResponse.getData().getEmployeeStatusList();
+        }else{
+            throw new CustomException(null, CustomStatus.MICROSERVICE_CALL_FAILED, 500);
+        }
+
+//        MasterResponse masterResponse = (empResponse != null && empResponse.getData() != null)
+//                ? empResponse.getData()
+//                : new MasterResponse();
+
+        MasterResponse masterResponse = new MasterResponse();
 
         if (officeResponse != null && officeResponse.getData() != null) {
             masterResponse.setOfficeResponse(officeResponse.getData());
@@ -383,23 +373,26 @@ public class UserServiceImpl implements UserService {
         if(leaveResponse != null && leaveResponse.getData() != null){
             masterResponse.setLeaveTypeResponseList(leaveResponse.getData());
         }
-        return new ApiResponse<>(
-                true,
-                "Master Response",
+
+        masterResponse.setAvailableDesignations(employeeDesignationResponseList);
+        masterResponse.setWorkTypeList(workTypeList);
+        masterResponse.setRoleEnumList(roleEnumList);
+        masterResponse.setEmployeeStatusList(employeeStatusList);
+
+        return new SingleResponse<>(
                 masterResponse,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> resetPassword(ResetPasswordRequest request) {
+    public SingleResponse<?> resetPassword(ResetPasswordRequest request) {
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
-                .orElseThrow(() -> new CustomException("Email Id or Contact not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.IDENTITY_NOT_FOUND, 201));
 
         // Check otp is already registered or not
         if (userOtp.getRegisterStatus() == RegisterEnum.Y) {
-            throw new CustomException("OTP already verified", HttpStatus.CONFLICT);
+            throw new CustomException(null, CustomStatus.OTP_ALREADY_VERIFIED, 201);
         }
 
         boolean isEmailOtpInvalid = !(userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals(String.valueOf(appProperties.getOtp().getFixed())));
@@ -409,27 +402,27 @@ public class UserServiceImpl implements UserService {
         if (expiryTime.isBefore(LocalDateTime.now()) || userOtp.getAvailable().equals(RegisterEnum.N)) {
             userOtp.setAvailable(RegisterEnum.N);
             userOtpRepository.save(userOtp);
-            throw new CustomException("OTP expired", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.OTP_EXPIRED, 201);
         }
 
         if(userOtp.getRetryCount() >= OTP_RETRY_COUNT){
-            throw new CustomException("OTP retry limit exceeded. Please generate new otp", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.OTP_RETRY_LIMIT_EXCEEDED, 201);
         }
 
         if(isEmailOtpInvalid && isMobileOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException("Both Email and Mobile OTPs are invalid", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_OTP, 201);
         }
         if (isEmailOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException("Invalid Email OTP", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_EMAIL_OTP, 201);
         }
         if (isMobileOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException("Invalid Mobile OTP", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_MOBILE_OTP, 201);
         }
 
         userOtp.setAvailable(RegisterEnum.N);
@@ -438,17 +431,14 @@ public class UserServiceImpl implements UserService {
         String rawPassword = request.getPassword();
         String encodedPassword = passwordEncoder.encode(rawPassword);
         User user =userRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
-                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.USER_NOT_FOUND, 201));
 
         user.getPassword().setPassword(encodedPassword);
         userRepository.save(user);
 
-        return new ApiResponse<>(
-                true,
-                "Password Reset success",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 

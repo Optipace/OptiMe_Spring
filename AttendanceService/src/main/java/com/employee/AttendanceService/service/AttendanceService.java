@@ -5,11 +5,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface AttendanceService {
 
-    public ApiResponse<?> employeeCheckIn(String request, MultipartFile file, String latitude, String longitude, Long attendanceTypeId);
+    public SingleResponse<?> employeeCheckIn(String request, MultipartFile file, String latitude, String longitude, Long attendanceTypeId);
 
-    public ApiResponse<?> employeeCheckOut(String request);
+    public SingleResponse<?> employeeCheckOut(String request);
 
-    public ApiResponse<WorkingDetailsResponse> getWorkingDetails(String employeeId);
+    public SingleResponse<WorkingDetailsResponse> getWorkingDetails(String employeeId);
 
-    public ApiResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId);
+    public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId);
 }

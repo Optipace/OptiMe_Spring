@@ -11,5 +11,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class EmployeeStatusResponse {
     private Long id;
-    private String availableStatuses;
+    private String status;
 }

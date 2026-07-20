@@ -12,10 +12,8 @@ import com.employee.EmployeeProfileService.enums.*;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
 import com.employee.EmployeeProfileService.model.Feedback;
-//import com.employee.EmployeeProfileService.model.Office;
 import com.employee.EmployeeProfileService.repository.EmployeeRepository;
 import com.employee.EmployeeProfileService.repository.FeedbackRepository;
-//import com.employee.EmployeeProfileService.repository.OfficeRepository;
 import com.employee.EmployeeProfileService.service.EmployeeService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +32,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -62,7 +59,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
     private final AdminClient adminClient;
 
     @Override
-    public ApiResponse<List<ListOfEmployeeResponse>> getAllEmployees() {
+    public SingleResponse<List<ListOfEmployeeResponse>> getAllEmployees() {
         List<Employee> employeeList = employeeRepository.findAll();
 
         List<ListOfEmployeeResponse> employeeResponse = employeeList.stream()
@@ -98,20 +95,17 @@ public class EmployeeServiceImplementation implements EmployeeService {
                 })
                 .toList();
 
-        return new ApiResponse<>(
-                true,
-                "List of employees",
+        return new SingleResponse<>(
                 employeeResponse,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<EmployeeResponse> getEmployeeDetails(String employeeId) {
+    public SingleResponse<EmployeeResponse> getEmployeeDetails(String employeeId) {
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
 
         EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class);
         try {
@@ -201,65 +195,56 @@ public class EmployeeServiceImplementation implements EmployeeService {
             }
         }
 
-        return new ApiResponse<>(
-                true,
-                "Employee Details",
+        return new SingleResponse<>(
                 response,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<EmployeeResponse> getEmployeeByEmployeeId(String employeeId) {
+    public SingleResponse<EmployeeResponse> getEmployeeByEmployeeId(String employeeId) {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
 
         EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class);
-        return new ApiResponse<>(
-                true,
-                "Employee Details",
+        return new SingleResponse<>(
                 response,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> getOfficeNames() {
+    public ListResponse<?> getOfficeNames() {
         ApiResponse<List<String>> apiOfficeNames = adminClient.getOfficeNames();
         List<String> officeNames = null;
         if(apiOfficeNames != null && apiOfficeNames.getData() != null){
             officeNames = apiOfficeNames.getData();
         }
-        return new ApiResponse<>(
-                true,
-                "ACTIVE office names list",
+        return new ListResponse<>(
                 officeNames,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId) {
+    public SingleResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId) {
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
 
         if (file.isEmpty())
-            throw new CustomException("File is empty", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.FILE_IS_EMPTY, 201);
 
         log.info("Incoming file size {}", file.getSize());
         if (file.getSize() > MAX_IMAGE_SIZE)
-            throw new CustomException("Image exceeds 1MB limit", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.IMAGE_SIZE_EXCEEDED, 201);
 
         String contentType = file.getContentType();
 
         log.info("Incoming content type {}", contentType);
 
         if (!("image/jpeg".equals(contentType) || "image/png".equals(contentType) || "image/jpg".equals(contentType))) {
-            throw new CustomException("Only JPEG or PNG files are allowed", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_IMAGE_FORMAT, 201);
         }
 
         String filePath = saveFile(file, appProperties.getImage().getUploadDir() + "EmployeeProfile/" + employeeId + "/");
@@ -267,20 +252,17 @@ public class EmployeeServiceImplementation implements EmployeeService {
         employee.setEmployeeProfilePath(filePath);
 
         employeeRepository.save(employee);
-        return new ApiResponse<>(
-                true,
-                "Image uploaded successfully",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> saveFeedback(FeedbackRequest request, String employeeId) {
+    public SingleResponse<?> saveFeedback(FeedbackRequest request, String employeeId) {
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
 
         Feedback feedback = new Feedback();
         if (request.getFeedbackStatus().equals(FeedbackEnum.Y) || request.getFeedbackStatus() == FeedbackEnum.Y) {
@@ -294,17 +276,14 @@ public class EmployeeServiceImplementation implements EmployeeService {
             feedback.setStatusEnum(FeedbackStatusEnum.PENDING);
             feedbackRepository.save(feedback);
         }
-        return new ApiResponse<>(
-                true,
-                "Feedback saved successfully",
-                null,
-                LocalDateTime.now(),
-                201
+        return new SingleResponse<>(
+               null,
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<List<FeedbackResponse>> getFeedback() {
+    public SingleResponse<List<FeedbackResponse>> getFeedback() {
         List<Feedback> feedbackList = feedbackRepository.findAll();
 
         List<FeedbackResponse> responseList = feedbackList.stream()
@@ -317,42 +296,33 @@ public class EmployeeServiceImplementation implements EmployeeService {
                 })
                 .toList();
 
-        return new ApiResponse<List<FeedbackResponse>>(
-                true,
-                "Feedback lists",
+        return new SingleResponse<>(
                 responseList,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request) {
+    public SingleResponse<?> updateFeedback(FeedbackUpdateRequest request) {
         Feedback feedback = feedbackRepository.findById(request.getFeedbackId())
-                .orElseThrow(() -> new CustomException("Feedback not found! Please recheck the given feedback", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.FEEDBACK_NOT_FOUND, 201));
 
         if (request.getFeedbackStatus().equals(FeedbackStatusEnum.PENDING)) {
             feedback.setStatusEnum(request.getFeedbackStatus());
             feedbackRepository.save(feedback);
 
-            return new ApiResponse<>(
-                    true,
-                    "Feedback is still PENDING",
+            return new SingleResponse<>(
                     null,
-                    LocalDateTime.now(),
-                    200
+                   CustomStatus.SUCCESS
             );
         } else {
             feedback.setStatusEnum(request.getFeedbackStatus());
             feedbackRepository.save(feedback);
         }
 
-        return new ApiResponse<>(
-                true,
-                "Feedback is " + request.getFeedbackStatus(),
-                null,
-                LocalDateTime.now(),
-                200
+        return new SingleResponse<>(
+               null,
+                CustomStatus.SUCCESS
         );
     }
 
@@ -403,7 +373,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
             return path.toString(); // return file path
 
         } catch (IOException e) {
-            throw new CustomException("File upload failed", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.FILE_UPLOAD_FAILED, 201);
         }
     }
 }

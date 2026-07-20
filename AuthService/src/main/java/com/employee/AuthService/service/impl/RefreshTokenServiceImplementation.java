@@ -2,6 +2,8 @@ package com.employee.AuthService.service.impl;
 
 import com.employee.AuthService.dto.request.RefreshTokenRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
+import com.employee.AuthService.dto.response.SingleResponse;
+import com.employee.AuthService.enums.CustomStatus;
 import com.employee.AuthService.exception.CustomException;
 import com.employee.AuthService.model.RefreshToken;
 import com.employee.AuthService.model.User;
@@ -48,7 +50,7 @@ public class RefreshTokenServiceImplementation implements RefreshTokenService {
     }
 
     @Override
-    public ApiResponse<?> getNewAccessToken(RefreshTokenRequest request) {
+    public SingleResponse<?> getNewAccessToken(RefreshTokenRequest request) {
         var token = validate(request.getRefreshToken());
 
         String newAccessToken =  jwtUtil.generateToken(
@@ -58,12 +60,9 @@ public class RefreshTokenServiceImplementation implements RefreshTokenService {
                 token.getUser().getEmployeeId(),
                 String.valueOf(token.getUser().getRole())
         );
-        return new ApiResponse<>(
-                true,
-                "Your new access token",
+        return new SingleResponse<>(
                 newAccessToken,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
@@ -73,12 +72,12 @@ public class RefreshTokenServiceImplementation implements RefreshTokenService {
 
         // Fetch token or throw an actionable HTTP error\
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new CustomException("Invalid refresh token", HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.INVALID_REFRESH_TOKEN, 201));
 
         // Check if the token has expired
         if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(refreshToken); // Deletes the row securely
-            throw new CustomException("Refresh token expired. Please log in again.", HttpStatus.UNAUTHORIZED);
+            throw new CustomException(null, CustomStatus.REFRESH_TOKEN_EXPIRED, 201);
         }
 
         return refreshToken;

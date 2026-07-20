@@ -11,5 +11,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class WorkTypeResponse {
     private Long id;
-    private String workType;
+    private String name;
 }
