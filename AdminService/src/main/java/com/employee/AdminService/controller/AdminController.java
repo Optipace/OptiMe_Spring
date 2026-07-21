@@ -31,6 +31,13 @@ public class AdminController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @GetMapping("/getAllemployee")
+    public ResponseEntity<SingleResponse<PageResponse<EmployeeResponse>>> getAllEmployee(@RequestParam(defaultValue = "0")int page, @RequestParam(defaultValue = "5")int size){
+        Pageable pageable = PageRequest.of(page, size);
+        SingleResponse<PageResponse<EmployeeResponse>> response = adminService.getAllEmployee(pageable);
+        return ResponseEntity.status(200).body(response);
+    }
+
     @PostMapping("/addOffice")
     public ResponseEntity<SingleResponse<?>> addNewOffice(@Valid @RequestBody AddNewOfficeRequest request){
         SingleResponse<?> response = adminService.addNewOffice(request);

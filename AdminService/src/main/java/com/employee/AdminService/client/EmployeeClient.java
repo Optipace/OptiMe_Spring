@@ -2,10 +2,9 @@ package com.employee.AdminService.client;
 
 import com.employee.AdminService.dto.request.EmployeeProfilePayload;
 import com.employee.AdminService.dto.request.FeedbackUpdateRequest;
-import com.employee.AdminService.dto.response.ApiResponse;
-import com.employee.AdminService.dto.response.FeedbackResponse;
-import com.employee.AdminService.dto.response.MasterEmployeeResponse;
+import com.employee.AdminService.dto.response.*;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,4 +26,7 @@ public interface EmployeeClient {
 
     @GetMapping("/api/employee/internal/getMasterDetails")
     ApiResponse<MasterEmployeeResponse> getMasterDetails();
+
+    @GetMapping("/api/employee/internal/getAllEmployee")
+    ApiResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable);
 }

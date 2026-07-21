@@ -23,22 +23,18 @@ public class RouteValidator {
     public Predicate<ServerHttpRequest> isSecured =
             request -> openApiEndpoints
                     .stream()
-//                    .noneMatch(uri -> request.getURI().getPath().contains(uri));
-//                   CHANGED from .contains(uri) to .equals(uri)
                     .noneMatch(uri -> request.getURI().getPath().equals(uri));
-
-//    TODO: It's skipping all url with /api/auth
-//public Predicate<ServerHttpRequest> isSecured =
-//        request -> openApiEndpoints
-//                .stream()
-//                .noneMatch(uri -> {
-//                    String incomingPath = request.getURI().getPath();
-//                    // Remove trailing slash if it exists
-//                    if (incomingPath.endsWith("/")) {
-//                        incomingPath = incomingPath.substring(0, incomingPath.length() - 1);
-//                    }
-//                    return incomingPath.equals(uri);
-//                });
+//
+//    String path = request.getURI().getPath();
+//
+//    boolean isBusinessOpenApi = openApiEndpoints.stream().anyMatch(path::equals);
+//
+//    boolean isSwaggerPath = path.contains("/swagger-ui")
+//            ||  path.contains("/v3/api-docs")
+//            ||  path.contains("/webjars")
+//            || path.contains("/swagger-resources");
+//
+//        return !(isBusinessOpenApi || isSwaggerPath);
 
 //    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 //
@@ -48,12 +44,4 @@ public class RouteValidator {
 //                // 2. Matches path structures safely instead of checking if string contains text
 //                .noneMatch(pattern -> pathMatcher.match(pattern, path));
 //    };
-
-    // Checks if the incoming request path matches any of our public patterns exactly
-//    public Predicate<ServerHttpRequest> isSecured = request -> {
-//        String path = request.getURI().getPath();
-//        return openApiEndpoints.stream()
-//                .noneMatch(uri -> path.equals(uri)); // Exact matching ensures safety
-//    };
-
 }

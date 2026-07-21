@@ -13,6 +13,8 @@ import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -296,5 +298,36 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     public boolean getWorkTypeId(Long workTypeId) {
         return workTypeRepository.existsById(workTypeId);
     }
+
+    @Override
+    public ApiResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable) {
+        Page<Employee> employeePage = employeeRepository.findAll(pageable);
+        List<Employee> employeeList = employeePage.getContent();
+
+        if(employeePage.isEmpty()){
+            throw new CustomException("Employee Records not found", HttpStatus.NOT_FOUND);
+        }
+
+        List<EmployeeResponse> employeeResponseList = employeeList.stream()
+                .map(employee -> modelMapper.map(employee, EmployeeResponse.class))
+                .toList();
+
+        PageResponse<EmployeeResponse> response = new PageResponse<>(
+                employeeResponseList,
+                employeePage.getNumber(),
+                employeePage.getSize(),
+                employeePage.getTotalElements(),
+                employeePage.getTotalPages(),
+                employeePage.isLast()
+        );
+        return new ApiResponse<>(
+                true,
+                "Employee List",
+                response,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
 
 }

@@ -1,6 +1,7 @@
-package com.employee.EmployeeProfileService.dto.response;
+package com.employee.LeaveService.dto.response;
 
-import com.employee.EmployeeProfileService.enums.CustomStatus;
+import com.employee.LeaveService.dto.response.Response;
+import com.employee.LeaveService.enums.CustomStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.List;

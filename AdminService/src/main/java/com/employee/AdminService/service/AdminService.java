@@ -9,6 +9,8 @@ import java.util.List;
 public interface AdminService {
     public SingleResponse<?> addNewUser(RegisterRequest request, String adminEmployeeId);
 
+    public SingleResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable);
+
     public SingleResponse<?> addNewOffice(AddNewOfficeRequest request);
 
     public SingleResponse<PageResponse<OfficeResponse>> getOfficeList(Pageable pageable);

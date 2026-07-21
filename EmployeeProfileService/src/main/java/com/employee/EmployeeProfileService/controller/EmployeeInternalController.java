@@ -4,14 +4,12 @@ import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
-import com.employee.EmployeeProfileService.dto.response.ApiResponse;
-import com.employee.EmployeeProfileService.dto.response.EmployeeInternalResponse;
-import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
-import com.employee.EmployeeProfileService.dto.response.FeedbackResponse;
+import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.Response;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -86,6 +84,13 @@ public class EmployeeInternalController {
     @GetMapping("/checkWorkTypeById")
     public boolean getWorkTypeId(@RequestParam("workTypeId")Long workTypeId){
         return empInternalService.getWorkTypeId(workTypeId);
+    }
+
+    @GetMapping("/getAllEmployee")
+    public ResponseEntity<ApiResponse<PageResponse<EmployeeResponse>>> getAllEmployee(Pageable pageable){
+        ApiResponse<PageResponse<EmployeeResponse>> response = empInternalService.getAllEmployee(pageable);
+        return ResponseEntity.status(200).body(response);
+
     }
 
 }

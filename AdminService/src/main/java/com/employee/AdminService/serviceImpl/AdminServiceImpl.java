@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -142,6 +141,58 @@ public class AdminServiceImpl implements AdminService {
                 CustomStatus.SUCCESS
         );
     }
+
+    @Override
+    public SingleResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable) {
+        PageResponse<EmployeeResponse> pageData;
+        try {
+            // Call Employee Profile service via Feign
+            ApiResponse<PageResponse<EmployeeResponse>> apiResponse = employeeClient.getAllEmployee(pageable);
+            log.info("Employee Service is called");
+
+            pageData = apiResponse.getData();
+            List<EmployeeResponse> employeeResponseList = pageData.getContent();
+            employeeResponseList.forEach(employee ->{
+                if (employee.getOffice().getOfficeId() != null){
+                    Office office = officeRepository.findById(employee.getOffice().getOfficeId())
+                                    .orElse(null);
+                    OfficeResponse officeResponse = new OfficeResponse(
+                            office.getId(),
+                            office.getOfficeName(),
+                            office.getLatitude(),
+                            office.getLongitude(),
+                            office.getHrEmpId(),
+                            office.getAddress(),
+                            office.getContact(),
+                            office.getGoogleMap()
+                    );
+                    employee.setOffice(officeResponse);
+                }
+                    });
+
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                // If the error isn't JSON, just return the raw string
+                cleanErrorMessage = rawErrorJson;
+            }
+            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+        }
+        return new SingleResponse<>(
+                pageData,
+                CustomStatus.SUCCESS
+        );
+    }
+
 
     @Override
     public SingleResponse<?> addNewOffice(AddNewOfficeRequest request) {

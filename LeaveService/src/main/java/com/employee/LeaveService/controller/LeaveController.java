@@ -3,6 +3,7 @@ package com.employee.LeaveService.controller;
 import com.employee.LeaveService.dto.request.LeaveRequest;
 import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
 import com.employee.LeaveService.dto.response.ApiResponse;
+import com.employee.LeaveService.dto.response.SingleResponse;
 import com.employee.LeaveService.service.LeaveService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,15 +18,15 @@ public class LeaveController {
     private final LeaveService leaveService;
 
     @PostMapping("/applyLeave")
-    public ResponseEntity<ApiResponse<?>> saveLeaveApplication(@RequestHeader("X-Employee-Id") String applicantEmployeeId,@Valid @RequestBody LeaveRequest request, @RequestHeader("X-Employee-Name") String applicantEmployeeName){
-        ApiResponse<?> response = leaveService.saveLeaveApplication(request, applicantEmployeeId, applicantEmployeeName);
+    public ResponseEntity<SingleResponse<?>> saveLeaveApplication(@RequestHeader("X-Employee-Id") String applicantEmployeeId,@Valid @RequestBody LeaveRequest request, @RequestHeader("X-Employee-Name") String applicantEmployeeName){
+        SingleResponse<?> response = leaveService.saveLeaveApplication(request, applicantEmployeeId, applicantEmployeeName);
         return ResponseEntity.status(200).body(response);
     }
 
     @PutMapping("/approval")
-    public ResponseEntity<ApiResponse<?>> updateLeave(@RequestBody UpdateLeaveRequest request,
+    public ResponseEntity<SingleResponse<?>> updateLeave(@RequestBody UpdateLeaveRequest request,
                                                       @RequestHeader("X-Employee-Id") String approvedEmployeeId){
-        ApiResponse<?> response = leaveService.updateLeave(request, approvedEmployeeId);
+        SingleResponse<?> response = leaveService.updateLeave(request, approvedEmployeeId);
         return ResponseEntity.status(200).body(response);
     }
 }

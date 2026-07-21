@@ -1,4 +1,4 @@
-package com.employee.EmployeeProfileService.dto.response;
+package com.employee.AdminService.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

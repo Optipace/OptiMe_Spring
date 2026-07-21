@@ -4,10 +4,8 @@ import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
-import com.employee.EmployeeProfileService.dto.response.ApiResponse;
-import com.employee.EmployeeProfileService.dto.response.EmployeeInternalResponse;
-import com.employee.EmployeeProfileService.dto.response.EmployeeResponse;
-import com.employee.EmployeeProfileService.dto.response.FeedbackResponse;
+import com.employee.EmployeeProfileService.dto.response.*;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -34,5 +32,7 @@ public interface EmployeeInternalService {
     public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request);
 
     public boolean getWorkTypeId(Long workTypeId);
+
+    public ApiResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable);
 
 }

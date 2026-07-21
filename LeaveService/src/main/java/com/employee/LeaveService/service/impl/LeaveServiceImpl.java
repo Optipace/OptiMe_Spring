@@ -5,6 +5,8 @@ import com.employee.LeaveService.dto.request.LeaveRequest;
 import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.EmployeeResponse;
+import com.employee.LeaveService.dto.response.SingleResponse;
+import com.employee.LeaveService.enums.CustomStatus;
 import com.employee.LeaveService.exception.CustomException;
 import com.employee.LeaveService.model.Leave;
 import com.employee.LeaveService.model.LeaveType;
@@ -31,7 +33,7 @@ public class LeaveServiceImpl implements LeaveService {
     private final ModelMapper modelMapper;
 
     @Override
-    public ApiResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId, String employeeName) {
+    public SingleResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId, String employeeName) {
 
         if(request.getToDate().isBefore(request.getFromDate())){
             throw new CustomException("The 'To Date' cannot be earlier than the 'From Date'", HttpStatus.BAD_REQUEST);
@@ -98,17 +100,14 @@ public class LeaveServiceImpl implements LeaveService {
 //            }
 //            throw new CustomException(cleanErrorMessage, responseStatus);
 //        }
-        return new ApiResponse<>(
-                true,
-                "Leave applied successfully",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId) {
+    public SingleResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId) {
         Leave leave = leaveRepository.findById(request.getLeaveId())
                 .orElseThrow(() -> new CustomException("Leave Id not found", HttpStatus.NOT_FOUND));
 
@@ -147,21 +146,10 @@ public class LeaveServiceImpl implements LeaveService {
             leave.setApprovedBy(empResponse.getData().getEmployeeId());
             leave.setLeaveStatus(request.getLeaveStatus());
             leave = leaveRepository.save(leave);
-        }else {
-            return new ApiResponse<>(
-                    true,
-                    "Leave already "+leave.getLeaveStatus()+" by: "+leave.getApprovedBy(),
-                    null,
-                    LocalDateTime.now(),
-                    200
-            );
         }
-        return new ApiResponse<>(
-                true,
-                "Leave "+leave.getLeaveStatus(),
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 }
