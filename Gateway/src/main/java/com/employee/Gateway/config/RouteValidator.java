@@ -1,5 +1,6 @@
 package com.employee.Gateway.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
@@ -7,6 +8,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 @Component
+@Slf4j
 public class RouteValidator {
 
     //Defining the open endpoints that DO NOT require a token
@@ -21,20 +23,24 @@ public class RouteValidator {
     );
 
     public Predicate<ServerHttpRequest> isSecured =
-            request -> openApiEndpoints
-                    .stream()
-                    .noneMatch(uri -> request.getURI().getPath().equals(uri));
-//
-//    String path = request.getURI().getPath();
-//
-//    boolean isBusinessOpenApi = openApiEndpoints.stream().anyMatch(path::equals);
-//
-//    boolean isSwaggerPath = path.contains("/swagger-ui")
-//            ||  path.contains("/v3/api-docs")
-//            ||  path.contains("/webjars")
-//            || path.contains("/swagger-resources");
-//
-//        return !(isBusinessOpenApi || isSwaggerPath);
+            request ->{
+                String path = request.getURI().getPath();
+                log.info("Path {}",path);
+                //                    openApiEndpoints
+//                    .stream()
+//                    .noneMatch(uri -> request.getURI().getPath().equals(uri));
+                boolean isBusinessOpenApi = openApiEndpoints.stream().anyMatch(path::equals);
+                log.info("Is business Open api endpoint {}",isBusinessOpenApi);
+
+                boolean isSwaggerPath = path.contains("/swagger-ui")
+                        ||  path.contains("/v3/api-docs")
+                        ||  path.contains("/webjars")
+                        || path.contains("/swagger-resources");
+                log.info("Is swagger path {}", isSwaggerPath);
+
+                log.info("is Secured endpoint {}", !(isBusinessOpenApi || isSwaggerPath));
+                return !(isBusinessOpenApi || isSwaggerPath);
+            };
 
 //    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 //
