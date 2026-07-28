@@ -54,8 +54,14 @@ public class AuthController {
     }
 
     @PostMapping("/resetPassword")
-    public ResponseEntity<SingleResponse<?>> resetPassword(@RequestBody ResetPasswordRequest request){
+    public ResponseEntity<SingleResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequest request){
         SingleResponse<?> response = userService.resetPassword(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/updatePassword")
+    public ResponseEntity<SingleResponse<?>> updatePassword(@Valid @RequestBody UpdatePasswordRequest request, @RequestHeader ("X-Employee-Id") String employeeId){
+        SingleResponse<?> response = userService.updatePassword(request,employeeId);
+        return ResponseEntity.status(200).body(response);
     }
 }

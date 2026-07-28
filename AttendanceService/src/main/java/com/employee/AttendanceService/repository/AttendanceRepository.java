@@ -48,6 +48,11 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
             @Param("endOfDay") LocalDateTime endOfDay
     );
 
+    List<Attendance> findByCheckInTimeBetween(LocalDateTime startOfDay, LocalDateTime endOfDay);
+
+    List<Attendance> findByCheckInTimeBetweenOrderByCheckInTimeAsc(LocalDateTime startOfDay, LocalDateTime endOfDay);
+
+
 //        @Query(value =
 //            "SELECT SUM(total_work_min) "+
 //            "FROM Attendance "+

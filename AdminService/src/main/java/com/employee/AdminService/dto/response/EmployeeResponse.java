@@ -14,7 +14,7 @@ public class EmployeeResponse {
     private String employeeId;
     private String contact;
     private String emailId;
-    private String employeeDesignation;
+    private Long designation;
     private String dailyStatus;
     private String role;
     private String gender;

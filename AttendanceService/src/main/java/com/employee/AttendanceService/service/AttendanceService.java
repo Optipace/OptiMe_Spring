@@ -12,4 +12,6 @@ public interface AttendanceService {
     public SingleResponse<WorkingDetailsResponse> getWorkingDetails(String employeeId);
 
     public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId);
+
+    public SingleResponse<?> getTodayAttendanceRecords();
 }

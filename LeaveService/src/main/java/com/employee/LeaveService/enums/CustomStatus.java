@@ -11,6 +11,7 @@ public enum CustomStatus {
     // 200 Business Logic Failures
 
     // 201: Authentication & OTP Failures
+    SAME_AS_OLD_PASSWORD(-78, "New password cannot be the same as the old password."),
     INVALID_REFRESH_TOKEN(-76, "Refresh token is invalid."),
     REFRESH_TOKEN_EXPIRED(-77, "Token expired login again."),
     IDENTITY_NOT_FOUND(-75, "Validated Email-Id or contact not found OR check provided employee Id"),

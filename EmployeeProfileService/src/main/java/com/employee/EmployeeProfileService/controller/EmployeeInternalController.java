@@ -93,4 +93,15 @@ public class EmployeeInternalController {
 
     }
 
+    @GetMapping("/getAllEmployeeId")
+    public ResponseEntity<ApiResponse<ListOfEmployeeIdResponse>> getAllEmployeeId(){
+        ApiResponse<ListOfEmployeeIdResponse> response = empInternalService.getAllEmployeeId();
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/isHrEmpId")
+    public boolean isHrEmployeeId(@RequestParam("employeeId") String hrEmpId){
+        return empInternalService.isHrEmployeeId(hrEmpId);
+    }
+
 }

@@ -27,6 +27,12 @@ public class SingleResponse<T> {
         this.response = new Response(status.getCode(), status.getMessage());
     }
 
+    public SingleResponse(int errorCode, String errorMessage) {
+        this.response = new Response(errorCode, errorMessage);
+    }
+
+    public T getData() { return data; }
+    public Response getResponse() { return response; }
     @JsonIgnore
     public int getStatusCode() {
         return statusCode;

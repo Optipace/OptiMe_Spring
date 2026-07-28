@@ -1,9 +1,6 @@
 package com.employee.AdminService.serviceImpl;
 
-import com.employee.AdminService.client.AuthClient;
-import com.employee.AdminService.client.EmployeeClient;
-import com.employee.AdminService.client.LeaveClient;
-import com.employee.AdminService.client.NotificationClient;
+import com.employee.AdminService.client.*;
 import com.employee.AdminService.dto.request.*;
 import com.employee.AdminService.dto.response.*;
 import com.employee.AdminService.enums.CustomStatus;
@@ -34,6 +31,8 @@ public class AdminServiceImpl implements AdminService {
     private final AuthClient authClient;
 
     private final EmployeeClient employeeClient;
+
+    private final AttendanceClient attendanceClient;
 
     private final ObjectMapper objectMapper;
 
@@ -207,7 +206,34 @@ public class AdminServiceImpl implements AdminService {
         newOffice.setAddress(request.getAddress());
         newOffice.setLatitude(request.getLatitude());
         newOffice.setLongitude(request.getLongitude());
-        newOffice.setHrEmpId(request.getHrEmpId());
+        boolean isHrEmpId = false;
+        try {
+            isHrEmpId = employeeClient.isHrEmployeeId(request.getHrEmpId());
+            log.info("Employee Service is called");
+
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                // If the error isn't JSON, just return the raw string
+                cleanErrorMessage = rawErrorJson;
+            }
+            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+        }
+
+        if(isHrEmpId){
+            newOffice.setHrEmpId(request.getHrEmpId());
+        }else{
+            throw new CustomException(null, CustomStatus.HR_EMP_ID_NOT_FOUND, 201);
+        }
         newOffice.setGoogleMap(request.getGoogleMap());
         newOffice.setOfficeStatus(OfficeStatus.ACTIVE);
 
@@ -498,4 +524,98 @@ public class AdminServiceImpl implements AdminService {
                 CustomStatus.SUCCESS
         );
     }
+
+    @Override
+    public SingleResponse<?> updateOfficeStatus(UpdateOfficeStatusRequest request) {
+        Office office = officeRepository.findById(request.getOfficeId())
+                .orElseThrow(() -> new CustomException(null, CustomStatus.OFFICE_NOT_FOUND, 201));
+
+        office.setOfficeStatus(OfficeStatus.valueOf(request.getStatus()));
+        officeRepository.save(office);
+        return new SingleResponse<>(
+                null,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<?> getTodayAttendanceRecords() {
+        List<EmployeeAttendanceResponse> responses;
+        try {
+            ApiResponse<List<EmployeeAttendanceResponse>> apiResponse = attendanceClient.getTodayAttendanceRecords();
+            responses = apiResponse.getData();
+        } catch (FeignException fe) {
+            String rawErrorJson = fe.contentUTF8();
+            String cleanErrorMessage = "Microservices call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").toString();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (fe.status() > 0) {
+                try {
+                    responseStatus = HttpStatus.valueOf(fe.status());
+                } catch (IllegalArgumentException ex) {
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            } else {
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
+        return new SingleResponse<>(
+                responses,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId) {
+        ApiResponse<?> apiResponse;
+        try {
+            apiResponse = leaveClient.updateLeave(request, approvedEmployeeId);
+        } catch (FeignException fe) {
+            String rawErrorJson = fe.contentUTF8();
+            String cleanErrorMessage = "Microservices call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").toString();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (fe.status() > 0) {
+                try {
+                    responseStatus = HttpStatus.valueOf(fe.status());
+                } catch (IllegalArgumentException ex) {
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            } else {
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
+        return new SingleResponse<>(
+               null, // TODO : Send error message if recieved
+                CustomStatus.SUCCESS
+        );
+    }
+
+
 }

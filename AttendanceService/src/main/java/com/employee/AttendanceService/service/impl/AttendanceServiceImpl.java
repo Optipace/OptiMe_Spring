@@ -1,6 +1,7 @@
 package com.employee.AttendanceService.service.impl;
 
 import com.employee.AttendanceService.client.EmployeeClient;
+import com.employee.AttendanceService.client.LeaveClient;
 import com.employee.AttendanceService.config.AppProperties;
 import com.employee.AttendanceService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.AttendanceService.dto.response.*;
@@ -29,8 +30,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +49,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     private final AppProperties appProperties;
 
+    private final LeaveClient leaveClient;
 
     @Override
     @Transactional
@@ -309,6 +310,100 @@ public class AttendanceServiceImpl implements AttendanceService {
                 response,
                 CustomStatus.SUCCESS
         );
+    }
+
+    @Override
+    public SingleResponse<?> getTodayAttendanceRecords() {
+        ListOfEmployeeIdResponse listOfEmployeeIds;
+        try {
+            ApiResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
+            listOfEmployeeIds = apiResponse.getData();
+        } catch (FeignException fe) {
+            String rawErrorJson = fe.contentUTF8();
+            String cleanErrorMessage = "Microservices call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").toString();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (fe.status() > 0) {
+                try {
+                    responseStatus = HttpStatus.valueOf(fe.status());
+                } catch (IllegalArgumentException ex) {
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            } else {
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
+
+// 1. Fetch ALL records from DB sorted chronologically
+        List<Attendance> attendanceList = attendanceRepository.findByCheckInTimeBetweenOrderByCheckInTimeAsc(startOfDay, endOfDay);
+
+// 2. Initialize the final response list and a basic set to track who checked in at least once
+        List<EmployeeAttendanceResponse> responseList = new ArrayList<>();
+        Set<String> employeesWhoCheckedIn = new HashSet<>();
+
+// 3. Step 1: Add EVERY attendance record found in the DB (Allowing multiple entries per employee)
+        for (Attendance attendance : attendanceList) {
+            employeesWhoCheckedIn.add(attendance.getEmployeeId()); // Tracks that this employee is present today
+
+            responseList.add(new EmployeeAttendanceResponse(
+                    attendance.getEmployeeId(),
+                    attendance.getCheckInTime(),
+                    attendance.getCheckOutTime(),
+                    attendance.getLatitude(),
+                    attendance.getLongitude(),
+                    attendance.getAttendanceStatus().toString(),
+                    attendance.getAttendanceTypeId()
+            ));
+        }
+
+// 4. Step 2: Look at all company IDs and append employees who have ZERO records today to the bottom
+        List<String> allEmpIds = listOfEmployeeIds.getEmployeeIds();
+        for (String empId : allEmpIds) {
+            if (!employeesWhoCheckedIn.contains(empId)) {
+                String attendanceStatus = "ABSENT"; // Default status
+
+                // Network call for each absent employee
+                try {
+                    boolean isOnLeave = leaveClient.isEmployeeOnLeave(empId, today);// TODO: can make bulk api call to load leave of emp all at once
+                    if (isOnLeave) {
+                        attendanceStatus = "LEAVE";
+                    }
+                } catch (FeignException fe) {
+                    log.error("Leave service call failed for employee: {}", empId, fe);
+                    // Defaulting to ABSENT if the service fails or throws exception
+                }
+                responseList.add(new EmployeeAttendanceResponse(
+                        empId,
+                        null,
+                        null,
+                        null,
+                        null,
+                        attendanceStatus,
+                        null
+                ));
+            }
+        }
+
+// responseList now contains the full timeline of events, followed by absent employees!
+
+        return new SingleResponse<>(responseList, CustomStatus.SUCCESS);
     }
 
     private String saveFile(MultipartFile file, String folder) {

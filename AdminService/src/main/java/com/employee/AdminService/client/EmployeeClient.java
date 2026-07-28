@@ -29,4 +29,7 @@ public interface EmployeeClient {
 
     @GetMapping("/api/employee/internal/getAllEmployee")
     ApiResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable);
+
+    @GetMapping("/api/employee/internal/isHrEmpId")
+    boolean isHrEmployeeId(@RequestParam("employeeId")String hrEmpId);
 }

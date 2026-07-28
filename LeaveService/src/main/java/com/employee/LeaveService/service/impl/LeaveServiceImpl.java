@@ -145,7 +145,7 @@ public class LeaveServiceImpl implements LeaveService {
         if(leave.getApprovedBy() == null || leave.getApprovedBy().isEmpty()){
             leave.setApprovedBy(empResponse.getData().getEmployeeId());
             leave.setLeaveStatus(request.getLeaveStatus());
-            leave = leaveRepository.save(leave);
+            leaveRepository.save(leave);
         }
         return new SingleResponse<>(
                 null,

@@ -42,4 +42,10 @@ public class AttendanceController {
         SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> response = attendanceService.getWeeklyAttendanceLogs(employeeId);
         return ResponseEntity.status(200).body(response);
     }
+
+    @GetMapping("/getTodayAttendanceRecords")
+    public ResponseEntity<SingleResponse<?>> getTodayAttendanceRecords(){
+        SingleResponse<?> response = attendanceService.getTodayAttendanceRecords();
+        return ResponseEntity.status(200).body(response);
+    }
 }

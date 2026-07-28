@@ -93,4 +93,23 @@ public class AdminController {
         SingleResponse<MasterResponse> response = adminService.getMasterDetails();
         return ResponseEntity.status(200).body(response);
     }
+
+    @PutMapping("/updateOfficeStatus")
+    public ResponseEntity<SingleResponse<?>> updateOfficeStatus(@RequestBody UpdateOfficeStatusRequest request){
+        SingleResponse<?> response = adminService.updateOfficeStatus(request);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/getTodayAttendanceRecords")
+    public ResponseEntity<SingleResponse<?>> getTodayAttendanceRecords(){
+        SingleResponse<?> response = adminService.getTodayAttendanceRecords();
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PutMapping("/approval")
+    public ResponseEntity<SingleResponse<?>> updateLeave(@RequestBody UpdateLeaveRequest request,
+                                                         @RequestHeader("X-Employee-Id") String approvedEmployeeId){
+        SingleResponse<?> response = adminService.updateLeave(request, approvedEmployeeId);
+        return ResponseEntity.status(200).body(response);
+    }
 }

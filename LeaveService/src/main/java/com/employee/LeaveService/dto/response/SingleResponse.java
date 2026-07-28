@@ -36,6 +36,12 @@ public class SingleResponse<T> {
         this.httpStatus = httpStatus;
     }
 
+    public SingleResponse(int errorCode, String errorMessage) {
+        this.response = new Response(errorCode, errorMessage);
+    }
+
+    public T getData() { return data; }
+    public Response getResponse() { return response; }
     @JsonIgnore
     public int getStatusCode() {
         return statusCode;

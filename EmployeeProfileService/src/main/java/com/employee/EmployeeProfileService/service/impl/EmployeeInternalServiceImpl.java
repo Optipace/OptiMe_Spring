@@ -4,6 +4,7 @@ import com.employee.EmployeeProfileService.client.AdminClient;
 import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.enums.AccountStatus;
+import com.employee.EmployeeProfileService.enums.CustomStatus;
 import com.employee.EmployeeProfileService.enums.RoleEnum;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.*;
@@ -22,6 +23,8 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Service
@@ -103,7 +106,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 //        employee.setProfileStatus(ProfileStatusEnum.COMPLETE);
         int result = currentStatus | 2;
         employee.setProfileStatus(result);
-        employee.setAccountStatus(AccountStatus.ACTIVE);
+        employee.setAccountStatus(AccountStatus.ACTIVE); // TODO: Make it active
         employeeRepository.save(employee);
 
         return new ApiResponse<>(
@@ -309,7 +312,11 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         }
 
         List<EmployeeResponse> employeeResponseList = employeeList.stream()
-                .map(employee -> modelMapper.map(employee, EmployeeResponse.class))
+                .map(employee -> {
+                    EmployeeResponse response = new EmployeeResponse();
+                    response.setDesignation(employee.getDesignation().getId());
+                    return modelMapper.map(employee, EmployeeResponse.class); // TODO
+                })
                 .toList();
 
         PageResponse<EmployeeResponse> response = new PageResponse<>(
@@ -327,6 +334,39 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 LocalDateTime.now(),
                 200
         );
+    }
+
+    @Override
+    public ApiResponse<ListOfEmployeeIdResponse> getAllEmployeeId() {
+        List<String> employeeList = employeeRepository.findActiveEmployeeIds();
+        ListOfEmployeeIdResponse employeeIdResponse = new ListOfEmployeeIdResponse();
+        employeeIdResponse.setEmployeeIds(employeeList);
+        return new ApiResponse<>(
+                true,
+                "List of Active employee Ids",
+                employeeIdResponse,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public boolean isHrEmployeeId(String hrEmpId) {
+        Optional<Employee> employeeOpt = employeeRepository.findEmployeeByEmployeeId(hrEmpId);
+
+        if (employeeOpt.isEmpty()) {
+            log.info("The provided employee id {} not found", hrEmpId);
+            return false;
+        }
+
+        Employee employee = employeeOpt.get();
+        if (!employee.getDesignation().getDesignation().contains("HR")) {
+            log.info("The employee Id {} is not HR", hrEmpId);
+            return false;
+        } else {
+            log.info("The employee Id {} is HR", hrEmpId);
+            return true;
+        }
     }
 
 

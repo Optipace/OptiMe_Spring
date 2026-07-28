@@ -17,4 +17,6 @@ public interface UserService {
     public SingleResponse<MasterResponse> getMasterDetails();
 
     public SingleResponse<?> resetPassword(ResetPasswordRequest request);
+
+    public SingleResponse<?> updatePassword(UpdatePasswordRequest request, String employeeId);
 }

@@ -3,6 +3,8 @@ package com.employee.AdminService.service;
 import com.employee.AdminService.dto.request.*;
 import com.employee.AdminService.dto.response.*;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 
@@ -28,4 +30,10 @@ public interface AdminService {
     public SingleResponse<?> sendBroadcastMessage(NotificationRequest request);
 
     public SingleResponse<MasterResponse> getMasterDetails();
+
+    public SingleResponse<?> updateOfficeStatus(UpdateOfficeStatusRequest request);
+
+    public SingleResponse<?> getTodayAttendanceRecords();
+
+    public SingleResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId);
 }

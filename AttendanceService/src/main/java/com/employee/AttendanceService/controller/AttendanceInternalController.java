@@ -20,4 +20,10 @@ public class AttendanceInternalController {
         ApiResponse<?> response = internalService.getAttendanceStatus(employeeId);
         return ResponseEntity.status(200).body(response);
     }
+
+    @GetMapping("/getTodayAttendanceRecords")
+    public ResponseEntity<ApiResponse<?>> getTodayAttendanceRecords(){
+        ApiResponse<?> response = internalService.getTodayAttendanceRecords();
+        return ResponseEntity.status(200).body(response);
+    }
 }
