@@ -1,8 +1,8 @@
 package com.employee.LeaveService.service.impl;
 
 import com.employee.LeaveService.client.EmployeeClient;
-import com.employee.LeaveService.dto.request.LeaveRequest;
-import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
+import com.employee.LeaveService.client.NotificationClient;
+import com.employee.LeaveService.dto.request.*;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.EmployeeResponse;
 import com.employee.LeaveService.dto.response.SingleResponse;
@@ -19,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 
@@ -31,9 +33,11 @@ public class LeaveServiceImpl implements LeaveService {
     private final LeaveTypeRepository leaveTypeRepository;
     private final EmployeeClient employeeClient;
     private final ModelMapper modelMapper;
+    private final NotificationClient notificationClient;
+    private final ObjectMapper objectMapper;
 
     @Override
-    public SingleResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId, String employeeName) {
+    public SingleResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId, String employeeName, String applicantEmailId) {
         if(request.getToDate().isBefore(request.getFromDate())){
             throw new CustomException(null, CustomStatus.INVALID_LEAVE_DATE_RANGE, 201);
         }
@@ -63,7 +67,7 @@ public class LeaveServiceImpl implements LeaveService {
             }
             throw new CustomException(cleanErrorMessage, responseStatus);
         }
-        EmployeeResponse response = employeeResponse.getData();
+        EmployeeResponse authorityEmployeeResponse = employeeResponse.getData();
         Leave leave = new Leave();
         leave.setFromDate(request.getFromDate());
         leave.setToDate(request.getToDate());
@@ -71,14 +75,55 @@ public class LeaveServiceImpl implements LeaveService {
         leave.setApplicantEmployeeId(employeeId);
         leave.setAppliedOn(LocalDateTime.now());
         leave.setApplicantEmployeeName(employeeName);
-        leave.setApproverEmpId(response.getEmployeeId());
+        leave.setApproverEmpId(authorityEmployeeResponse.getEmployeeId());
         LeaveType leaveType = leaveTypeRepository.findById(request.getLeaveTypeId())
                         .orElseThrow(() -> new CustomException(null, CustomStatus.LEAVE_TYPE_NOT_FOUND, 201));
         log.info("Leave type is {}", leaveType.getLeaveType().toUpperCase());
         leave.setLeaveType(leaveType);
-        leaveRepository.save(leave);
 
-//        TODO: Need to send email to the employee and the respected authority
+        LeaveEmailPayload emailPayload = new LeaveEmailPayload(
+                authorityEmployeeResponse.getEmployeeName(),
+                employeeId,
+                employeeName,
+                authorityEmployeeResponse.getEmailId(),
+                request.getFromDate(),
+                request.getToDate(),
+                request.getReason(),
+                leaveType.getLeaveType()
+        );
+        ApiResponse<String> apiResponse;
+        try {
+            // For email service
+            apiResponse = notificationClient.sendLeaveEmail(emailPayload);
+            log.info("Triggered leave request email");
+            log.info("Communication service is called to send leave email");
+
+            // Sending private Notification to approver
+            NotificationPayload approverPayload = new NotificationPayload();
+            approverPayload.setEmployeeId(authorityEmployeeResponse.getEmployeeId());
+            approverPayload.setTitle("New Leave Request");
+            approverPayload.setMessage("You have an Leave request from employee: "+employeeName);
+            approverPayload.setType("INFO");
+
+            notificationClient.sendPrivateNotification(approverPayload);
+            log.info("Notification is sent to approver employee {}",authorityEmployeeResponse.getEmployeeId());
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                // If the error isn't JSON, just return the raw string
+                cleanErrorMessage = rawErrorJson;
+            }
+            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+        }
 
 //        TODO: Need to be set automatically on the day his/her leave starts (Use Scheduler)
 //        try{
@@ -105,6 +150,52 @@ public class LeaveServiceImpl implements LeaveService {
 //            }
 //            throw new CustomException(cleanErrorMessage, responseStatus);
 //        }
+        if(apiResponse.getStatus() == 200){
+            leaveRepository.save(leave);
+        }
+
+        LeaveConfirmationPayload payload = new LeaveConfirmationPayload(
+                applicantEmailId,
+                employeeName,
+                leaveType.getLeaveType(),
+                request.getFromDate(),
+                request.getToDate()
+        );
+
+        try {
+            // For email service
+            notificationClient.sendConfirmationLeaveEmail(payload);
+            log.info("Triggered leave confirmation email");
+            log.info("Communication service is called to send confirmation leave email");
+
+            // Sending private notification to applicant
+            NotificationPayload applicantPayload = new NotificationPayload();
+            applicantPayload.setEmployeeId(employeeId);
+            applicantPayload.setTitle("Your Leave Request sent to "+authorityEmployeeResponse.getEmployeeId());
+            applicantPayload.setMessage("You applied for the leave from "+request.getFromDate()+"  to "+request.getToDate());
+            applicantPayload.setType("INFO");
+
+            notificationClient.sendPrivateNotification(applicantPayload);
+            log.info("Notification is sent to leave applicant{}", employeeId);
+
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                // If the error isn't JSON, just return the raw string
+                cleanErrorMessage = rawErrorJson;
+            }
+            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+        }
+
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS

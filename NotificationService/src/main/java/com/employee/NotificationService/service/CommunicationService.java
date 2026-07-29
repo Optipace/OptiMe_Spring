@@ -1,7 +1,9 @@
 package com.employee.NotificationService.service;
 
+import com.employee.NotificationService.dto.request.LeaveConfirmationRequest;
 import com.employee.NotificationService.dto.request.LeaveEmailRequest;
 import com.employee.NotificationService.dto.response.ApiResponse;
+import org.springframework.web.bind.annotation.RequestBody;
 
 public interface CommunicationService {
 
@@ -11,5 +13,7 @@ public interface CommunicationService {
 
     ApiResponse<String> sendCompletedRegistrationEmail(String emailId);
 
-    void sendLeaveEmail(LeaveEmailRequest request);
+    ApiResponse<String> sendLeaveEmail(LeaveEmailRequest request);
+
+    void sendConfirmationLeaveEmail(LeaveConfirmationRequest request);
 }

@@ -1,5 +1,6 @@
 package com.employee.NotificationService.controller;
 
+import com.employee.NotificationService.dto.request.LeaveConfirmationRequest;
 import com.employee.NotificationService.dto.request.LeaveEmailRequest;
 import com.employee.NotificationService.dto.response.ApiResponse;
 import com.employee.NotificationService.service.CommunicationService;
@@ -30,8 +31,13 @@ public class CommunicationInternalController {
         return communicationService.sendCompletedRegistrationEmail(emailId);
     }
 
-    public ResponseEntity<String> sendLeaveEmail(@RequestBody LeaveEmailRequest request){
-        communicationService.sendLeaveEmail(request);
-        return ResponseEntity.ok("Leave Email Process");
+    @PostMapping("/sendLeaveEmail")
+    public ApiResponse<String> sendLeaveEmail(@RequestBody LeaveEmailRequest request){
+        return communicationService.sendLeaveEmail(request);
+    }
+
+    @PostMapping("/sendConfirmLeaveEmail")
+    void sendConfirmationLeaveEmail(@RequestBody LeaveConfirmationRequest request){
+        communicationService.sendConfirmationLeaveEmail(request);
     }
 }

@@ -1,5 +1,6 @@
 package com.employee.NotificationService.serviceImpl;
 
+import com.employee.NotificationService.dto.request.LeaveConfirmationRequest;
 import com.employee.NotificationService.dto.request.LeaveEmailRequest;
 import com.employee.NotificationService.dto.response.ApiResponse;
 import com.employee.NotificationService.service.CommunicationService;
@@ -69,8 +70,35 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     @Override
-    public void sendLeaveEmail(LeaveEmailRequest request) {
+    public ApiResponse<String> sendLeaveEmail(LeaveEmailRequest request) {
         Context context = new Context();
-//        TODO : Must be completed
+        context.setVariable("managerName", request.getApproverEmailId());
+        context.setVariable("employeeName", request.getApplicantName());
+        context.setVariable("employeeId", request.getApplicantEmployeeId());
+        context.setVariable("leaveType", request.getLeaveType());
+        context.setVariable("fromDate", request.getFromDate());
+        context.setVariable("toDate", request.getToDate());
+        context.setVariable("reason", request.getReason());
+
+        String htmlBody = templateEngine.process("LeaveTemplate", context);
+        String subject = "Leave Request";
+
+        log.info("Communication Service: Sending Leave requesting email to {}",request.getApproverEmailId());
+        return emailService.sendHtmlEmail(request.getApproverEmailId(), subject, htmlBody);
+    }
+
+    @Override
+    public void sendConfirmationLeaveEmail(LeaveConfirmationRequest request) {
+        Context context = new Context();
+        context.setVariable("employeeName", request.getApplicantName());
+        context.setVariable("leaveType", request.getLeaveType());
+        context.setVariable("fromDate", request.getFromDate());
+        context.setVariable("toDate", request.getToDate());
+
+        String htmlBody = templateEngine.process("LeaveConfirmationTemplate", context);
+        String subject = "Leave Application submitted";
+
+        log.info("Communication Service: Sending confirmation leave email to {}",request.getApplicantEmailId());
+        emailService.sendHtmlEmail(request.getApplicantEmailId(), subject, htmlBody);
     }
 }

@@ -18,8 +18,11 @@ public class LeaveController {
     private final LeaveService leaveService;
 
     @PostMapping("/applyLeave")
-    public ResponseEntity<SingleResponse<?>> saveLeaveApplication(@RequestHeader("X-Employee-Id") String applicantEmployeeId,@Valid @RequestBody LeaveRequest request, @RequestHeader("X-Employee-Name") String applicantEmployeeName){
-        SingleResponse<?> response = leaveService.saveLeaveApplication(request, applicantEmployeeId, applicantEmployeeName);
+    public ResponseEntity<SingleResponse<?>> saveLeaveApplication(@RequestHeader("X-Employee-Id") String applicantEmployeeId,
+                                                                  @Valid @RequestBody LeaveRequest request,
+                                                                  @RequestHeader("X-Employee-Name") String applicantEmployeeName,
+                                                                  @RequestHeader("X-Email-Id")String applicantEmailId){
+        SingleResponse<?> response = leaveService.saveLeaveApplication(request, applicantEmployeeId, applicantEmployeeName, applicantEmailId);
         return ResponseEntity.status(200).body(response);
     }
 

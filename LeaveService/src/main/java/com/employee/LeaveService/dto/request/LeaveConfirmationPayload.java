@@ -1,4 +1,4 @@
-package com.employee.NotificationService.dto.request;
+package com.employee.LeaveService.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,13 +11,10 @@ import java.time.LocalDate;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class LeaveEmailRequest {
-    private String approverName;
-    private String applicantEmployeeId;
+public class LeaveConfirmationPayload {
+    private String applicantEmailId;
     private String applicantName;
-    private String approverEmailId;
+    private String leaveType;
     private LocalDate fromDate;
     private LocalDate toDate;
-    private String reason;
-    private String leaveType;
 }

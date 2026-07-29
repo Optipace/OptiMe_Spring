@@ -11,13 +11,10 @@ import java.time.LocalDate;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class LeaveEmailRequest {
-    private String approverName;
-    private String applicantEmployeeId;
+public class LeaveConfirmationRequest {
+    private String applicantEmailId;
     private String applicantName;
-    private String approverEmailId;
+    private String leaveType;
     private LocalDate fromDate;
     private LocalDate toDate;
-    private String reason;
-    private String leaveType;
 }

@@ -44,6 +44,14 @@ public class EmailServiceImpl implements EmailService {
                 helper.addInline("registration-completed", new ClassPathResource("images/registration-completed.png"));
             }
 
+            if(body.contains("cid:leave-request-icon")){
+                helper.addInline("leave-request-icon", new ClassPathResource("images/leave-request.png"));
+            }
+
+            if(body.contains("cid:leave-submitted-icon")){
+                helper.addInline("leave-submitted-icon", new ClassPathResource("images/leave-confirmation.png"));
+            }
+
             mailSender.send(mimeMessage);
             log.info("Email sent successfully to {}",to);
             return new ApiResponse<>(

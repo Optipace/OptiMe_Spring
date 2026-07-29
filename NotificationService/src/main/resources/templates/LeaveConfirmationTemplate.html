@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <style>
+        .container { font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 25px; }
+        .header-title { color: #1a73e8; font-size: 24px; margin: 0; }
+        .logo { width: 50px; height: 50px; margin-right: 12px; vertical-align: middle; }
+        .details-box { background-color: #f8f9fa; border-left: 4px solid #1a73e8; padding: 20px; margin: 25px 0; border-radius: 4px; }
+        .detail-row { margin-bottom: 12px; font-size: 15px; color: #333; }
+        .detail-row:last-child { margin-bottom: 0; }
+        .detail-label { font-weight: bold; width: 85px; display: inline-block; color: #555; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div style="display:flex; align-items:center; justify-content:center; margin-bottom:20px;">
+        <img class="logo" src="cid:logo" alt="Optipace Logo">
+        <h2 class="header-title">Optipace Technologies</h2>
+    </div>
+    <hr style="border:none; border-top:1px solid #e0e0e0;">
+
+    <div style="text-align:center;margin-bottom:20px; margin-top:20px;">
+        <!-- You can attach a success checkmark or calendar icon here -->
+        <img src="cid:leave-submitted-icon" style="width:100px;height:auto;" alt="Leave Submitted">
+    </div>
+
+    <h1 style="margin-top:10px;margin-bottom:20px;color:#1a73e8;text-align:center;font-size:28px;">
+        Leave Application Received
+    </h1>
+
+    <p style="font-size:16px;color:#333;line-height:1.6;">
+        Hello <span th:text="${employeeName}">Employee Name</span>,
+    </p>
+    <p style="font-size:16px;color:#333;line-height:1.6;">
+        This email is to confirm that we have successfully received your leave application. Your request has been forwarded to the respected authority for review.
+    </p>
+
+    <!-- Highlighted Details Box -->
+    <div class="details-box">
+        <div class="detail-row">
+            <span class="detail-label">Type:</span>
+            <span th:text="${leaveType}">Sick Leave</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">From:</span>
+            <span th:text="${fromDate}">DD-MM-YYYY</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">To:</span>
+            <span th:text="${toDate}">DD-MM-YYYY</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Status:</span>
+            <span style="color: #f0ad4e; font-weight: bold;">PENDING APPROVAL</span>
+        </div>
+    </div>
+
+    <div style="text-align:center;margin:35px 0;">
+        <!-- portalUrl can point to the employee's dashboard so they can track the status -->
+        <a th:href="${portalUrl}"
+           style="background:#1a73e8;color:#ffffff;text-decoration:none;padding:15px 35px;border-radius:6px;display:inline-block;font-size:16px;font-weight:bold;">
+            Track Request Status
+        </a>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e0e0e0; margin-top:30px; margin-bottom:15px;">
+
+    <p style="font-size:12px;color:#999;text-align:center;line-height:1.5;">
+        This is an automated operational system email.<br>
+        Please do not reply directly to this message.
+    </p>
+</div>
+</body>
+</html>
