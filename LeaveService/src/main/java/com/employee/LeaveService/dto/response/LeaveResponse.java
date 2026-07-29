@@ -15,12 +15,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class LeaveResponse {
     private Long leaveId;
+    private String employeeName;
     private String employeeId;
     private LocalDate fromDate;
     private LocalDate toDate;
     private LocalDateTime appliedOn;
     private String reason;
-    private String leaveType;
+    private Long leaveTypeId;
     private String approvedBy;
     private LeaveStatusEnum leaveStatus;
 }

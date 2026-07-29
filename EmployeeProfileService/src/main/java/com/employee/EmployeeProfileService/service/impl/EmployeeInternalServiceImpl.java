@@ -1,6 +1,7 @@
 package com.employee.EmployeeProfileService.service.impl;
 
 import com.employee.EmployeeProfileService.client.AdminClient;
+import com.employee.EmployeeProfileService.client.AttendanceClient;
 import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.enums.AccountStatus;
@@ -46,6 +47,8 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     private final AdminClient adminClient;
 
     private final ObjectMapper objectMapper;
+
+    private final AttendanceClient attendanceClient;
 
     @Override
     public ApiResponse<?> createProfile(EmployeeProfileRequest request) {
@@ -119,12 +122,13 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     }
 
     @Override
-    public ApiResponse<EmployeeResponse> getProfile(String employeeId) {
+    public ApiResponse<EmployeeProfileResponse> getProfile(String employeeId) {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
 
 
-        EmployeeResponse response = modelMapper.map(employee,EmployeeResponse.class);
+        EmployeeProfileResponse response = modelMapper.map(employee,EmployeeProfileResponse.class);
+        response.setWorkType(employee.getWorkType().getName());
         try {
 
             log.info("Calling Admin service for office response");
@@ -313,6 +317,12 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
         List<EmployeeResponse> employeeResponseList = employeeList.stream()
                 .map(employee -> {
+                    log.info("Attendance service is calling for employee {}",employee.getEmployeeId());
+                    ApiResponse<String> apiResponse = attendanceClient.getAttendanceStatus(employee.getEmployeeId());
+                    log.info("Attendance service called");
+
+                    String attendanceStatus = apiResponse.getData();
+
                     // 1. Map using modelMapper first
                     EmployeeResponse response = modelMapper.map(employee, EmployeeResponse.class);
 
@@ -320,6 +330,8 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                     if (employee.getDesignation() != null) {
                         response.setDesignationId(employee.getDesignation().getId());
                     }
+
+                    response.setAttendanceStatus(attendanceStatus);
 
                     return response;
                 })

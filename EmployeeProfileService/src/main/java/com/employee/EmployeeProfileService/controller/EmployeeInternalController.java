@@ -29,8 +29,8 @@ public class EmployeeInternalController {
     }
 
     @GetMapping("/getProfile")
-    public ResponseEntity<ApiResponse<EmployeeResponse>> getProfile(@RequestParam String employeeId){
-        ApiResponse<EmployeeResponse> response = empInternalService.getProfile(employeeId);
+    public ResponseEntity<ApiResponse<EmployeeProfileResponse>> getProfile(@RequestParam String employeeId){
+        ApiResponse<EmployeeProfileResponse> response = empInternalService.getProfile(employeeId);
         return ResponseEntity.status(200).body(response);
     }
 

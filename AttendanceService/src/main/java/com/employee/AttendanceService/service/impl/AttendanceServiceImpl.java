@@ -350,6 +350,8 @@ public class AttendanceServiceImpl implements AttendanceService {
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
+        LocalTime cutOffTime = LocalTime.of(12,0);
+        LocalTime now = LocalTime.now();
 
 // 1. Fetch ALL records from DB sorted chronologically
         List<Attendance> attendanceList = attendanceRepository.findByCheckInTimeBetweenOrderByCheckInTimeAsc(startOfDay, endOfDay);
@@ -377,13 +379,17 @@ public class AttendanceServiceImpl implements AttendanceService {
         List<String> allEmpIds = listOfEmployeeIds.getEmployeeIds();
         for (String empId : allEmpIds) {
             if (!employeesWhoCheckedIn.contains(empId)) {
-                String attendanceStatus = "ABSENT"; // Default status
+                String attendanceStatus = null; // Default status
 
-                // Network call for each absent employee
+                if(!now.isBefore(cutOffTime)){
+                    attendanceStatus = AttendanceStatusEnum.ABSENT.toString();
+                }
+
+                // Network call for each employee in leave
                 try {
                     boolean isOnLeave = leaveClient.isEmployeeOnLeave(empId, today);// TODO: can make bulk api call to load leave of emp all at once
                     if (isOnLeave) {
-                        attendanceStatus = "LEAVE";
+                        attendanceStatus = AttendanceStatusEnum.ON_LEAVE.toString();
                     }
                 } catch (FeignException fe) {
                     log.error("Leave service call failed for employee: {}", empId, fe);

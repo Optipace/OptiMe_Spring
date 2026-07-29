@@ -10,5 +10,5 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface AttendanceClient {
 
     @GetMapping("/api/attendance/internal/getAttendanceStatus")
-    public ApiResponse<?> getAttendanceStatus(@RequestParam("employeeId") String employeeId);
+    public ApiResponse<String> getAttendanceStatus(@RequestParam("employeeId") String employeeId);
 }

@@ -18,5 +18,13 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
             "AND :today BETWEEN l.fromDate AND l.toDate " +
             "AND l.leaveStatus = 'APPROVED'")
     boolean isEmployeeOnLeaveOnDate(@Param("employeeId") String employeeId, @Param("today") LocalDate today);
+
+    // Query to find if any existing leave overlaps with the new request dates
+    @Query("SELECT COUNT(l) > 0 FROM Leave l WHERE l.applicantEmployeeId = :empId " +
+            "AND l.fromDate <= :toDate AND l.toDate >= :fromDate")
+    boolean existsOverlappingLeave(@Param("empId") String employeeId,
+                                   @Param("fromDate") LocalDate fromDate,
+                                   @Param("toDate") LocalDate toDate);
+
 //    Optional<Leave> findByEmployeeId(String employeeId);
 }

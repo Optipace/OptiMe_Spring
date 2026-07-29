@@ -32,7 +32,7 @@ public class LeaveInternalController {
         return leaveInternalService.isEmployeeOnLeave(employeeId, today);
     }
 
-    @PutMapping("/api/leave/internal/leaveApproval")
+    @PutMapping("/leaveApproval")
     public ApiResponse<?> updateLeave(@RequestBody UpdateLeaveRequest request,@RequestParam String approvedEmployeeId){
         return leaveInternalService.updateLeave(request, approvedEmployeeId);
     }

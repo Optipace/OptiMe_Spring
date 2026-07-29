@@ -7,9 +7,9 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum CustomStatus {
     UNKNOWN(-999,"Something went wrong"),
-
+// Highest -80
     // 200 Business Logic Failures
-
+    INVALID_REQUEST_FORMAT(-105, "Invalid request format or Invalid body"),
     // 201: Authentication & OTP Failures
     HR_EMP_ID_NOT_FOUND(-79, "The provided employee id is not HR"),
     SAME_AS_OLD_PASSWORD(-78, "New password cannot be the same as the old password."),
@@ -43,12 +43,13 @@ public enum CustomStatus {
     PROFILE_ALREADY_COMPLETED(-44, "Profile is already completed."),
 
     // 203: Leave Management Failures
+    DUPLICATE_LEAVE_APPLICATION(-80, "You have already applied for leave during this date range."),
     LEAVE_RECORDS_NOT_FOUND(-8, "No leave records found."),
     APPROVER_NOT_FOUND(-45, "Approver not found."),
     INVALID_LEAVE_STATUS(-46, "Invalid leave status."),
     NO_APPLIED_LEAVE_RECORDS_FOUND(-47, "No applied leave records found."),
     INVALID_LEAVE_DATE_RANGE(-48, "The 'To Date' cannot be earlier than the 'From Date'."),
-    LEAVE_NOT_FOUND(-49, "Leave not found."),
+    LEAVE_ID_NOT_FOUND(-49, "Leave Id not found."),
     LEAVE_TYPE_NOT_FOUND(-50, "Leave type not found."),
     UNAUTHORIZED_LEAVE_APPROVER(-51, "You are not authorized to approve leave."),
     LEAVE_ALREADY_PROCESSED(-52, "Leave has already been processed."),

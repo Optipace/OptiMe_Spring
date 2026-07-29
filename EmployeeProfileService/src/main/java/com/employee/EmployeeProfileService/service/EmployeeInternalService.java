@@ -15,7 +15,7 @@ public interface EmployeeInternalService {
 
     public ApiResponse<?> completeProfile(CompleteProfileRequest request);
 
-    public ApiResponse<EmployeeResponse> getProfile(String employeeId);
+    public ApiResponse<EmployeeProfileResponse> getProfile(String employeeId);
 
     public ApiResponse<?> getMasterDetails();
 

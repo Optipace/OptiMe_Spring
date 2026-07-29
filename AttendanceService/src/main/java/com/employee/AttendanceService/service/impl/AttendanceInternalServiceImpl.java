@@ -4,7 +4,6 @@ import com.employee.AttendanceService.client.EmployeeClient;
 import com.employee.AttendanceService.client.LeaveClient;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
-import com.employee.AttendanceService.enums.CustomStatus;
 import com.employee.AttendanceService.exception.CustomException;
 import com.employee.AttendanceService.model.Attendance;
 import com.employee.AttendanceService.repository.AttendanceRepository;
@@ -21,7 +20,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -42,38 +40,33 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
+        LocalTime cutOffTime = LocalTime.of(12, 0);
+        LocalTime now = LocalTime.now();
+        String attendanceStatus;
 
-        String finalStatus;
-
-        // 1. Check Leave Microservice first (or your fallback logic)
+        // Check Leave Microservice first
         if (isEmployeeOnLeaveInMicroservice(employeeId, today)) {
-            finalStatus = AttendanceStatusEnum.ON_LEAVE.toString();
-            return new ApiResponse<>("Attendance Status", finalStatus, 200);
+            attendanceStatus = AttendanceStatusEnum.ON_LEAVE.toString();
+            return new ApiResponse<>("Attendance Status", attendanceStatus, 200);
         }else {
-            // 2. Query today's local attendance record
+
             Optional<List<Attendance>> todayAttendance = attendanceRepository.findTodayAttendanceByEmployeeId(employeeId, startOfDay, endOfDay);
-//        // 3. Safely unwrap, verify it's not empty, and map the internal collection
-            finalStatus = todayAttendance
+
+            attendanceStatus = todayAttendance
                     .filter(list -> !list.isEmpty())
                     .map(list -> list.getLast().getAttendanceStatus().name())
-                    .orElse(null);
+                    .orElseGet(() -> {
+                        // This block ONLY runs if the employee has zero attendance records today
+                        if (!now.isBefore(cutOffTime)) {
+                            return AttendanceStatusEnum.ABSENT.name(); // Past 12:00 PM -> Mark ABSENT
+                        }
+                        return null; // Before 12:00 PM -> Keep it null
+                    });
         }
 
-//        AttendanceStatusResponse attendanceResponse = finalStatus != null ? new AttendanceStatusResponse(String.valueOf(finalStatus)) : null;
+        log.info("Attendance service returning status {}", attendanceStatus);
 
-//      use find today attendance and place if the attendance is online return present (rename attendance status to status and make another status as attendance status) if offline return left the office if no records found search in the leave service
-
-        // 2. Query today's local attendance record
-//        Optional<List<Attendance>> todayAttendance = attendanceRepository.findTodayAttendanceByEmployeeId(employeeId, startOfDay, endOfDay);
-
-//        String finalStatus = todayAttendance
-//                .filter(list -> !list.isEmpty())
-//                .map(list -> list.getLast().getAttendanceStatus().name())
-//                .orElse(null);
-
-        log.info("Attendance service returning status {}", finalStatus);
-
-        return new ApiResponse<>("Attendance Status", finalStatus, 200);
+        return new ApiResponse<>("Attendance Status", attendanceStatus, 200);
     }
 
     private boolean isEmployeeOnLeaveInMicroservice(String employeeId, LocalDate date) {
@@ -117,15 +110,17 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
+        LocalTime cutOffTime = LocalTime.of(12,0);
+        LocalTime now = LocalTime.now();
 
-// 1. Fetch ALL records from DB sorted chronologically
+        // 1. Fetch ALL records from DB sorted chronologically
         List<Attendance> attendanceList = attendanceRepository.findByCheckInTimeBetweenOrderByCheckInTimeAsc(startOfDay, endOfDay);
 
-// 2. Initialize the final response list and a basic set to track who checked in at least once
+        // 2. Initialize the final response list and a basic set to track who checked in at least once
         List<EmployeeAttendanceResponse> responseList = new ArrayList<>();
         Set<String> employeesWhoCheckedIn = new HashSet<>();
 
-// 3. Step 1: Add EVERY attendance record found in the DB (Allowing multiple entries per employee)
+        // 3. Step 1: Add EVERY attendance record found in the DB (Allowing multiple entries per employee)
         for (Attendance attendance : attendanceList) {
             employeesWhoCheckedIn.add(attendance.getEmployeeId()); // Tracks that this employee is present today
 
@@ -140,17 +135,57 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
             ));
         }
 
-// 4. Step 2: Look at all company IDs and append employees who have ZERO records today to the bottom
+        // 4. Step 2: Look at all IDs and append employees who have ZERO records today to the bottom
         List<String> allEmpIds = listOfEmployeeIds.getEmployeeIds();
         for (String empId : allEmpIds) {
             if (!employeesWhoCheckedIn.contains(empId)) {
+                String attendanceStatus = null; // Default status
+
+                if(!now.isBefore(cutOffTime)){
+                    attendanceStatus = AttendanceStatusEnum.ABSENT.toString();
+                }
+                try {
+                    boolean isOnLeave = leaveClient.isEmployeeOnLeave(empId, today);// TODO: can make bulk api call to load leave of emp all at once
+                    if (isOnLeave) {
+                        attendanceStatus = AttendanceStatusEnum.ON_LEAVE.toString();
+                    }
+                } catch (FeignException fe) {
+                    log.error("Leave service call failed for employee: {}", empId, fe);
+                    // Defaulting to ABSENT if the service fails or throws exception
+                    String rawErrorJson = fe.contentUTF8();
+                    String cleanErrorMessage = "Microservices call failed";
+
+                    try {
+                        JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                        if (errorNode.has("message")) {
+                            cleanErrorMessage = errorNode.get("message").toString();
+                        } else {
+                            cleanErrorMessage = rawErrorJson;
+                        }
+                    } catch (Exception parseException) {
+                        cleanErrorMessage = rawErrorJson;
+                    }
+
+                    HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                    if (fe.status() > 0) {
+                        try {
+                            responseStatus = HttpStatus.valueOf(fe.status());
+                        } catch (IllegalArgumentException ex) {
+                            responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                        }
+                    } else {
+                        cleanErrorMessage = "Service is unreachable. Please try again later.";
+                        responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+                    }
+                    throw new CustomException(cleanErrorMessage, responseStatus);
+                }
                 responseList.add(new EmployeeAttendanceResponse(
                         empId,
                         null,
                         null,
                         null,
                         null,
-                        "ABSENT", // TODO: need to update to getAttendanceStatus if he/she is in leave
+                        attendanceStatus,
                         null
                 ));
             }

@@ -14,7 +14,7 @@ public class ListOfEmployeeResponse {
     private String employeeName;
     private String contact;
     private String emailId;
-    private String employeeDesignation;
+    private Long designationId;
     private Long workTypeId;
     private String officeId;
     private String officeName;

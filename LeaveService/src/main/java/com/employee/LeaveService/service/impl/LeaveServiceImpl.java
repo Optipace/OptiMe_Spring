@@ -34,9 +34,14 @@ public class LeaveServiceImpl implements LeaveService {
 
     @Override
     public SingleResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId, String employeeName) {
-
         if(request.getToDate().isBefore(request.getFromDate())){
-            throw new CustomException("The 'To Date' cannot be earlier than the 'From Date'", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_LEAVE_DATE_RANGE, 201);
+        }
+
+        // DUPLICATE CHECK: Verify if the employee already has a leave covering these dates
+        boolean hasOverlap = leaveRepository.existsOverlappingLeave(employeeId, request.getFromDate(), request.getToDate());
+        if (hasOverlap) {
+            throw new CustomException(null, CustomStatus.DUPLICATE_LEAVE_APPLICATION, 201);
         }
 
        ApiResponse<EmployeeResponse> employeeResponse;
@@ -68,7 +73,7 @@ public class LeaveServiceImpl implements LeaveService {
         leave.setApplicantEmployeeName(employeeName);
         leave.setApproverEmpId(response.getEmployeeId());
         LeaveType leaveType = leaveTypeRepository.findById(request.getLeaveTypeId())
-                        .orElseThrow(() -> new CustomException("Leave type not found", HttpStatus.NOT_FOUND));
+                        .orElseThrow(() -> new CustomException(null, CustomStatus.LEAVE_TYPE_NOT_FOUND, 201));
         log.info("Leave type is {}", leaveType.getLeaveType().toUpperCase());
         leave.setLeaveType(leaveType);
         leaveRepository.save(leave);
@@ -109,7 +114,7 @@ public class LeaveServiceImpl implements LeaveService {
     @Override
     public SingleResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId) {
         Leave leave = leaveRepository.findById(request.getLeaveId())
-                .orElseThrow(() -> new CustomException("Leave Id not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.LEAVE_ID_NOT_FOUND,201));
 
         ApiResponse<EmployeeResponse> empResponse;
         try{
@@ -139,7 +144,7 @@ public class LeaveServiceImpl implements LeaveService {
 //         // TODO The higher authority can't approve their leave by themselves
 //        }
         if(!empResponse.getData().isCanApproveLeave()) {
-            throw new CustomException("Only higher authorities can approve leave!", HttpStatus.UNAUTHORIZED);
+            throw new CustomException(null, CustomStatus.UNAUTHORIZED_LEAVE_APPROVER, 201);
         }
 
         if(leave.getApprovedBy() == null || leave.getApprovedBy().isEmpty()){

@@ -5,4 +5,5 @@ public enum AttendanceStatusEnum {
     ONLINE,
     OFFLINE,
     ON_LEAVE,
+    ABSENT
 }

@@ -1,20 +1,23 @@
-package com.employee.AuthService.dto.response;
+package com.employee.EmployeeProfileService.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class EmployeeResponse {
+@AllArgsConstructor
+@NoArgsConstructor
+public class EmployeeProfileResponse {
     private String employeeName;
     private String employeeId;
     private String contact;
     private String emailId;
-    private String employeeDesignation; // TODO : value
+    private String employeeDesignation;
     private String dailyStatus;
     private String role;
     private String gender;
-//    private String employeeProfilePath;
     private String permanentAddress;
     private String currentAddress;
     private String dateOfBirth;

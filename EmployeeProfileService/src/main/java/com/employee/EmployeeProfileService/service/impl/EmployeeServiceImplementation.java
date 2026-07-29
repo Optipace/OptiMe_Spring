@@ -74,6 +74,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
                     }
 
                     ListOfEmployeeResponse response = mapperModel.map(employee, ListOfEmployeeResponse.class);
+                    response.setDesignationId(employee.getDesignation().getId());
 
 //                    if (employee.getEmployeeProfilePath() != null) {
 //                        try {
@@ -107,7 +108,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
 
-        EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class); // TODO
+        EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class);
         try {
 
             log.info("Calling Admin service for office response");
