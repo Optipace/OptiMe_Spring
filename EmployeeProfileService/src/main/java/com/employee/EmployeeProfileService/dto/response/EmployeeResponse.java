@@ -8,13 +8,13 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor // TODO CHECK all files using this dto file
 public class EmployeeResponse {
     private String employeeName;
     private String employeeId;
     private String contact;
     private String emailId;
-    private Long designation;
+    private Long designationId;
     private String dailyStatus;
     private String role;
     private String gender;

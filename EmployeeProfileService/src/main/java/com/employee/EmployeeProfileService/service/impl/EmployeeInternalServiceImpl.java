@@ -313,9 +313,15 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
         List<EmployeeResponse> employeeResponseList = employeeList.stream()
                 .map(employee -> {
-                    EmployeeResponse response = new EmployeeResponse();
-                    response.setDesignation(employee.getDesignation().getId());
-                    return modelMapper.map(employee, EmployeeResponse.class); // TODO
+                    // 1. Map using modelMapper first
+                    EmployeeResponse response = modelMapper.map(employee, EmployeeResponse.class);
+
+                    // 2. Set the designation ID on the mapped object
+                    if (employee.getDesignation() != null) {
+                        response.setDesignationId(employee.getDesignation().getId());
+                    }
+
+                    return response;
                 })
                 .toList();
 
