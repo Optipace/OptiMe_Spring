@@ -23,6 +23,9 @@ public class TokenDetails {
     @Column(unique = true)
     private String token;
 
+    @Column(name = "email_id", nullable = false)
+    private String emailId;
+
     @Column(name = "created_on",updatable = false)
     @CreationTimestamp
     private LocalDateTime createdOn;
