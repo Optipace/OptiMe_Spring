@@ -109,7 +109,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 //        employee.setProfileStatus(ProfileStatusEnum.COMPLETE);
         int result = currentStatus | 2;
         employee.setProfileStatus(result);
-        employee.setAccountStatus(AccountStatus.ACTIVE); // TODO: Make it active
+        employee.setAccountStatus(AccountStatus.ACTIVE);
         employeeRepository.save(employee);
 
         return new ApiResponse<>(

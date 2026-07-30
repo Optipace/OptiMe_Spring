@@ -207,6 +207,10 @@ public class LeaveServiceImpl implements LeaveService {
         Leave leave = leaveRepository.findById(request.getLeaveId())
                 .orElseThrow(() -> new CustomException(null, CustomStatus.LEAVE_ID_NOT_FOUND,201));
 
+        if(leave.getApplicantEmployeeId().equals(approvedEmployeeId)){
+            throw new CustomException(null, CustomStatus.UNAUTHORIZED_LEAVE_APPROVER, 201);
+        }
+
         ApiResponse<EmployeeResponse> empResponse;
         try{
 

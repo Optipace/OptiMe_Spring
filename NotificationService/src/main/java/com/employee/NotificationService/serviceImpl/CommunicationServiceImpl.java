@@ -72,7 +72,7 @@ public class CommunicationServiceImpl implements CommunicationService {
     @Override
     public ApiResponse<String> sendLeaveEmail(LeaveEmailRequest request) {
         Context context = new Context();
-        context.setVariable("managerName", request.getApproverEmailId());
+        context.setVariable("managerName", request.getApproverName());
         context.setVariable("employeeName", request.getApplicantName());
         context.setVariable("employeeId", request.getApplicantEmployeeId());
         context.setVariable("leaveType", request.getLeaveType());

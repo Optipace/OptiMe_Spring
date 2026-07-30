@@ -16,6 +16,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     boolean existsByEmployeeId(String employeeId);
 
-    @Query("SELECT e.employeeId FROM Employee e WHERE e.accountStatus = 'ACTIVE'")
+//    @Query("SELECT e.employeeId FROM Employee e WHERE e.accountStatus = 'ACTIVE'") // <- can use this or next
+    @Query("SELECT e.employeeId FROM Employee e WHERE e.profileStatus >= 6")
     List<String> findActiveEmployeeIds();
 }

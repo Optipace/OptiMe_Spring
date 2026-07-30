@@ -3,7 +3,6 @@ package com.employee.LeaveService.service.impl;
 import com.employee.LeaveService.client.EmployeeClient;
 import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
 import com.employee.LeaveService.dto.response.*;
-import com.employee.LeaveService.enums.CustomStatus;
 import com.employee.LeaveService.exception.CustomException;
 import com.employee.LeaveService.model.Leave;
 import com.employee.LeaveService.model.LeaveType;
@@ -44,9 +43,13 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
                 .map(l -> {
                     if(l.getApprovedBy() == null){
                          l.setApprovedBy("No one approved Yet");
-                        return modelMapper.map(l, LeaveResponse.class);
+                        LeaveResponse leaveResponse = modelMapper.map(l, LeaveResponse.class);
+                        leaveResponse.setLeaveId(l.getId());
+                        return leaveResponse;
                     }else{
-                        return modelMapper.map(l, LeaveResponse.class);
+                        LeaveResponse leaveResponse = modelMapper.map(l, LeaveResponse.class);
+                        leaveResponse.setLeaveId(l.getId());
+                        return leaveResponse;
                     }
                 })
                 .toList();

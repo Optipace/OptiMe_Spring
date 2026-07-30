@@ -56,6 +56,7 @@ public class GatewayAuthenticationFilter extends AbstractGatewayFilterFactory<Ga
                     String employeeId = jwtUtil.extractEmployeeId(authHeader);
                     String role = jwtUtil.extractRole(authHeader);
                     String employeeName = jwtUtil.extractUsername(authHeader);
+                    String emailId = jwtUtil.extractEmailId(authHeader);
 
                     // --- ROLE-BASED AUTHORIZATION BLOCK ---
                     String path = exchange.getRequest().getURI().getPath();
@@ -71,6 +72,7 @@ public class GatewayAuthenticationFilter extends AbstractGatewayFilterFactory<Ga
                                     .header("X-Employee-Id",employeeId)
                                     .header("X-User-Role", role)
                                     .header("X-Employee-Name", employeeName)
+                                    .header("X-Email-Id", emailId)
                                     .build())
                             .build();
 
