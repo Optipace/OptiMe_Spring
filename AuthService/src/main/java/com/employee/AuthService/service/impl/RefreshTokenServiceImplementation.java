@@ -72,12 +72,12 @@ public class RefreshTokenServiceImplementation implements RefreshTokenService {
 
         // Fetch token or throw an actionable HTTP error\
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new CustomException(null, CustomStatus.INVALID_REFRESH_TOKEN, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.INVALID_REFRESH_TOKEN, 409));
 
         // Check if the token has expired
         if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(refreshToken); // Deletes the row securely
-            throw new CustomException(null, CustomStatus.REFRESH_TOKEN_EXPIRED, 201);
+            throw new CustomException(null, CustomStatus.REFRESH_TOKEN_EXPIRED, 409);
         }
 
         return refreshToken;

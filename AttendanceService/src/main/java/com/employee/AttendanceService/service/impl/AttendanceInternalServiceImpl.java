@@ -2,8 +2,10 @@ package com.employee.AttendanceService.service.impl;
 
 import com.employee.AttendanceService.client.EmployeeClient;
 import com.employee.AttendanceService.client.LeaveClient;
+import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
+import com.employee.AttendanceService.enums.CustomStatus;
 import com.employee.AttendanceService.exception.CustomException;
 import com.employee.AttendanceService.model.Attendance;
 import com.employee.AttendanceService.repository.AttendanceRepository;
@@ -16,9 +18,11 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 
@@ -131,7 +135,8 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
                     attendance.getLatitude(),
                     attendance.getLongitude(),
                     attendance.getAttendanceStatus().toString(),
-                    attendance.getAttendanceTypeId()
+                    attendance.getAttendanceTypeId(),
+                    getWorkingDetailsOfEmployee(attendance.getEmployeeId())
             ));
         }
 
@@ -186,7 +191,8 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
                         null,
                         null,
                         attendanceStatus,
-                        null
+                        null,
+                        getWorkingDetailsOfEmployee(empId)
                 ));
             }
         }
@@ -196,5 +202,69 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
 // responseList now contains sorted present employees first, and absent employees last!
 
         return new ApiResponse<>("Attendance Records", responseList, 200);
+    }
+
+    @Override
+    public ApiResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request) {
+
+        LocalDate fromDate = request.getFromDate();
+        LocalDate toDate = request.getToDate();
+        String employeeId = request.getEmployeeId();;
+
+        // 1. Basic validation check
+        if (toDate.isBefore(fromDate)) {
+            throw new CustomException("To-Date cannot be before From-Date", HttpStatus.BAD_REQUEST);
+        }
+
+        // 2. Fetch records from the database
+        List<Attendance> attendanceRecords = attendanceRepository.findAttendanceByEmployeeAndDateRange(employeeId, fromDate, toDate);
+
+        if (attendanceRecords.isEmpty()) {
+            throw new CustomException(
+                    "No attendance records found for this period",
+                    CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND,
+                    404
+            );
+        }
+
+        // 3. Map the entities to your response DTOs using Java Streams
+        List<EmployeeAttendanceHistoryResponse> historyResponse = attendanceRecords.stream()
+                .map(record -> {
+                    EmployeeAttendanceHistoryResponse dto = new EmployeeAttendanceHistoryResponse();
+                    dto.setEmployeeId(record.getEmployeeId());
+
+                    // Formatter guards to prevent null pointers if times are unrecorded
+                    dto.setCheckInTime(record.getCheckInTime() != null ? record.getCheckInTime().toString() : null);
+                    dto.setCheckOutTime(record.getCheckOutTime() != null ? record.getCheckOutTime().toString() : null);
+
+                    // Map Enum to String
+                    if (record.getAttendanceStatus() != null) {
+                        dto.setAttendanceStatus(record.getAttendanceStatus().name());
+                    }
+
+                    dto.setTotalWorkMin(record.getTotalWorkMin());
+                    return dto;
+                })
+                .toList();
+
+        // 4. Return standard API Envelope wrapper
+        return new ApiResponse<>(
+                "Attendance history retrieved successfully",
+                historyResponse,
+                200
+        );
+    }
+
+    //Helper
+    public Long getWorkingDetailsOfEmployee(String employeeId){
+        LocalDateTime fromDate = LocalDateTime.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                .with(LocalTime.MIN);
+        LocalDateTime toDate = LocalDateTime.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+                .with(LocalTime.MAX);
+
+        Long totalWorkMin = attendanceRepository.getTotalWorkMin(employeeId, fromDate, toDate)
+                .orElse(0L);
+
+        return totalWorkMin;
     }
 }

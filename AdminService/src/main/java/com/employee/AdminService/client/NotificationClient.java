@@ -18,5 +18,5 @@ public interface NotificationClient {
     void sendAccountCreatedEmail(@RequestParam("emailId") String emailId);
 
     @PostMapping("/api/communication/email/interviewEmail")
-    void sendInterviewEmail(InterviewPayload payload);
+    void sendInterviewEmail(@RequestBody InterviewPayload payload);
 }

@@ -32,4 +32,7 @@ public interface EmployeeClient {
 
     @GetMapping("/api/employee/internal/isHrEmpId")
     boolean isHrEmployeeId(@RequestParam("employeeId")String hrEmpId);
+
+    @GetMapping("/api/employee/internal/getAllAdmin")
+    ApiResponse<PageResponse<ListOfAdminResponse>> getAllAdmin(Pageable pageable);
 }

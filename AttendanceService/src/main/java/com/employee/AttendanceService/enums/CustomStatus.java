@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum CustomStatus {
     UNKNOWN(-999,"Something went wrong"),
-// Highest -80
+// Highest -83
     // 200 Business Logic Failures
     INVALID_REQUEST_FORMAT(-105, "Invalid request format or Invalid body"),
     // 201: Authentication & OTP Failures
@@ -48,7 +48,7 @@ public enum CustomStatus {
     APPROVER_NOT_FOUND(-45, "Approver not found."),
     INVALID_LEAVE_STATUS(-46, "Invalid leave status."),
     NO_APPLIED_LEAVE_RECORDS_FOUND(-47, "No applied leave records found."),
-    INVALID_LEAVE_DATE_RANGE(-48, "The 'To Date' cannot be earlier than the 'From Date'."),
+    INVALID_DATE_RANGE(-48, "The 'To Date' cannot be earlier than the 'From Date'."),
     LEAVE_ID_NOT_FOUND(-49, "Leave Id not found."),
     LEAVE_TYPE_NOT_FOUND(-50, "Leave type not found."),
     UNAUTHORIZED_LEAVE_APPROVER(-51, "You are not authorized to approve leave."),
@@ -75,6 +75,8 @@ public enum CustomStatus {
     EMAIL_TEMPLATE_NOT_FOUND(-56, "Email template not found."),
 
     // 400 Series
+    TOKEN_ALREADY_USED(-81, "Token has already been used or invalidated"),
+    INVALID_OR_EXPIRED_TOKEN(-82, "Token has expired. Please request a new link."),
     VALIDATION_FAILED(-72, "Validation failed."),
     INVALID_REQUEST_BODY(-71, "Invalid request body."),
     INVALID_EMAIL_ADDRESS(-58, "Invalid email address."),

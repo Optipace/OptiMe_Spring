@@ -1,5 +1,6 @@
 package com.employee.NotificationService.service;
 
+import com.employee.NotificationService.dto.request.InterviewRequest;
 import com.employee.NotificationService.dto.request.LeaveConfirmationRequest;
 import com.employee.NotificationService.dto.request.LeaveEmailRequest;
 import com.employee.NotificationService.dto.response.ApiResponse;
@@ -16,4 +17,6 @@ public interface CommunicationService {
     ApiResponse<String> sendLeaveEmail(LeaveEmailRequest request);
 
     void sendConfirmationLeaveEmail(LeaveConfirmationRequest request);
+
+    void sendInterviewEmail(InterviewRequest request);
 }

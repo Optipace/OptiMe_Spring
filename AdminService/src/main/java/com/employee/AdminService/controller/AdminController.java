@@ -112,4 +112,17 @@ public class AdminController {
         SingleResponse<?> response = adminService.updateLeave(request, approvedEmployeeId);
         return ResponseEntity.status(200).body(response);
     }
+
+    @GetMapping("/getAllAdmin")
+    public ResponseEntity<SingleResponse<PageResponse<AdminResponse>>> getALlAdmin(@RequestParam(defaultValue = "0")int page, @RequestParam(defaultValue = "5")int size){
+        Pageable pageable = PageRequest.of(page, size);
+        SingleResponse<PageResponse<AdminResponse>> response = adminService.getAllAdmin(pageable);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PostMapping("/getDateWiseAttendanceRecords")
+    public ResponseEntity<SingleResponse<List<EmployeeAttendanceHistoryResponse>>> getDateWiseAttendanceRecords(@Valid @RequestBody DateWiseAttendanceRequest request){
+        SingleResponse<List<EmployeeAttendanceHistoryResponse>> response = adminService.getDateWiseAttendanceRecords(request);
+        return ResponseEntity.status(200).body(response);
+    }
 }

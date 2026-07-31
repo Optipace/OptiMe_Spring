@@ -3,6 +3,7 @@ package com.employee.AttendanceService.service.impl;
 import com.employee.AttendanceService.client.EmployeeClient;
 import com.employee.AttendanceService.client.LeaveClient;
 import com.employee.AttendanceService.config.AppProperties;
+import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
 import com.employee.AttendanceService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
@@ -62,7 +63,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(employeeId, checkInTime);
 
         if(isAlreadyCheckedIn)
-            throw new CustomException(null, CustomStatus.ALREADY_CHECKED_IN, 201);
+            throw new CustomException(null, CustomStatus.ALREADY_CHECKED_IN, 409);
 
         Attendance attendance = new Attendance();
         attendance.setEmployeeId(employeeId);
@@ -167,7 +168,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         LocalDateTime checkInTime = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         Attendance attendance = attendanceRepository.findByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(employeeId, checkInTime)
-                        .orElseThrow(() -> new CustomException(null, CustomStatus.CHECK_IN_RECORD_NOT_FOUND, 201));
+                        .orElseThrow(() -> new CustomException(null, CustomStatus.CHECK_IN_RECORD_NOT_FOUND, 409));
 
         attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), LocalDateTime.now()).toMinutes());
 
@@ -270,7 +271,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         LocalDateTime endOfDay = LocalDateTime.now().with(LocalTime.MAX);
 
         List<Attendance> attendanceList = attendanceRepository.findTodayAttendanceByEmployeeId(employeeId,startOfDay,endOfDay)
-                .orElseThrow(() -> new CustomException(null, CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND, 409));
 
         Long totalWorkMin = attendanceRepository.getTotalWorkMin(employeeId, fromDate, toDate)
                 .orElse(0L);
@@ -287,6 +288,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         );
     }
 
+    @Override
     public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId){
         LocalDate mondayDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         log.info("Extracting present week Monday date {}",mondayDate);
@@ -304,6 +306,9 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .mapToLong(log -> Duration.between(log.getCheckInTime(), log.getCheckOutTime()).toMinutes())
                 .sum();
 
+//        List<> = weeklyLogs.stream()
+//                .map(Attendance::getAttendanceTypeId)
+//                .toList();
         WeeklyAttendanceLogsOfEmployeeRes response = new WeeklyAttendanceLogsOfEmployeeRes(totalWorkedMinutes, logResponse);
 
         return new SingleResponse<>(
@@ -371,7 +376,8 @@ public class AttendanceServiceImpl implements AttendanceService {
                     attendance.getLatitude(),
                     attendance.getLongitude(),
                     attendance.getAttendanceStatus().toString(),
-                    attendance.getAttendanceTypeId()
+                    attendance.getAttendanceTypeId(),
+                    getWorkingDetailsOfEmployee(attendance.getEmployeeId())
             ));
         }
 
@@ -402,7 +408,8 @@ public class AttendanceServiceImpl implements AttendanceService {
                         null,
                         null,
                         attendanceStatus,
-                        null
+                        null,
+                        getWorkingDetailsOfEmployee(empId)
                 ));
             }
         }
@@ -410,6 +417,56 @@ public class AttendanceServiceImpl implements AttendanceService {
 // responseList now contains the full timeline of events, followed by absent employees!
 
         return new SingleResponse<>(responseList, CustomStatus.SUCCESS);
+    }
+
+    @Override
+    public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request) {
+
+        LocalDate fromDate = request.getFromDate();
+        LocalDate toDate = request.getToDate();
+        String employeeId = request.getEmployeeId();;
+
+        // 1. Basic validation check
+        if (toDate.isBefore(fromDate)) {
+            throw new CustomException(null, CustomStatus.INVALID_DATE_RANGE, 409);
+        }
+
+        // 2. Fetch records from the database
+        List<Attendance> attendanceRecords = attendanceRepository.findAttendanceByEmployeeAndDateRange(employeeId, fromDate, toDate);
+
+        if (attendanceRecords.isEmpty()) {
+            throw new CustomException(
+                    null,
+                    CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND,
+                    409
+            );
+        }
+
+        // 3. Map the entities to your response DTOs using Java Streams
+        List<EmployeeAttendanceHistoryResponse> historyResponse = attendanceRecords.stream()
+                .map(record -> {
+                    EmployeeAttendanceHistoryResponse dto = new EmployeeAttendanceHistoryResponse();
+                    dto.setEmployeeId(record.getEmployeeId());
+
+                    // Formatter guards to prevent null pointers if times are unrecorded
+                    dto.setCheckInTime(record.getCheckInTime() != null ? record.getCheckInTime().toString() : null);
+                    dto.setCheckOutTime(record.getCheckOutTime() != null ? record.getCheckOutTime().toString() : null);
+
+                    // Map Enum to String
+                    if (record.getAttendanceStatus() != null) {
+                        dto.setAttendanceStatus(record.getAttendanceStatus().name());
+                    }
+
+                    dto.setTotalWorkMin(record.getTotalWorkMin());
+                    return dto;
+                })
+                .toList();
+
+        // 4. Return standard API Envelope wrapper
+        return new SingleResponse<>(
+                historyResponse,
+                CustomStatus.SUCCESS
+        );
     }
 
     private String saveFile(MultipartFile file, String folder) {
@@ -426,7 +483,21 @@ public class AttendanceServiceImpl implements AttendanceService {
             return path.toString(); // return file path
 
         } catch (IOException e) {
-            throw new CustomException(null, CustomStatus.FILE_UPLOAD_FAILED, 201);
+            throw new CustomException(null, CustomStatus.FILE_UPLOAD_FAILED, 409);
         }
     }
+
+    //Helper
+    public Long getWorkingDetailsOfEmployee(String employeeId){
+        LocalDateTime fromDate = LocalDateTime.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                .with(LocalTime.MIN);
+        LocalDateTime toDate = LocalDateTime.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+                .with(LocalTime.MAX);
+
+        Long totalWorkMin = attendanceRepository.getTotalWorkMin(employeeId, fromDate, toDate)
+                .orElse(0L);
+
+        return totalWorkMin;
+    }
+
 }

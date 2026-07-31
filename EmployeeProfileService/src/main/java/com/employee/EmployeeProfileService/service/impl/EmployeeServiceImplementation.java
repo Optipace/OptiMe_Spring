@@ -106,7 +106,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
     public SingleResponse<EmployeeResponse> getEmployeeDetails(String employeeId) {
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 409));
 
         EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class);
         try {
@@ -116,7 +116,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
             log.info("Received response from Admin service");
 
             log.info("Attendance service is calling");
-            ApiResponse<?> apiResponse = attendanceClient.getAttendanceStatus(employeeId);
+            ApiResponse<?> attendanceApiResponse = attendanceClient.getAttendanceStatus(employeeId);
             log.info("Attendance service called");
 
             NotificationPayload payload = new NotificationPayload(
@@ -130,10 +130,19 @@ public class EmployeeServiceImplementation implements EmployeeService {
             notificationClient.sendPrivateNotification(payload);
             log.info("Notification service called");
 
-            if (apiResponse.getData() == null) {
+            if (attendanceApiResponse.getData() == null) {
                 response.setAttendanceStatus(null);
             } else {
-                response.setAttendanceStatus(apiResponse.getData().toString());
+                response.setAttendanceStatus(attendanceApiResponse.getData().toString());
+                log.info("Setting daily status of employee to {}", attendanceApiResponse.getData().toString());
+                String attendanceStatus = attendanceApiResponse.getData().toString().toUpperCase();
+                if(attendanceStatus.contains("LEAVE")){
+                    response.setDailyStatus(attendanceApiResponse.getData().toString());
+                } else if (employee.getDailyStatus() != null) {
+                    response.setDailyStatus(employee.getDailyStatus());
+                } else {
+                    response.setDailyStatus(employee.getWorkType().getId().toString());
+                }
             }
 
             if(officeApiResponse.getData() != null){
@@ -205,7 +214,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
     @Override
     public SingleResponse<EmployeeResponse> getEmployeeByEmployeeId(String employeeId) {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 409));
 
         EmployeeResponse response = mapperModel.map(employee, EmployeeResponse.class);
         return new SingleResponse<>(
@@ -231,21 +240,21 @@ public class EmployeeServiceImplementation implements EmployeeService {
     public SingleResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId) {
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 409));
 
         if (file.isEmpty())
-            throw new CustomException(null, CustomStatus.FILE_IS_EMPTY, 201);
+            throw new CustomException(null, CustomStatus.FILE_IS_EMPTY, 409);
 
         log.info("Incoming file size {}", file.getSize());
         if (file.getSize() > MAX_IMAGE_SIZE)
-            throw new CustomException(null, CustomStatus.IMAGE_SIZE_EXCEEDED, 201);
+            throw new CustomException(null, CustomStatus.IMAGE_SIZE_EXCEEDED, 409);
 
         String contentType = file.getContentType();
 
         log.info("Incoming content type {}", contentType);
 
         if (!("image/jpeg".equals(contentType) || "image/png".equals(contentType) || "image/jpg".equals(contentType))) {
-            throw new CustomException(null, CustomStatus.INVALID_IMAGE_FORMAT, 201);
+            throw new CustomException(null, CustomStatus.INVALID_IMAGE_FORMAT, 409);
         }
 
         String filePath = saveFile(file, appProperties.getImage().getUploadDir() + "EmployeeProfile/" + employeeId + "/");
@@ -263,7 +272,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
     public SingleResponse<?> saveFeedback(FeedbackRequest request, String employeeId) {
 
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 409));
 
         Feedback feedback = new Feedback();
         if (request.getFeedbackStatus().equals(FeedbackEnum.Y) || request.getFeedbackStatus() == FeedbackEnum.Y) {
@@ -306,7 +315,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
     @Override
     public SingleResponse<?> updateFeedback(FeedbackUpdateRequest request) {
         Feedback feedback = feedbackRepository.findById(request.getFeedbackId())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.FEEDBACK_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.FEEDBACK_NOT_FOUND, 409));
 
         if (request.getFeedbackStatus().equals(FeedbackStatusEnum.PENDING)) {
             feedback.setStatusEnum(request.getFeedbackStatus());
@@ -323,6 +332,36 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
         return new SingleResponse<>(
                null,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<List<ListOfAdminResponse>> getAllAdminDetails() {
+        List<Employee> adminList = employeeRepository.findByRole(RoleEnum.ADMIN);
+
+        List<ListOfAdminResponse> adminResponses = adminList.stream()
+                .map((admin) ->{
+
+                    log.info("Calling admin Service to get Office details for office Id {} for the employee {}",admin.getOfficeId(), admin.getEmployeeId());
+                    ApiResponse<OfficeResponse> apiOfficeResponse = adminClient.getOfficeDetails(admin.getOfficeId());
+                    OfficeResponse officeResponse = new OfficeResponse();
+
+                    if(apiOfficeResponse.getData() != null){
+                        officeResponse = mapperModel.map(apiOfficeResponse.getData(), OfficeResponse.class);
+                    }
+
+                    ListOfAdminResponse response = mapperModel.map(admin, ListOfAdminResponse.class);
+                    response.setDesignationId(admin.getDesignation().getId());
+
+                    response.setOfficeId(officeResponse.getOfficeId());
+
+                    return response;
+                })
+                .toList();
+
+        return new SingleResponse<>(
+                adminResponses,
                 CustomStatus.SUCCESS
         );
     }
@@ -374,7 +413,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
             return path.toString(); // return file path
 
         } catch (IOException e) {
-            throw new CustomException(null, CustomStatus.FILE_UPLOAD_FAILED, 201);
+            throw new CustomException(null, CustomStatus.FILE_UPLOAD_FAILED, 409);
         }
     }
 }

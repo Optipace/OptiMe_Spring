@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.Response;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -102,6 +103,12 @@ public class EmployeeInternalController {
     @GetMapping("/isHrEmpId")
     public boolean isHrEmployeeId(@RequestParam("employeeId") String hrEmpId){
         return empInternalService.isHrEmployeeId(hrEmpId);
+    }
+
+    @GetMapping("/getAllAdmin")
+    public ResponseEntity<ApiResponse<PageResponse<ListOfAdminResponse>>> getAllAdminDetails(Pageable pageable){
+        ApiResponse<PageResponse<ListOfAdminResponse>> response = empInternalService.getAllAdminDetails(pageable);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
 }

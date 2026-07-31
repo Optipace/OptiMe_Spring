@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum CustomStatus {
     UNKNOWN(-999,"Something went wrong"),
-// Highest -80
+// Highest -83
     // 200 Business Logic Failures
     INVALID_REQUEST_FORMAT(-105, "Invalid request format or Invalid body"),
     // 201: Authentication & OTP Failures
@@ -75,6 +75,8 @@ public enum CustomStatus {
     EMAIL_TEMPLATE_NOT_FOUND(-56, "Email template not found."),
 
     // 400 Series
+    TOKEN_ALREADY_USED(-81, "Token has already been used or invalidated"),
+    INVALID_OR_EXPIRED_TOKEN(-82, "Token has expired. Please request a new link."),
     VALIDATION_FAILED(-72, "Validation failed."),
     INVALID_REQUEST_BODY(-71, "Invalid request body."),
     INVALID_EMAIL_ADDRESS(-58, "Invalid email address."),

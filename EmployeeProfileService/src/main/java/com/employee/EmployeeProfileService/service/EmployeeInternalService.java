@@ -39,4 +39,6 @@ public interface EmployeeInternalService {
 
     public boolean isHrEmployeeId(String hrEmpId);
 
+    public ApiResponse<PageResponse<ListOfAdminResponse>> getAllAdminDetails(Pageable pageable);
+
 }

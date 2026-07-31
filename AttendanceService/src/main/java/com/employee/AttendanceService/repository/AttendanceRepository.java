@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +53,15 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     List<Attendance> findByCheckInTimeBetweenOrderByCheckInTimeAsc(LocalDateTime startOfDay, LocalDateTime endOfDay);
 
+
+    @Query("SELECT a FROM Attendance a WHERE a.employeeId = :employeeId " +
+            "AND CAST(a.checkInTime AS date) BETWEEN :fromDate AND :toDate " +
+            "ORDER BY a.checkInTime ASC")
+    List<Attendance> findAttendanceByEmployeeAndDateRange(
+            @Param("employeeId") String employeeId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate
+    );
 
 //        @Query(value =
 //            "SELECT SUM(total_work_min) "+

@@ -5,16 +5,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class AttendanceResponse {
-    private LocalDateTime checkInTime;
-    private LocalDateTime checkOutTime;
-    private Long workMin;
-    private Long attendanceTypeId;
-
+public class EmployeeAttendanceHistoryResponse {
+    private String employeeId;
+    private String checkInTime;
+    private String checkOutTime;
+    private String attendanceStatus;
+    private Long totalWorkMin;
 }

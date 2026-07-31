@@ -60,7 +60,7 @@ public class UserServiceImpl implements UserService {
                 && userRepository.findByContact(request.getContact()).isPresent();
 
         if (!isAlreadyUser) {
-            throw new CustomException(null, CustomStatus.NOT_REGISTERED, 201);
+            throw new CustomException(null, CustomStatus.NOT_REGISTERED, 409);
         }
 
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
@@ -81,7 +81,7 @@ public class UserServiceImpl implements UserService {
                     long minutes = remaining.toMinutes();
                     long seconds = remaining.minusMinutes(minutes).getSeconds();
                     throw new CustomException("Try again in " + minutes + " min " + seconds + " sec",
-                            CustomStatus.OTP_RETRY_LIMIT_EXCEEDED, 201);
+                            CustomStatus.OTP_RETRY_LIMIT_EXCEEDED, 409);
                 }
                 // Unlock after 1 hour
                 userOtp.setRetryCount(0);
@@ -107,7 +107,7 @@ public class UserServiceImpl implements UserService {
             }
         } catch (FeignException e) {
             log.error("Email service failed",e);
-            throw new CustomException(null, CustomStatus.EMAIL_SENDING_FAILED, 201);
+            throw new CustomException(null, CustomStatus.EMAIL_SENDING_FAILED, 409);
         }
         return new SingleResponse<>(
                 null,
@@ -118,11 +118,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public SingleResponse<ValidationResponse> validateOtp(ValidationRequest request) {
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.OTP_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.OTP_NOT_FOUND, 409));
 
         // Check otp is already registered or not
         if (userOtp.getRegisterStatus() == RegisterEnum.Y) {
-            throw new CustomException(null, CustomStatus.OTP_ALREADY_VERIFIED, 201);
+            throw new CustomException(null, CustomStatus.OTP_ALREADY_VERIFIED, 409);
         }
 
         boolean isEmailOtpInvalid = !(userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals(String.valueOf(appProperties.getOtp().getFixed())));
@@ -132,27 +132,27 @@ public class UserServiceImpl implements UserService {
         if (expiryTime.isBefore(LocalDateTime.now()) || userOtp.getAvailable().equals(RegisterEnum.N)) {
             userOtp.setAvailable(RegisterEnum.N);
             userOtpRepository.save(userOtp);
-            throw new CustomException(null, CustomStatus.OTP_EXPIRED, 201);
+            throw new CustomException(null, CustomStatus.OTP_EXPIRED, 409);
         }
 
         if(userOtp.getRetryCount() >= OTP_RETRY_COUNT){
-            throw new CustomException(null, CustomStatus.OTP_RETRY_LIMIT_EXCEEDED, 201);
+            throw new CustomException(null, CustomStatus.OTP_RETRY_LIMIT_EXCEEDED, 409);
         }
 
         if(isEmailOtpInvalid && isMobileOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException(null, CustomStatus.INVALID_OTP, 201);
+            throw new CustomException(null, CustomStatus.INVALID_OTP, 409);
         }
         if (isEmailOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException(null, CustomStatus.INVALID_EMAIL_OTP, 201);
+            throw new CustomException(null, CustomStatus.INVALID_EMAIL_OTP, 409);
         }
         if (isMobileOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException(null, CustomStatus.INVALID_MOBILE_OTP, 201);
+            throw new CustomException(null, CustomStatus.INVALID_MOBILE_OTP, 409);
         }
 
         userOtp.setAvailable(RegisterEnum.N);       // Expire the otp
@@ -163,7 +163,7 @@ public class UserServiceImpl implements UserService {
         userOtpRepository.saveAndFlush(userOtp);
 
         User user = userRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 409));
 
         EmployeeResponse response = null;
 
@@ -216,32 +216,32 @@ public class UserServiceImpl implements UserService {
     public SingleResponse<?> completeRegistration(CompleteRegisterRequest request) {
 
         User user = userRepository.findByEmployeeId(request.getEmployeeId())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 409));
 
         UserOtp userOtp = userOtpRepository.findByEmailIdOrContact(user.getEmailId(), user.getContact())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.IDENTITY_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.IDENTITY_NOT_FOUND, 409));
 
         if (!userOtp.getValidationToken().equals(request.getValidationToken())) {
-            throw new CustomException(null, CustomStatus.INVALID_VALIDATION_TOKEN, 201);
+            throw new CustomException(null, CustomStatus.INVALID_VALIDATION_TOKEN, 409);
         }
 //        userRepository.findByEmployeeId(request.getEmployeeId())
 //                .ifPresent(u -> {throw new CustomException("Employee ID must be unique", HttpStatus.CONFLICT);});
 
         if (userOtp.getRegisterStatus() != RegisterEnum.Y) {
-            throw new CustomException(null, CustomStatus.OTP_NOT_VALIDATED, 201);
+            throw new CustomException(null, CustomStatus.OTP_NOT_VALIDATED, 409);
         }
 
         // Prevent Duplicate Registration (Fixes the User ID already exists crash)
         boolean isAlreadyRegistered = passwordRepository.existsByUserId(user.getId());
         if (isAlreadyRegistered) {
-            throw new CustomException(null, CustomStatus.EMPLOYEE_ID_ALREADY_REGISTERED, 201);
+            throw new CustomException(null, CustomStatus.EMPLOYEE_ID_ALREADY_REGISTERED, 409);
         }
 
         // Check if personal email is already claimed by someone else
         boolean isEmailTaken = userRepository.existsByPersonalEmailAndEmployeeIdNot(
                 request.getPersonalEmail(), request.getEmployeeId());
         if (isEmailTaken) {
-            throw new CustomException(null, CustomStatus.PERSONAL_EMAIL_ALREADY_EXISTS, 201);
+            throw new CustomException(null, CustomStatus.PERSONAL_EMAIL_ALREADY_EXISTS, 409);
         }
 
         Password password = new Password();
@@ -314,14 +314,14 @@ public class UserServiceImpl implements UserService {
     public SingleResponse<LoginResponse> login(LoginRequest request) {
 
         User user = userRepository.findByEmailIdOrContact(request.getIdentifier(), request.getIdentifier())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 409));
 
         if (user.getPassword() == null) {
-            throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 201);
+            throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 409);
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword().getPassword()) || request.getPassword() == null || user.getPassword() == null) {
-            throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 201);
+            throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 409);
         }
 
         String accessToken = jwtUtil.generateToken(user.getUserName(), user.getContact(), user.getEmailId(), user.getEmployeeId(), String.valueOf(user.getRole()));
@@ -388,11 +388,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public SingleResponse<?> resetPassword(ResetPasswordRequest request) {
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.IDENTITY_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.IDENTITY_NOT_FOUND, 409));
 
         // Check otp is already registered or not
         if (userOtp.getRegisterStatus() == RegisterEnum.Y) {
-            throw new CustomException(null, CustomStatus.OTP_ALREADY_VERIFIED, 201);
+            throw new CustomException(null, CustomStatus.OTP_ALREADY_VERIFIED, 409);
         }
 
         boolean isEmailOtpInvalid = !(userOtp.getEmailOtp().equals(request.getEmailOtp()) || request.getEmailOtp().equals(String.valueOf(appProperties.getOtp().getFixed())));
@@ -402,27 +402,27 @@ public class UserServiceImpl implements UserService {
         if (expiryTime.isBefore(LocalDateTime.now()) || userOtp.getAvailable().equals(RegisterEnum.N)) {
             userOtp.setAvailable(RegisterEnum.N);
             userOtpRepository.save(userOtp);
-            throw new CustomException(null, CustomStatus.OTP_EXPIRED, 201);
+            throw new CustomException(null, CustomStatus.OTP_EXPIRED, 409);
         }
 
         if(userOtp.getRetryCount() >= OTP_RETRY_COUNT){
-            throw new CustomException(null, CustomStatus.OTP_RETRY_LIMIT_EXCEEDED, 201);
+            throw new CustomException(null, CustomStatus.OTP_RETRY_LIMIT_EXCEEDED, 409);
         }
 
         if(isEmailOtpInvalid && isMobileOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException(null, CustomStatus.INVALID_OTP, 201);
+            throw new CustomException(null, CustomStatus.INVALID_OTP, 409);
         }
         if (isEmailOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException(null, CustomStatus.INVALID_EMAIL_OTP, 201);
+            throw new CustomException(null, CustomStatus.INVALID_EMAIL_OTP, 409);
         }
         if (isMobileOtpInvalid){
             userOtp.setRetryCount(userOtp.getRetryCount() + 1);
             userOtpRepository.saveAndFlush(userOtp);
-            throw new CustomException(null, CustomStatus.INVALID_MOBILE_OTP, 201);
+            throw new CustomException(null, CustomStatus.INVALID_MOBILE_OTP, 409);
         }
 
         userOtp.setAvailable(RegisterEnum.N);
@@ -431,7 +431,7 @@ public class UserServiceImpl implements UserService {
         String rawPassword = request.getPassword();
         String encodedPassword = passwordEncoder.encode(rawPassword);
         User user =userRepository.findByEmailIdAndContact(request.getEmailId(), request.getContact())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.USER_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.USER_NOT_FOUND, 409));
 
         user.getPassword().setPassword(encodedPassword);
         userRepository.save(user);
@@ -445,16 +445,16 @@ public class UserServiceImpl implements UserService {
     @Override
     public SingleResponse<?> updatePassword(UpdatePasswordRequest request, String employeeId) {
         User user = userRepository.findByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException(null, CustomStatus.USER_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.USER_NOT_FOUND, 409));
 
         String oldPassword = request.getOldPassword();
 
         if(!passwordEncoder.matches(request.getOldPassword(), user.getPassword().getPassword())){
-            throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 201);
+            throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 409);
         }
 
         if(oldPassword.equals(request.getNewPassword())){
-            throw new CustomException(null, CustomStatus.SAME_AS_OLD_PASSWORD, 201);
+            throw new CustomException(null, CustomStatus.SAME_AS_OLD_PASSWORD, 409);
         }
 
         String encodedPassword = passwordEncoder.encode(request.getNewPassword());

@@ -387,5 +387,38 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         }
     }
 
+    @Override
+    public ApiResponse<PageResponse<ListOfAdminResponse>> getAllAdminDetails(Pageable pageable) {
+        Page<Employee> adminPage = employeeRepository.findByRole(RoleEnum.ADMIN,pageable);
+        List<Employee> adminList = adminPage.getContent();
 
+        if(adminPage.isEmpty()){
+            throw new CustomException("Employee Records not found", HttpStatus.NOT_FOUND);
+        }
+
+        List<ListOfAdminResponse> adminResponseList = adminList.stream()
+                .map(admin -> {
+                    ListOfAdminResponse response = modelMapper.map(admin, ListOfAdminResponse.class);
+                    response.setDesignationId(admin.getDesignation().getId());
+
+                    return response;
+                })
+                .toList();
+
+        PageResponse<ListOfAdminResponse> response = new PageResponse<>(
+                adminResponseList,
+                adminPage.getNumber(),
+                adminPage.getSize(),
+                adminPage.getTotalElements(),
+                adminPage.getTotalPages(),
+                adminPage.isLast()
+        );
+        return new ApiResponse<>(
+                true,
+                "Admin List",
+                response,
+                LocalDateTime.now(),
+                200
+        );
+    }
 }

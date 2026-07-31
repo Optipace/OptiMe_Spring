@@ -1,57 +1,42 @@
-package com.employee.AdminService.model;
+package com.employee.AdminService.dto.request;
 
-import com.employee.AdminService.enums.ApplicationStatus;
-import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "applicant_details")
-public class ApplicantDetails {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+public class ApplicantDetailsRequest {
     @NotBlank(message = "Please provide candidate first name")
-    @Column(nullable = false, length = 100)
     private String candidateFirstName;
 
     private String candidateMiddleName;
 
     @NotBlank(message = "Please provide candidate last name")
-    @Column(nullable = false, length = 100)
     private String candidateLastName;
 
     @NotBlank(message = "Please provide candidate father name")
-    @Column(nullable = false, length = 100)
     private String fatherName;
 
-    @NotBlank(message = "Please provide candidate mother  name")
-    @Column(nullable = false, length = 100)
+    @NotBlank(message = "Please provide candidate mother name")
     private String motherName;
 
     @NotBlank(message = "Please provide marital status")
-    @Column(nullable = false, length = 30)
     private String maritalStatus;
 
     @Pattern(regexp = "^[6-9]\\d{9}$", message = "Contact must be a valid 10-digit Indian number")
-    @Column(length = 10)
     private String mobileNumber;
 
     @Email(message = "Please provide a valid email address")
-    @Column(nullable = false, length = 50)
     private String gmailId;
 
     @NotBlank(message = "Please provide current work status")
-    @Column(nullable = false, length = 50)
     private String currentWorkStatus;
 
     private String currentLastCtc;
@@ -61,15 +46,8 @@ public class ApplicantDetails {
     private String noticePeriod;
 
     @NotBlank(message = "Please provide relocation status")
-    @Column(nullable = false, length = 100)
     private String relocation;
 
     @NotBlank(message = "Please provide interview status")
-    @Column(nullable = false, length = 100)
     private String virtualInterviewStatus;
-
-    @NotNull(message = "Please provide application status")
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private ApplicationStatus status = ApplicationStatus.PENDING;
 }

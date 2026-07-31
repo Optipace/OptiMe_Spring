@@ -48,7 +48,7 @@ public class AdminServiceImpl implements AdminService {
     public SingleResponse<?> addNewUser(RegisterRequest request, String adminEmployeeId) {
 
         officeRepository.findById(request.getOfficeId())
-                .orElseThrow(() -> new CustomException("Office Id not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Office Id not found", CustomStatus.OFFICE_NOT_FOUND, 409));
 
         // 1. Prepare Auth Payload (Security Data)
         AuthIdentityPayload authPayload = new AuthIdentityPayload(
@@ -196,7 +196,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public SingleResponse<?> addNewOffice(AddNewOfficeRequest request) {
         if (officeRepository.existsById(request.getOfficeId())) {
-            throw new CustomException(null, CustomStatus.OFFICE_ALREADY_EXISTS, 201);
+            throw new CustomException(null, CustomStatus.OFFICE_ALREADY_EXISTS, 409);
         }
 
         Office newOffice = new Office();
@@ -232,7 +232,7 @@ public class AdminServiceImpl implements AdminService {
         if(isHrEmpId){
             newOffice.setHrEmpId(request.getHrEmpId());
         }else{
-            throw new CustomException(null, CustomStatus.HR_EMP_ID_NOT_FOUND, 201);
+            throw new CustomException(null, CustomStatus.HR_EMP_ID_NOT_FOUND, 409);
         }
         newOffice.setGoogleMap(request.getGoogleMap());
         newOffice.setOfficeStatus(OfficeStatus.ACTIVE);
@@ -252,7 +252,7 @@ public class AdminServiceImpl implements AdminService {
         List<Office> officeList = officePage.getContent();
 
         if(officePage.isEmpty()){
-            throw new CustomException(null, CustomStatus.NO_OFFICE_RECORDS_FOUND, 201);
+            throw new CustomException(null, CustomStatus.NO_OFFICE_RECORDS_FOUND, 409);
         }
 
         List<OfficeResponse> officeResponseList = officeList.stream()
@@ -276,7 +276,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public SingleResponse<?> updateOffice(OfficeRequest request) {
         Office office = officeRepository.findById(request.getOfficeId())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.NO_OFFICE_RECORDS_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.NO_OFFICE_RECORDS_FOUND, 409));
 
         if(request.getOfficeName() != null){
             office.setOfficeName(request.getOfficeName());
@@ -426,7 +426,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public SingleResponse<?> getAllAppliedLeaves() {
 
-        List<LeaveResponse> leaveResponses = null;
+        List<LeaveResponse> leaveResponses = new ArrayList<>();
         try {
             ApiResponse<List<LeaveResponse>> apiResponse = leaveClient.getAllAppliedLeaves();
             log.info("LEAVE SERVICE CALLED");
@@ -528,7 +528,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public SingleResponse<?> updateOfficeStatus(UpdateOfficeStatusRequest request) {
         Office office = officeRepository.findById(request.getOfficeId())
-                .orElseThrow(() -> new CustomException(null, CustomStatus.OFFICE_NOT_FOUND, 201));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.OFFICE_NOT_FOUND, 409));
 
         office.setOfficeStatus(OfficeStatus.valueOf(request.getStatus()));
         officeRepository.save(office);
@@ -617,5 +617,148 @@ public class AdminServiceImpl implements AdminService {
         );
     }
 
+    @Override
+    public SingleResponse<PageResponse<AdminResponse>> getAllAdmin(Pageable pageable) {
+        try {
+            // 1. Call Employee Profile microservice via Feign client
+            ApiResponse<PageResponse<ListOfAdminResponse>> apiResponse = employeeClient.getAllAdmin(pageable);
+            log.info("Employee Service call completed successfully");
 
+            PageResponse<ListOfAdminResponse> rawPageData = apiResponse.getData();
+            if (rawPageData == null || rawPageData.getContent() == null) {
+                return new SingleResponse<>(new PageResponse<>(), CustomStatus.SUCCESS);
+            }
+
+            // 2. Stream through ListOfAdminResponse and transform each into AdminResponse
+            List<AdminResponse> transformedContent = rawPageData.getContent().stream()
+                    .map(listOfAdmin -> {
+                        AdminResponse adminResponse = new AdminResponse();
+                        adminResponse.setEmployeeId(listOfAdmin.getEmployeeId());
+                        adminResponse.setEmployeeName(listOfAdmin.getEmployeeName());
+                        adminResponse.setContact(listOfAdmin.getContact());
+                        adminResponse.setEmailId(listOfAdmin.getEmailId());
+                        adminResponse.setDesignationId(listOfAdmin.getDesignationId());
+                        adminResponse.setWorkTypeId(listOfAdmin.getWorkTypeId());
+
+                        // 3. Fetch and map Office Details safely if officeId exists
+                        if (listOfAdmin.getOfficeId() != null) {
+                            officeRepository.findById(listOfAdmin.getOfficeId())
+                                    .ifPresent(office -> {
+                                        OfficeResponse officeResponse = new OfficeResponse(
+                                                office.getId(),
+                                                office.getOfficeName(),
+                                                office.getLatitude(),
+                                                office.getLongitude(),
+                                                office.getHrEmpId(),
+                                                office.getAddress(),
+                                                office.getContact(),
+                                                office.getGoogleMap()
+                                        );
+                                        adminResponse.setOfficeResponse(officeResponse);
+                                    });
+                        }
+                        return adminResponse;
+                    })
+                    .toList();
+
+            // 4. Wrap transformed list back into a cleanly typed PageResponse
+            PageResponse<AdminResponse> finalPageResponse = new PageResponse<>(
+                    transformedContent,
+                    rawPageData.getPageNumber(),
+                    rawPageData.getPageSize(),
+                    rawPageData.getTotalElements(),
+                    rawPageData.getTotalPages(),
+                    rawPageData.isLast()
+            );
+
+            return new SingleResponse<>(finalPageResponse, CustomStatus.SUCCESS);
+
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                }
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+        }
+    }
+
+    @Override
+    public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request) {
+        List<EmployeeAttendanceHistoryResponse> responses;
+        try {
+            ApiResponse<List<EmployeeAttendanceHistoryResponse>> apiResponse = attendanceClient.getDateWiseAttendanceRecords(request);
+            responses = apiResponse.getData();
+
+        } catch (FeignException e) { // TODO handle exception properly
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Attendance microservice call failed";
+            CustomStatus fallbackStatus = CustomStatus.MICROSERVICE_CALL_FAILED;
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                }
+
+                // Dynamically match the error nature to a proper business status
+                if (e.status() == 404) {
+                    fallbackStatus = CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND;
+                    throw new CustomException(
+                            cleanErrorMessage,
+                            fallbackStatus,
+                            404
+                    );
+                } else if (e.status() == 405) {
+                    fallbackStatus = CustomStatus.INVALID_REQUEST_FORMAT;
+                }
+
+            } catch (Exception parseException) {
+                cleanErrorMessage = "Error parsing downstream service exception";
+            }
+
+            // 👈 Passing a verified fallbackStatus here eliminates the NullPointerException
+            throw new CustomException(
+                    cleanErrorMessage,
+                    fallbackStatus,
+                    409
+            );
+//            String rawErrorJson = fe.contentUTF8();
+//            String cleanErrorMessage = "Microservices call failed";
+//
+//            try {
+//                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+//                if (errorNode.has("message")) {
+//                    cleanErrorMessage = errorNode.get("message").toString();
+//                } else {
+//                    cleanErrorMessage = rawErrorJson;
+//                }
+//            } catch (Exception parseException) {
+//                cleanErrorMessage = rawErrorJson;
+//            }
+//
+//            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+//            if (fe.status() > 0) {
+//                try {
+//                    responseStatus = HttpStatus.valueOf(fe.status());
+//                } catch (IllegalArgumentException ex) {
+//                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+//                }
+//            } else {
+//                cleanErrorMessage = "Service is unreachable. Please try again later.";
+//                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+//            }
+//            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
+        return new SingleResponse<>(
+                responses,
+                CustomStatus.SUCCESS
+        );
+    }
 }

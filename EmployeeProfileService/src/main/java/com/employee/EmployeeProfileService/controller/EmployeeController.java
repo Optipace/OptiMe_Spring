@@ -69,7 +69,11 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-
+    @GetMapping("/getAllAdmin")
+    public ResponseEntity<SingleResponse<List<ListOfAdminResponse>>> getAllAdminDetails(){
+        SingleResponse<List<ListOfAdminResponse>> response = empService.getAllAdminDetails();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 //    @GetMapping("/employeeProfile")
 //    public ResponseEntity<Resource> getEmployeeProfile(@RequestHeader ("Authorization") String authHeader){
 //        return empService.getEmployeeProfile(authHeader);

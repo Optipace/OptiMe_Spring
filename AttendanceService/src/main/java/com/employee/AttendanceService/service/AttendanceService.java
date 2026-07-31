@@ -1,7 +1,10 @@
 package com.employee.AttendanceService.service;
 
+import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
 import com.employee.AttendanceService.dto.response.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 public interface AttendanceService {
 
@@ -14,4 +17,6 @@ public interface AttendanceService {
     public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId);
 
     public SingleResponse<?> getTodayAttendanceRecords();
+
+    public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request);
 }

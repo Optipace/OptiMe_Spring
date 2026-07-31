@@ -1,13 +1,17 @@
 package com.employee.AttendanceService.controller;
 
+import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.service.AttendanceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.employee.AttendanceService.enums.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -46,6 +50,12 @@ public class AttendanceController {
     @GetMapping("/getTodayAttendanceRecords")
     public ResponseEntity<SingleResponse<?>> getTodayAttendanceRecords(){
         SingleResponse<?> response = attendanceService.getTodayAttendanceRecords();
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PostMapping("/getDateWiseAttendanceRecords")
+    public ResponseEntity<SingleResponse<List<EmployeeAttendanceHistoryResponse>>> getDateWiseAttendanceRecords(@Valid @RequestBody DateWiseAttendanceRequest request){
+        SingleResponse<List<EmployeeAttendanceHistoryResponse>> response = attendanceService.getDateWiseAttendanceRecords(request);
         return ResponseEntity.status(200).body(response);
     }
 }

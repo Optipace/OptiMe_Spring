@@ -1,8 +1,8 @@
 package com.employee.AdminService.controller;
 
+import com.employee.AdminService.dto.request.ApplicantDetailsRequest;
 import com.employee.AdminService.dto.request.InterviewRequest;
 import com.employee.AdminService.dto.response.SingleResponse;
-import com.employee.AdminService.model.ApplicantDetails;
 import com.employee.AdminService.service.InterviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +29,8 @@ public class InterviewController {
     }
 
     @PostMapping("/submit")
-    public ResponseEntity<SingleResponse<String>> submitDetails(@RequestParam("token")String token, @Valid @RequestBody ApplicantDetails applicantDetails){
-        SingleResponse<String> response = interviewService.submitDetails(token, applicantDetails);
+    public ResponseEntity<SingleResponse<String>> submitDetails(@RequestParam("token")String token, @Valid @RequestBody ApplicantDetailsRequest request){
+        SingleResponse<String> response = interviewService.submitDetails(token, request);
         return ResponseEntity.status(200).body(response);
     }
 }

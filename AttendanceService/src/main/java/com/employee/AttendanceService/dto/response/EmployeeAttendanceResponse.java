@@ -17,4 +17,5 @@ public class EmployeeAttendanceResponse {
     private String longitude;
     private String attendanceStatus;
     private Long attendanceTypeId;
+    private Long workMin;
 }

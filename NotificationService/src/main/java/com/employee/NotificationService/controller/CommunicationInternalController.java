@@ -1,5 +1,6 @@
 package com.employee.NotificationService.controller;
 
+import com.employee.NotificationService.dto.request.InterviewRequest;
 import com.employee.NotificationService.dto.request.LeaveConfirmationRequest;
 import com.employee.NotificationService.dto.request.LeaveEmailRequest;
 import com.employee.NotificationService.dto.response.ApiResponse;
@@ -39,5 +40,10 @@ public class CommunicationInternalController {
     @PostMapping("/sendConfirmLeaveEmail")
     void sendConfirmationLeaveEmail(@RequestBody LeaveConfirmationRequest request){
         communicationService.sendConfirmationLeaveEmail(request);
+    }
+
+    @PostMapping("/interviewEmail")
+    void sendInterviewEmail(@RequestBody InterviewRequest request){
+        communicationService.sendInterviewEmail(request);
     }
 }

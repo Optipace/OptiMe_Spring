@@ -2,6 +2,7 @@ package com.employee.AdminService.service;
 
 import com.employee.AdminService.dto.request.*;
 import com.employee.AdminService.dto.response.*;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -36,4 +37,8 @@ public interface AdminService {
     public SingleResponse<?> getTodayAttendanceRecords();
 
     public SingleResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId);
+
+    public SingleResponse<PageResponse<AdminResponse>> getAllAdmin(Pageable pageable);
+
+    SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request);
 }

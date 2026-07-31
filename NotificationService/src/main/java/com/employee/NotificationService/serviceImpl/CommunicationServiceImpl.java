@@ -1,5 +1,6 @@
 package com.employee.NotificationService.serviceImpl;
 
+import com.employee.NotificationService.dto.request.InterviewRequest;
 import com.employee.NotificationService.dto.request.LeaveConfirmationRequest;
 import com.employee.NotificationService.dto.request.LeaveEmailRequest;
 import com.employee.NotificationService.dto.response.ApiResponse;
@@ -100,5 +101,19 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         log.info("Communication Service: Sending confirmation leave email to {}",request.getApplicantEmailId());
         emailService.sendHtmlEmail(request.getApplicantEmailId(), subject, htmlBody);
+    }
+
+    @Override
+    public void sendInterviewEmail(InterviewRequest request) {
+        Context context = new Context();
+        context.setVariable("formUrl", request.getUrl());
+        context.setVariable("token", request.getToken());
+        context.setVariable("candidateEmail", request.getEmailId());
+
+        String htmlBody = templateEngine.process("InterviewFormTemplate", context);
+        String subject = "Welcome to Optipace Technologies";
+
+        log.info("Communication Service: Sending basic details form email to {}", request.getEmailId());
+        emailService.sendHtmlEmail(request.getEmailId(), subject, htmlBody);
     }
 }

@@ -24,5 +24,7 @@ public interface EmployeeService {
 
     public SingleResponse<?> updateFeedback(FeedbackUpdateRequest request);
 
+    public SingleResponse<List<ListOfAdminResponse>> getAllAdminDetails();
+
 //    public ResponseEntity<Resource> getEmployeeProfile(String authHeader);
 }
