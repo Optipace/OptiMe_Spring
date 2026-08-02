@@ -2,7 +2,7 @@ package com.employee.EmployeeProfileService.service.impl;
 
 import com.employee.EmployeeProfileService.client.AdminClient;
 import com.employee.EmployeeProfileService.client.AttendanceClient;
-import com.employee.EmployeeProfileService.client.NotificationClient;
+import com.employee.EmployeeProfileService.client.CommunicationClient;
 import com.employee.EmployeeProfileService.config.AppProperties;
 import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
@@ -52,7 +52,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
     private final AttendanceClient attendanceClient;
 
-    private final NotificationClient notificationClient;
+    private final CommunicationClient communicationClient;
 
     private final ObjectMapper objectMapper;
 
@@ -127,7 +127,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
             );
 
             log.info("Notification service calling");
-            notificationClient.sendPrivateNotification(payload);
+            communicationClient.sendPrivateNotification(payload);
             log.info("Notification service called");
 
             if (attendanceApiResponse.getData() == null) {

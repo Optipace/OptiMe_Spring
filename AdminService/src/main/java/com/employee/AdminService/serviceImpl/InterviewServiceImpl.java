@@ -1,10 +1,13 @@
 package com.employee.AdminService.serviceImpl;
 
-import com.employee.AdminService.client.NotificationClient;
+import com.employee.AdminService.client.CommunicationClient;
 import com.employee.AdminService.dto.request.ApplicantDetailsRequest;
 import com.employee.AdminService.dto.request.InterviewPayload;
 import com.employee.AdminService.dto.request.InterviewRequest;
+import com.employee.AdminService.dto.response.PageResponse;
 import com.employee.AdminService.dto.response.SingleResponse;
+import com.employee.AdminService.dto.response.SubmittedApplicationResponse;
+import com.employee.AdminService.dto.response.UnSubmittedResponse;
 import com.employee.AdminService.enums.ApplicationStatus;
 import com.employee.AdminService.enums.AvailableEnum;
 import com.employee.AdminService.enums.CustomStatus;
@@ -18,9 +21,13 @@ import com.employee.AdminService.util.InterviewUtil;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -28,9 +35,10 @@ import java.time.LocalDateTime;
 public class InterviewServiceImpl implements InterviewService {
 
     private final InterviewUtil interviewUtil;
-    private final NotificationClient notificationClient;
+    private final CommunicationClient communicationClient;
     private final TokenRepository tokenRepository;
     private final ApplicantDetailsRepository applicantDetailsRepository;
+    private final ModelMapper modelMapper;
     private final String url = "https://www.optipace.in/submit?token=";
 
     @Override
@@ -55,7 +63,7 @@ public class InterviewServiceImpl implements InterviewService {
         // 4. Send Email
         InterviewPayload payload = new InterviewPayload(request.getEmailId(), token, url + token);
         try {
-            notificationClient.sendInterviewEmail(payload);
+            communicationClient.sendInterviewEmail(payload);
             log.info("Triggered interview email for {}", request.getEmailId());
         } catch (FeignException e) {
             throw new CustomException(null, CustomStatus.EMAIL_DELIVERY_FAILED, 409);
@@ -106,6 +114,54 @@ public class InterviewServiceImpl implements InterviewService {
         log.info("Token successfully utilized and deleted for candidate: {}", jwtEmail);
 
         return new SingleResponse<>("Application submitted successfully", CustomStatus.SUCCESS);
+    }
+
+    @Override
+    public SingleResponse<List<UnSubmittedResponse>> unSubmittedDetails() {
+        List<TokenDetails> tokenDetails = tokenRepository.findAll();
+        List<UnSubmittedResponse> response = tokenDetails.stream()
+                .map(token -> {
+                    UnSubmittedResponse response1 = new UnSubmittedResponse();
+                    response1.setId(token.getId());
+                    response1.setEmailId(token.getEmailId());
+                    response1.setToken(token.getToken());
+
+                    return response1;
+                })
+                .toList();
+
+        return new SingleResponse<>(
+                response,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<PageResponse<SubmittedApplicationResponse>> getAllSubmittedDetails(Pageable pageable) {
+        Page<ApplicantDetails> applicantDetailsPage = applicantDetailsRepository.findAll(pageable);
+        List<ApplicantDetails> applicantDetailsList = applicantDetailsPage.getContent();
+
+        if(applicantDetailsPage.isEmpty()){
+            throw new CustomException(null, CustomStatus.NO_OFFICE_RECORDS_FOUND, 409); // TODO : Change to application details not found
+        }
+
+        List<SubmittedApplicationResponse> applicationResponseList = applicantDetailsList.stream()
+                .map(applicantDetails -> modelMapper.map(applicantDetails, SubmittedApplicationResponse.class))
+                .toList();
+
+        PageResponse<SubmittedApplicationResponse> response = new PageResponse<>(
+                applicationResponseList,
+                applicantDetailsPage.getNumber(),
+                applicantDetailsPage.getSize(),
+                applicantDetailsPage.getTotalElements(),
+                applicantDetailsPage.getTotalPages(),
+                applicantDetailsPage.isLast()
+        );
+
+        return new SingleResponse<>(
+                response,
+                CustomStatus.SUCCESS
+        );
     }
 
     // --- HELPER: DYNAMIC 4-HOUR EXPIRATION LOGIC ---

@@ -36,7 +36,7 @@ public class AdminServiceImpl implements AdminService {
 
     private final ObjectMapper objectMapper;
 
-    private final NotificationClient notificationClient;
+    private final CommunicationClient communicationClient;
 
     private final LeaveClient leaveClient;
 
@@ -90,7 +90,7 @@ public class AdminServiceImpl implements AdminService {
             isEmployeeCreated = true;
 
             // 5. For email service
-            notificationClient.sendAccountCreatedEmail(request.getEmailId());
+            communicationClient.sendAccountCreatedEmail(request.getEmailId());
             log.info("Triggered account created email");
             log.info("Communication service is called to send welcome email");
 
@@ -101,7 +101,7 @@ public class AdminServiceImpl implements AdminService {
             payload.setMessage("Please welcome our new employee: " + request.getEmployeeName());
             payload.setType("INFO");
 
-            notificationClient.sendBroadCastNotification(payload);
+            communicationClient.sendBroadCastNotification(payload);
             log.info("Notification is broadcasted to everyone");
         } catch (FeignException e) {
             if (isAuthCreated) {
@@ -477,7 +477,7 @@ public class AdminServiceImpl implements AdminService {
         payload.setMessage(request.getMessage());
         payload.setType(request.getType());
 
-        notificationClient.sendBroadCastNotification(payload);
+        communicationClient.sendBroadCastNotification(payload);
 
         return new SingleResponse<>(
                 null,

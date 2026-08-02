@@ -1,7 +1,7 @@
 package com.employee.LeaveService.service.impl;
 
 import com.employee.LeaveService.client.EmployeeClient;
-import com.employee.LeaveService.client.NotificationClient;
+import com.employee.LeaveService.client.CommunicationClient;
 import com.employee.LeaveService.dto.request.*;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.EmployeeResponse;
@@ -33,7 +33,7 @@ public class LeaveServiceImpl implements LeaveService {
     private final LeaveTypeRepository leaveTypeRepository;
     private final EmployeeClient employeeClient;
     private final ModelMapper modelMapper;
-    private final NotificationClient notificationClient;
+    private final CommunicationClient communicationClient;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -94,7 +94,7 @@ public class LeaveServiceImpl implements LeaveService {
         ApiResponse<String> apiResponse;
         try {
             // For email service
-            apiResponse = notificationClient.sendLeaveEmail(emailPayload);
+            apiResponse = communicationClient.sendLeaveEmail(emailPayload);
             log.info("Triggered leave request email");
             log.info("Communication service is called to send leave email");
 
@@ -105,7 +105,7 @@ public class LeaveServiceImpl implements LeaveService {
             approverPayload.setMessage("You have an Leave request from employee: "+employeeName);
             approverPayload.setType("INFO");
 
-            notificationClient.sendPrivateNotification(approverPayload);
+            communicationClient.sendPrivateNotification(approverPayload);
             log.info("Notification is sent to approver employee {}",authorityEmployeeResponse.getEmployeeId());
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
@@ -164,7 +164,7 @@ public class LeaveServiceImpl implements LeaveService {
 
         try {
             // For email service
-            notificationClient.sendConfirmationLeaveEmail(payload);
+            communicationClient.sendConfirmationLeaveEmail(payload);
             log.info("Triggered leave confirmation email");
             log.info("Communication service is called to send confirmation leave email");
 
@@ -175,7 +175,7 @@ public class LeaveServiceImpl implements LeaveService {
             applicantPayload.setMessage("You applied for the leave from "+request.getFromDate()+"  to "+request.getToDate());
             applicantPayload.setType("INFO");
 
-            notificationClient.sendPrivateNotification(applicantPayload);
+            communicationClient.sendPrivateNotification(applicantPayload);
             log.info("Notification is sent to leave applicant{}", employeeId);
 
         } catch (FeignException e) {

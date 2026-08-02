@@ -2,11 +2,21 @@ package com.employee.AdminService.service;
 
 import com.employee.AdminService.dto.request.ApplicantDetailsRequest;
 import com.employee.AdminService.dto.request.InterviewRequest;
+import com.employee.AdminService.dto.response.PageResponse;
 import com.employee.AdminService.dto.response.SingleResponse;
+import com.employee.AdminService.dto.response.SubmittedApplicationResponse;
+import com.employee.AdminService.dto.response.UnSubmittedResponse;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 public interface InterviewService {
-    public SingleResponse<String> generateToken(InterviewRequest request);
+    SingleResponse<String> generateToken(InterviewRequest request);
 
-    public SingleResponse<String> submitDetails(String token, ApplicantDetailsRequest request);
+    SingleResponse<String> submitDetails(String token, ApplicantDetailsRequest request);
+
+    SingleResponse<List<UnSubmittedResponse>> unSubmittedDetails();
+
+    SingleResponse<PageResponse<SubmittedApplicationResponse>> getAllSubmittedDetails(Pageable pageable);
 
 }
