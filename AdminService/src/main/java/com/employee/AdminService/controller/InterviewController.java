@@ -53,4 +53,10 @@ public class InterviewController {
         SingleResponse<PageResponse<SubmittedApplicationResponse>> response = interviewService.getAllSubmittedDetails(pageable);
         return ResponseEntity.status(200).body(response);
     }
+
+    @DeleteMapping("/deleteApplication")
+    public ResponseEntity<SingleResponse<String>> deleteApplicationById(@Valid @RequestParam Long id){
+        SingleResponse<String> response = interviewService.deleteApplicationById(id);
+        return ResponseEntity.status(200).body(response);
+    }
 }

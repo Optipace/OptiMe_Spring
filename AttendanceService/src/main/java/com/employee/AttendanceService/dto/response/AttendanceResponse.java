@@ -16,5 +16,5 @@ public class AttendanceResponse {
     private LocalDateTime checkOutTime;
     private Long workMin;
     private Long attendanceTypeId;
-
+    private String status;
 }

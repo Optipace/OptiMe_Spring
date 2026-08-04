@@ -142,7 +142,7 @@ public class InterviewServiceImpl implements InterviewService {
         List<ApplicantDetails> applicantDetailsList = applicantDetailsPage.getContent();
 
         if(applicantDetailsPage.isEmpty()){
-            throw new CustomException(null, CustomStatus.NO_OFFICE_RECORDS_FOUND, 409); // TODO : Change to application details not found
+            throw new CustomException(null, CustomStatus.APPLICATION_DETAILS_NOT_FOUND, 409); // TODO : Change to application details not found
         }
 
         List<SubmittedApplicationResponse> applicationResponseList = applicantDetailsList.stream()
@@ -160,6 +160,24 @@ public class InterviewServiceImpl implements InterviewService {
 
         return new SingleResponse<>(
                 response,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<String> deleteApplicationById(Long id) {
+        if(id == null){
+            throw new CustomException(null, CustomStatus.INVALID_REQUEST_FORMAT, 409);
+        }
+
+        applicantDetailsRepository.findById(id).orElseThrow(() -> new CustomException(null, CustomStatus.APPLICATION_DETAILS_NOT_FOUND, 409));
+
+        applicantDetailsRepository.findById(id).ifPresent(application -> {
+                log.info("Application id {} deleted", id);
+                applicantDetailsRepository.deleteById(id);
+        });
+        return new SingleResponse<>(
+                null,
                 CustomStatus.SUCCESS
         );
     }

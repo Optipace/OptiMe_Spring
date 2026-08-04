@@ -1,9 +1,11 @@
 package com.employee.AttendanceService.service.impl;
 
+import com.employee.AttendanceService.client.CommunicationClient;
 import com.employee.AttendanceService.client.EmployeeClient;
 import com.employee.AttendanceService.client.LeaveClient;
 import com.employee.AttendanceService.config.AppProperties;
 import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
+import com.employee.AttendanceService.dto.request.NotificationPayload;
 import com.employee.AttendanceService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
@@ -19,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.JsonNode;
@@ -32,6 +35,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +55,8 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final AppProperties appProperties;
 
     private final LeaveClient leaveClient;
+
+    private final CommunicationClient communicationClient;
 
     @Override
     @Transactional
@@ -177,40 +183,40 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         attendance.setAttendanceStatus(AttendanceStatusEnum.OFFLINE);
         attendanceRepository.save(attendance);
-        try{
-            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload();
-            payload.setEmployeeId(employeeId);
-            payload.setEmployeeAccountStatus(EmployeeAccountStatus.ACTIVE);
-            employeeClient.updateEmployeeStatus(payload);
-            log.info("Employee service called after check-out");
-        }catch (FeignException fe){
-            String rawErrorJson = fe.contentUTF8();
-            String cleanErrorMessage = "Micro-Services failed";
-            try{
-                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if(errorNode.has("message")){
-                    cleanErrorMessage = errorNode.get("message").toString();
-                }else{
-                    cleanErrorMessage = rawErrorJson;
-                }
-            }catch (Exception parseException) {
-                cleanErrorMessage = rawErrorJson;
-            }
-            // Resolve status code safely.
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (fe.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-                log.error("Employee profile service unavailable");
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
-        }
+//        try{
+//            UpdateEmployeeStatusPayload payload = new UpdateEmployeeStatusPayload();
+//            payload.setEmployeeId(employeeId);
+//            payload.setEmployeeAccountStatus(EmployeeAccountStatus.ACTIVE);
+//            employeeClient.updateEmployeeStatus(payload);
+//            log.info("Employee service called after check-out");
+//        }catch (FeignException fe){
+//            String rawErrorJson = fe.contentUTF8();
+//            String cleanErrorMessage = "Micro-Services failed";
+//            try{
+//                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+//                if(errorNode.has("message")){
+//                    cleanErrorMessage = errorNode.get("message").toString();
+//                }else{
+//                    cleanErrorMessage = rawErrorJson;
+//                }
+//            }catch (Exception parseException) {
+//                cleanErrorMessage = rawErrorJson;
+//            }
+//            // Resolve status code safely.
+//            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+//            if (fe.status() > 0) {
+//                try {
+//                    responseStatus = HttpStatus.valueOf(fe.status());
+//                } catch (IllegalArgumentException ex) {
+//                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+//                }
+//            } else {
+//                cleanErrorMessage = "Service is unreachable. Please try again later.";
+//                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+//                log.error("Employee profile service unavailable");
+//            }
+//            throw new CustomException(cleanErrorMessage, responseStatus);
+//        }
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS
@@ -290,25 +296,70 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId){
+        LocalDate today = LocalDate.now();
         LocalDate mondayDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        log.info("Extracting present week Monday date {}",mondayDate);
+        log.info("Processing weekly attendance logs request. EmployeeId: {}, Target Week Start (Monday): {}", employeeId, mondayDate);
 
         LocalDateTime startOfWeek = LocalDateTime.of(mondayDate, LocalTime.MIDNIGHT);
 
         List<Attendance> weeklyLogs = attendanceRepository.findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeAsc(employeeId, startOfWeek);
+        log.info("Fetched {} database attendance record(s) for employeeId: {} since {}", weeklyLogs.size(), employeeId, startOfWeek);
+
+        ApiResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, mondayDate, LocalDate.now());
+        Set<LocalDate> leaveDates = apiResponse != null && apiResponse.getData() != null ?apiResponse.getData() : Collections.emptySet();
+        log.info("Fetched {} active leave date(s) from Leave Microservice for employeeId: {}. Leave Dates: {}", leaveDates.size(), employeeId, leaveDates);
+
+        Set<LocalDate> processedDates = new HashSet<>();
 
         List<AttendanceResponse> logResponse = weeklyLogs.stream()
-                .map(attendance -> mapperModel.map(attendance, AttendanceResponse.class))
-                .toList();
+                .map(attendance -> {
+                    AttendanceResponse response = mapperModel.map(attendance, AttendanceResponse.class);
+                    LocalDate logDate = attendance.getCheckInTime().toLocalDate();
+                    boolean isEmployeeOnLeave = leaveDates.contains(logDate);
+//                    boolean isEmployeeOnLeave = leaveClient.isEmployeeOnLeave(employeeId, LocalDate.now());
+                    if (isEmployeeOnLeave) {
+                        log.debug("Overriding DB attendance log to ON_LEAVE for employeeId: {} on date: {}", employeeId, logDate);
+                        response.setWorkMin(0L);
+                        response.setAttendanceTypeId(null);
+                        response.setCheckInTime(null);
+                        response.setCheckOutTime(null);
+                        response.setStatus(AttendanceStatusEnum.ON_LEAVE.toString());
+                    } else {
+                        response.setStatus(attendance.getAttendanceStatus().toString());
+                    }
+//                    else if (AttendanceStatusEnum.OFFLINE.equals(attendance.getAttendanceStatus()) && ) {
+//                        response.setStatus("PRESENT");
+                    return response;
+                })
+                .collect(Collectors.toList());
+
+        int missingLeaveCount = 0;
+        for (LocalDate leaveDate : leaveDates) {
+            if (!processedDates.contains(leaveDate)) {
+                AttendanceResponse leaveResponse = new AttendanceResponse();
+                leaveResponse.setWorkMin(0L);
+                leaveResponse.setAttendanceTypeId(null);
+                leaveResponse.setCheckInTime(leaveDate.atStartOfDay());
+                leaveResponse.setCheckOutTime(leaveDate.atStartOfDay());
+                leaveResponse.setStatus(AttendanceStatusEnum.ON_LEAVE.toString());
+
+                // Assuming your response model holds the date context, or you can sort/insert predictably
+                logResponse.add(leaveResponse);
+                missingLeaveCount++;
+            }
+        }
+        if (missingLeaveCount > 0) {
+            log.info("Dynamically generated {} missing leave placeholder log(s) for employeeId: {}", missingLeaveCount, employeeId);
+        }
 
         Long totalWorkedMinutes = weeklyLogs.stream()
                 .filter(log -> log.getCheckInTime() != null && log.getCheckOutTime() != null)
                 .mapToLong(log -> Duration.between(log.getCheckInTime(), log.getCheckOutTime()).toMinutes())
                 .sum();
 
-//        List<> = weeklyLogs.stream()
-//                .map(Attendance::getAttendanceTypeId)
-//                .toList();
+        log.info("Calculation complete. Total weekly minutes worked for employeeId: {} is {} mins across {} output logs",
+                employeeId, totalWorkedMinutes, logResponse.size());
+
         WeeklyAttendanceLogsOfEmployeeRes response = new WeeklyAttendanceLogsOfEmployeeRes(totalWorkedMinutes, logResponse);
 
         return new SingleResponse<>(
@@ -449,8 +500,8 @@ public class AttendanceServiceImpl implements AttendanceService {
                     dto.setEmployeeId(record.getEmployeeId());
 
                     // Formatter guards to prevent null pointers if times are unrecorded
-                    dto.setCheckInTime(record.getCheckInTime() != null ? record.getCheckInTime().toString() : null);
-                    dto.setCheckOutTime(record.getCheckOutTime() != null ? record.getCheckOutTime().toString() : null);
+                    dto.setCheckInTime(record.getCheckInTime() != null ? record.getCheckInTime(): null);
+                    dto.setCheckOutTime(record.getCheckOutTime() != null ? record.getCheckOutTime() : null);
 
                     // Map Enum to String
                     if (record.getAttendanceStatus() != null) {
@@ -498,6 +549,53 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .orElse(0L);
 
         return totalWorkMin;
+    }
+
+    @Scheduled(cron = "0 0 6 * * ?", zone = "Asia/Kolkata")
+    @Transactional
+    public void autoCheckOutScheduler(){
+        log.info("Starting automated checkout scheduler for missing checkouts ...");
+
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+
+        List<Attendance> missingCheckOuts = attendanceRepository.findPendingCheckoutsBefore(startOfToday);
+
+        for(Attendance attendance : missingCheckOuts){
+            try{
+                LocalDateTime forcedCheckOut = attendance.getCheckInTime().plusHours(4);
+                attendance.setCheckOutTime(forcedCheckOut);
+                Long totalWorkMin = Duration.between(attendance.getCheckInTime(), forcedCheckOut).toMinutes();
+                attendance.setTotalWorkMin(totalWorkMin); // will be set to check in time + 4 hours
+                attendance.setAttendanceStatus(AttendanceStatusEnum.OFFLINE);
+                attendance.setAdminModified(false);
+                attendance.setAdminRemarks("");
+                attendanceRepository.save(attendance);
+
+                LocalDate whichDay = attendance.getCheckInTime().toLocalDate();
+                int totalWorkedHour = totalWorkMin.intValue() / 60;
+                int minutes = totalWorkMin.intValue() % 60;
+                String message = "Sorry you are forcefully checked out! on "+whichDay+"\n"+ // "<br/>"
+                        "And your total working hour is "+totalWorkedHour+" and minutes "+minutes;
+                NotificationPayload payload = new NotificationPayload(
+                        attendance.getEmployeeId(),
+                        "Message From Scheduler",
+                        message,
+                        "INFO"
+                );
+
+                communicationClient.sendPrivateNotification(payload);
+                log.info("Auto-checkout applied for employee {}. Forced time {}",attendance.getEmployeeId(),forcedCheckOut);
+            } catch (Exception e) {
+                log.error("Failed to process auto checkout for employee {}: {}",attendance.getEmployeeId(), e.getMessage());
+            }
+        }
+        log.info("Automated checkout scheduler completed. Processed {} records.", missingCheckOuts.size());
+    }
+
+    @Scheduled(cron = "0 15 6 * * ?", zone = "Asia/Kolkata")
+    @Transactional
+    public void autoAttendanceUpdateScheduler(){
+
     }
 
 }

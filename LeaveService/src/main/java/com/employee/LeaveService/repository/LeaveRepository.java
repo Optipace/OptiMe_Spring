@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface LeaveRepository extends JpaRepository<Leave, Long> {
@@ -25,6 +26,18 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
     boolean existsOverlappingLeave(@Param("empId") String employeeId,
                                    @Param("fromDate") LocalDate fromDate,
                                    @Param("toDate") LocalDate toDate);
+
+    // Finds all leaves overlapping the requested date range
+    @Query("SELECT l FROM Leave l WHERE l.applicantEmployeeId = :employeeId " +
+            "AND l.leaveStatus = 'APPROVED' " +
+            "AND ((l.fromDate BETWEEN :startDate AND :endDate) " +
+            "OR (l.toDate BETWEEN :startDate AND :endDate) " +
+            "OR (:startDate BETWEEN l.fromDate AND l.toDate))")
+    List<Leave> findApprovedLeavesInDateRange(
+            @Param("employeeId") String employeeId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 
 //    Optional<Leave> findByEmployeeId(String employeeId);
 }

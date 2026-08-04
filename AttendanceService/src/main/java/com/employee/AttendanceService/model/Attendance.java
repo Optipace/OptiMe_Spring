@@ -52,4 +52,10 @@ public class Attendance {
     @Column(name = "attendance_type_id", nullable = false, length = 50)
     private Long attendanceTypeId;
 
+    @Column(name = "is_admin_modified")
+    private boolean isAdminModified = false;
+
+    @Column(name = "admin_remarks")
+    private String adminRemarks;
+
 }

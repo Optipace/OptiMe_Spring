@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/leave/internal")
@@ -35,5 +36,14 @@ public class LeaveInternalController {
     @PutMapping("/leaveApproval")
     public ApiResponse<?> updateLeave(@RequestBody UpdateLeaveRequest request,@RequestParam String approvedEmployeeId){
         return leaveInternalService.updateLeave(request, approvedEmployeeId);
+    }
+
+    @GetMapping("/leaveDates/{employeeId}")
+    public ApiResponse<Set<LocalDate>> getEmployeeLeaveDatesInRange(
+            @PathVariable("employeeId") String employeeId,
+            @RequestParam("startDate") LocalDate startDate,
+            @RequestParam("endDate") LocalDate endDate
+    ){
+        return leaveInternalService.getEmployeeLeaveDatesInRange(employeeId, startDate, endDate);
     }
 }

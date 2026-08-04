@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -134,5 +136,33 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
         );
     }
 
+    @Override
+    public ApiResponse<Set<LocalDate>> getEmployeeLeaveDatesInRange(String employeeId, LocalDate startDate, LocalDate endDate) {
+        log.info("Request received to extract leaves for employeeId: {} between {} and {}", employeeId, startDate, endDate);
 
+        List<Leave> leaves = leaveRepository.findApprovedLeavesInDateRange(employeeId, startDate, endDate);
+        log.info("Found {} approved leave record(s) in DB for employeeId: {}", leaves.size(), employeeId);
+        // Expand date ranges into a Set of individual dates
+        Set<LocalDate> leaveDates = leaves.stream()
+                .flatMap(leave -> {
+                    // Find the intersection points to avoid processing dates outside the requested window
+                    LocalDate actualStart = leave.getFromDate().isBefore(startDate) ? startDate : leave.getFromDate();
+                    LocalDate actualEnd = leave.getToDate().isAfter(endDate) ? endDate : leave.getToDate();
+
+                    log.debug("Processing leave record ID: {}. Original: [{} to {}] -> Clipped Window: [{} to {}]",
+                            leave.getId(), leave.getFromDate(), leave.getToDate(), actualStart, actualEnd);
+
+                    // datesUntil is exclusive of the end date, so we add 1 day to make it inclusive
+                    return actualStart.datesUntil(actualEnd.plusDays(1));
+                })
+                .collect(Collectors.toSet());
+        log.info("Successfully expanded leave records into {} individual leave date(s) for employeeId: {}. Dates: {}",leaveDates.size(), employeeId, leaveDates);
+    return new ApiResponse<>(
+                true,
+                "List of leave Dates",
+                leaveDates,
+                LocalDateTime.now(),
+                200
+        );
+    }
 }

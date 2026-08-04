@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <style>
+        .container { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; color: #333; }
+        .header-title { color: #1a73e8; font-size: 24px; margin: 0; }
+        .logo { width: 50px; height: 50px; margin-right: 12px; vertical-align: middle; }
+        .details-box { background-color: #f8f9fa; border: 1px solid #e0e0e0; padding: 20px; margin: 25px 0; border-radius: 6px; text-align: center; }
+        .warning-box { background-color: #fff8e1; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; font-size: 14px; line-height: 1.5; }
+        .token-display { background: #ffffff; border: 1px dashed #1a73e8; padding: 12px; margin-top: 10px; font-family: monospace; font-size: 14px; word-break: break-all; color: #1a73e8; border-radius: 4px; }
+        .btn { background: #1a73e8; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; display: inline-block; font-size: 16px; font-weight: bold; margin-top: 15px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Header -->
+    <div style="display:flex; align-items:center; justify-content:center; margin-bottom:20px;">
+        <img class="logo" src="cid:logo" alt="Optipace Logo">
+        <h2 class="header-title">Optipace Technologies</h2>
+    </div>
+    <hr style="border:none; border-top:1px solid #e0e0e0;">
+
+    <h1 style="margin-top:20px;margin-bottom:20px;color:#333;text-align:center;font-size:26px;">
+        Interview Application Form
+    </h1>
+
+    <p style="font-size:16px;line-height:1.6;">
+        Hello,
+    </p>
+    <p style="font-size:16px;line-height:1.6;">
+        Congratulations on moving forward in the interview process! Before we proceed, we need you to fill out this form.
+    </p>
+
+    <!-- Important Rules Box -->
+    <div class="warning-box">
+        <strong style="color: #d32f2f;">Important Instructions:</strong>
+        <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px;">
+            <li style="margin-bottom: 5px;">The "Gmail ID" you enter in the application form <strong>MUST exactly match</strong> the email address where you received this message (<strong th:text="${candidateEmail}">your-email@gmail.com</strong>).</li>
+            <li>This secure token is only valid for <strong>4 hours</strong>.</li>
+        </ul>
+    </div>
+
+    <p style="font-size:16px;line-height:1.6;">
+        Please click the button below to access the application form. When prompted, copy and paste the secure token provided below into the form.
+    </p>
+
+    <!-- Token & Action Box -->
+    <div class="details-box">
+        <div style="font-weight: bold; color: #555; margin-bottom: 5px;">Your Secure Access Token:</div>
+        <div class="token-display" th:text="${token}">
+            eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiQ0FORElEQVRFIiwic3ViIjo...
+        </div>
+
+        <div style="margin-top: 25px;">
+            <a th:href="${formUrl}" class="btn">
+                Fill Application Form
+            </a>
+        </div>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e0e0e0; margin-top:30px; margin-bottom:15px;">
+
+    <p style="font-size:12px;color:#999;text-align:center;line-height:1.5;">
+        This is an automated operational system email.<br>
+        Please do not reply directly to this message.
+    </p>
+</div>
+</body>
+</html>

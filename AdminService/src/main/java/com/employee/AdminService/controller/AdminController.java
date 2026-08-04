@@ -125,4 +125,10 @@ public class AdminController {
         SingleResponse<List<EmployeeAttendanceHistoryResponse>> response = adminService.getDateWiseAttendanceRecords(request);
         return ResponseEntity.status(200).body(response);
     }
+
+    @GetMapping("/getWeeklyAttendanceLogs")
+    public ResponseEntity<SingleResponse<?>> getWeeklyAttendanceLogs(@RequestParam String employeeId){
+        SingleResponse<?> response = adminService.getWeeklyAttendanceLogs(employeeId);
+        return ResponseEntity.status(200).body(response);
+    }
 }

@@ -691,6 +691,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request) {
+        if (request.getToDate().isBefore(request.getFromDate())) {
+            throw new CustomException(null, CustomStatus.INVALID_DATE_RANGE, 409);
+        }
         List<EmployeeAttendanceHistoryResponse> responses;
         try {
             ApiResponse<List<EmployeeAttendanceHistoryResponse>> apiResponse = attendanceClient.getDateWiseAttendanceRecords(request);
@@ -755,6 +758,47 @@ public class AdminServiceImpl implements AdminService {
 //                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
 //            }
 //            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
+        return new SingleResponse<>(
+                responses,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<?> getWeeklyAttendanceLogs(String employeeId) {
+        WeeklyAttendanceLogsOfEmployeeRes responses = new WeeklyAttendanceLogsOfEmployeeRes();
+        try {
+            ApiResponse<WeeklyAttendanceLogsOfEmployeeRes> apiResponse = attendanceClient.getWeeklyAttendanceLogs(employeeId);
+            if(apiResponse != null && apiResponse.getData() != null){
+                responses = apiResponse.getData();
+            }
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Attendance microservice call failed";
+            CustomStatus fallbackStatus = CustomStatus.MICROSERVICE_CALL_FAILED;
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                }
+
+                // Dynamically match the error nature to a proper business status
+                if (e.status() == 404) {
+                    fallbackStatus = CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND;
+                    throw new CustomException(
+                            cleanErrorMessage,
+                            fallbackStatus,
+                            404
+                    );
+                } else if (e.status() == 405) {
+                    fallbackStatus = CustomStatus.INVALID_REQUEST_FORMAT;
+                }
+
+            } catch (Exception parseException) {
+                cleanErrorMessage = "Error parsing downstream service exception";
+            }
         }
         return new SingleResponse<>(
                 responses,

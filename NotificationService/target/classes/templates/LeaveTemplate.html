@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <style>
+        .container { font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 25px; }
+        .header-title { color: #1a73e8; font-size: 24px; margin: 0; }
+        .logo { width: 50px; height: 50px; margin-right: 12px; vertical-align: middle; }
+        .details-box { background-color: #f8f9fa; border-left: 4px solid #1a73e8; padding: 20px; margin: 25px 0; border-radius: 4px; }
+        .detail-row { margin-bottom: 12px; font-size: 15px; color: #333; }
+        .detail-row:last-child { margin-bottom: 0; }
+        .detail-label { font-weight: bold; width: 100px; display: inline-block; color: #555; }
+        .reason-box { background: #ffffff; padding: 12px; border: 1px solid #e0e0e0; border-radius: 4px; margin-top: 8px; font-style: italic; color: #444; line-height: 1.5; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div style="display:flex; align-items:center; justify-content:center; margin-bottom:20px;">
+        <img class="logo" src="cid:logo" alt="Optipace Logo">
+        <h2 class="header-title">Optipace Technologies</h2>
+    </div>
+    <hr style="border:none; border-top:1px solid #e0e0e0;">
+
+    <div style="text-align:center;margin-bottom:20px; margin-top:20px;">
+        <!-- You can attach a calendar or document icon here -->
+        <img src="cid:leave-request-icon" style="width:100px;height:auto;" alt="Leave Request">
+    </div>
+
+    <h1 style="margin-top:10px;margin-bottom:20px;color:#1a73e8;text-align:center;font-size:28px;">
+        Leave Request Submitted
+    </h1>
+
+    <p style="font-size:16px;color:#333;line-height:1.6;">
+        Hello <span th:text="${managerName}">Manager</span>,
+    </p>
+    <p style="font-size:16px;color:#333;line-height:1.6;">
+        A new leave request has been submitted by
+        <!-- Using Thymeleaf literal substitution to combine Name and ID -->
+        <strong th:text="|${employeeName}(${employeeId})|">Alice(EMP001)</strong>
+        and requires your review.
+    </p>
+
+    <!-- Highlighted Details Box -->
+    <div class="details-box">
+        <!-- Added Leave Type Row -->
+        <div class="detail-row">
+            <span class="detail-label">Leave Type:</span>
+            <span th:text="${leaveType}">Sick Leave</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">From:</span>
+            <span th:text="${fromDate}">DD-MM-YYYY</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">To:</span>
+            <span th:text="${toDate}">DD-MM-YYYY</span>
+        </div>
+        <div class="detail-row" style="margin-top: 20px;">
+            <span class="detail-label" style="width: 100%;">Reason for Leave:</span>
+            <div class="reason-box" th:text="${reason}">
+                Employee's detailed leave reason.
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align:center;margin:35px 0;">
+        <!-- actionUrl can point to the specific leave request approval page in your portal -->
+        <a th:href="${actionUrl}"
+           style="background:#1a73e8;color:#ffffff;text-decoration:none;padding:15px 35px;border-radius:6px;display:inline-block;font-size:16px;font-weight:bold;">
+            Review Request
+        </a>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e0e0e0; margin-top:30px; margin-bottom:15px;">
+
+    <p style="font-size:12px;color:#999;text-align:center;line-height:1.5;">
+        This is an automated operational system email.<br>
+        Please do not reply directly to this message.
+    </p>
+</div>
+</body>
+</html>

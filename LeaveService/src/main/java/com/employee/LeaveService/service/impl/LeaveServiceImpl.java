@@ -39,7 +39,7 @@ public class LeaveServiceImpl implements LeaveService {
     @Override
     public SingleResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId, String employeeName, String applicantEmailId) {
         if(request.getToDate().isBefore(request.getFromDate())){
-            throw new CustomException(null, CustomStatus.INVALID_LEAVE_DATE_RANGE, 409);
+            throw new CustomException(null, CustomStatus.INVALID_DATE_RANGE, 409);
         }
 
         // DUPLICATE CHECK: Verify if the employee already has a leave covering these dates

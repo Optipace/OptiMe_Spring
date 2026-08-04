@@ -41,4 +41,6 @@ public interface AdminService {
     public SingleResponse<PageResponse<AdminResponse>> getAllAdmin(Pageable pageable);
 
     SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request);
+
+    SingleResponse<?> getWeeklyAttendanceLogs(String employeeId);
 }

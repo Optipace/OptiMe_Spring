@@ -13,17 +13,16 @@ import com.employee.AttendanceService.service.AttendanceInternalService;
 import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -38,6 +37,8 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
     private final ObjectMapper objectMapper;
 
     private final LeaveClient leaveClient;
+
+    private final ModelMapper modelMapper;
 
     @Override
     public ApiResponse<?> getAttendanceStatus(String employeeId) {
@@ -227,15 +228,20 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
             );
         }
 
+        Set<LocalDate> processedDates = new HashSet<>();
+        ApiResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, fromDate, toDate);
+        Set<LocalDate> leaveDates = apiResponse != null && apiResponse.getData() != null ?apiResponse.getData() : Collections.emptySet();
+
         // 3. Map the entities to your response DTOs using Java Streams
         List<EmployeeAttendanceHistoryResponse> historyResponse = attendanceRecords.stream()
                 .map(record -> {
                     EmployeeAttendanceHistoryResponse dto = new EmployeeAttendanceHistoryResponse();
+
                     dto.setEmployeeId(record.getEmployeeId());
 
                     // Formatter guards to prevent null pointers if times are unrecorded
-                    dto.setCheckInTime(record.getCheckInTime() != null ? record.getCheckInTime().toString() : null);
-                    dto.setCheckOutTime(record.getCheckOutTime() != null ? record.getCheckOutTime().toString() : null);
+                    dto.setCheckInTime(record.getCheckInTime() != null ? record.getCheckInTime() : null);
+                    dto.setCheckOutTime(record.getCheckOutTime() != null ? record.getCheckOutTime() : null);
 
                     // Map Enum to String
                     if (record.getAttendanceStatus() != null) {
@@ -243,15 +249,108 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
                     }
 
                     dto.setTotalWorkMin(record.getTotalWorkMin());
+                    dto.setAttendanceTypeId(record.getAttendanceTypeId());
                     return dto;
                 })
-                .toList();
+                .collect(Collectors.toList());
 
-        // 4. Return standard API Envelope wrapper
+        int missingLeaveCount = 0;
+        for (LocalDate leaveDate : leaveDates) {
+            if (!processedDates.contains(leaveDate)) {
+                EmployeeAttendanceHistoryResponse leaveResponse = new EmployeeAttendanceHistoryResponse();
+                leaveResponse.setEmployeeId(employeeId);
+                leaveResponse.setTotalWorkMin(0L);
+                leaveResponse.setAttendanceTypeId(null);
+                leaveResponse.setCheckInTime(leaveDate.atStartOfDay());
+                leaveResponse.setCheckOutTime(leaveDate.atStartOfDay());
+                leaveResponse.setAttendanceStatus(AttendanceStatusEnum.ON_LEAVE.toString());
+
+                historyResponse.add(leaveResponse);
+                missingLeaveCount++;
+            }
+        }
+        if (missingLeaveCount > 0) {
+            log.info("Dynamically generated {} missing leave placeholder log(s) for employeeId: {}", missingLeaveCount, employeeId);
+        }
+
         return new ApiResponse<>(
                 "Attendance history retrieved successfully",
                 historyResponse,
                 200
+        );
+    }
+
+    @Override
+    public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId){
+        LocalDate today = LocalDate.now();
+        LocalDate mondayDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        log.info("Processing weekly attendance logs request. EmployeeId: {}, Target Week Start (Monday): {}", employeeId, mondayDate);
+
+        LocalDateTime startOfWeek = LocalDateTime.of(mondayDate, LocalTime.MIDNIGHT);
+
+        List<Attendance> weeklyLogs = attendanceRepository.findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeAsc(employeeId, startOfWeek);
+        log.info("Fetched {} database attendance record(s) for employeeId: {} since {}", weeklyLogs.size(), employeeId, startOfWeek);
+
+        ApiResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, mondayDate, LocalDate.now());
+        Set<LocalDate> leaveDates = apiResponse != null && apiResponse.getData() != null ?apiResponse.getData() : Collections.emptySet();
+        log.info("Fetched {} active leave date(s) from Leave Microservice for employeeId: {}. Leave Dates: {}", leaveDates.size(), employeeId, leaveDates);
+
+        Set<LocalDate> processedDates = new HashSet<>();
+
+        List<AttendanceResponse> logResponse = weeklyLogs.stream()
+                .map(attendance -> {
+                    AttendanceResponse response = modelMapper.map(attendance, AttendanceResponse.class);
+                    LocalDate logDate = attendance.getCheckInTime().toLocalDate();
+                    boolean isEmployeeOnLeave = leaveDates.contains(logDate);
+//                    boolean isEmployeeOnLeave = leaveClient.isEmployeeOnLeave(employeeId, LocalDate.now());
+                    if (isEmployeeOnLeave) {
+                        log.debug("Overriding DB attendance log to ON_LEAVE for employeeId: {} on date: {}", employeeId, logDate);
+                        response.setWorkMin(0L);
+                        response.setAttendanceTypeId(null);
+                        response.setCheckInTime(null);
+                        response.setCheckOutTime(null);
+                        response.setStatus(AttendanceStatusEnum.ON_LEAVE.toString());
+                    } else {
+                        response.setStatus(attendance.getAttendanceStatus().toString());
+                    }
+//                    else if (AttendanceStatusEnum.OFFLINE.equals(attendance.getAttendanceStatus()) && ) {
+//                        response.setStatus("PRESENT");
+                    return response;
+                })
+                .collect(Collectors.toList());
+
+        int missingLeaveCount = 0;
+        for (LocalDate leaveDate : leaveDates) {
+            if (!processedDates.contains(leaveDate)) {
+                AttendanceResponse leaveResponse = new AttendanceResponse();
+                leaveResponse.setWorkMin(0L);
+                leaveResponse.setAttendanceTypeId(null);
+                leaveResponse.setCheckInTime(leaveDate.atStartOfDay());
+                leaveResponse.setCheckOutTime(leaveDate.atStartOfDay());
+                leaveResponse.setStatus(AttendanceStatusEnum.ON_LEAVE.toString());
+
+                // Assuming your response model holds the date context, or you can sort/insert predictably
+                logResponse.add(leaveResponse);
+                missingLeaveCount++;
+            }
+        }
+        if (missingLeaveCount > 0) {
+            log.info("Dynamically generated {} missing leave placeholder log(s) for employeeId: {}", missingLeaveCount, employeeId);
+        }
+
+        Long totalWorkedMinutes = weeklyLogs.stream()
+                .filter(log -> log.getCheckInTime() != null && log.getCheckOutTime() != null)
+                .mapToLong(log -> Duration.between(log.getCheckInTime(), log.getCheckOutTime()).toMinutes())
+                .sum();
+
+        log.info("Calculation complete. Total weekly minutes worked for employeeId: {} is {} mins across {} output logs",
+                employeeId, totalWorkedMinutes, logResponse.size());
+
+        WeeklyAttendanceLogsOfEmployeeRes response = new WeeklyAttendanceLogsOfEmployeeRes(totalWorkedMinutes, logResponse);
+
+        return new SingleResponse<>(
+                response,
+                CustomStatus.SUCCESS
         );
     }
 
