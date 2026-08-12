@@ -1,8 +1,6 @@
 package com.employee.CommunicationService.controller;
 
-import com.employee.CommunicationService.dto.request.InterviewRequest;
-import com.employee.CommunicationService.dto.request.LeaveConfirmationRequest;
-import com.employee.CommunicationService.dto.request.LeaveEmailRequest;
+import com.employee.CommunicationService.dto.request.*;
 import com.employee.CommunicationService.dto.response.ApiResponse;
 import com.employee.CommunicationService.service.CommunicationService;
 import lombok.RequiredArgsConstructor;
@@ -45,5 +43,15 @@ public class EmailInternalController {
     @PostMapping("/interviewEmail")
     void sendInterviewEmail(@RequestBody InterviewRequest request){
         communicationService.sendInterviewEmail(request);
+    }
+
+    @PostMapping("/sendLeaveApprovedEmail")
+    void sendLeaveApprovedEmail(@RequestBody LeaveApproveRequest request){
+        communicationService.sendLeaveApprovedEmail(request);
+    }
+
+    @PostMapping("/sendLeaveRejectedEmail")
+    void sendLeaveRejectedEmail(@RequestBody LeaveRejectedRequest request){
+        communicationService.sendLeaveRejectedEmail(request);
     }
 }

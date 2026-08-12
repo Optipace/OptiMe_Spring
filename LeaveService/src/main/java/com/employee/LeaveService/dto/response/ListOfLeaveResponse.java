@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class LeaveResponse {
+public class ListOfLeaveResponse {
     private Long leaveId;
     private String employeeName;
     private String employeeId;

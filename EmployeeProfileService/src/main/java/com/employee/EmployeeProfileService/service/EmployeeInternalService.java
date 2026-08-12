@@ -6,6 +6,7 @@ import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
 import com.employee.EmployeeProfileService.dto.response.*;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -40,5 +41,7 @@ public interface EmployeeInternalService {
     public boolean isHrEmployeeId(String hrEmpId);
 
     public ApiResponse<PageResponse<ListOfAdminResponse>> getAllAdminDetails(Pageable pageable);
+
+    public ApiResponse<?> getEmployeeName(String employeeId);
 
 }

@@ -1,8 +1,6 @@
 package com.employee.LeaveService.client;
 
-import com.employee.LeaveService.dto.request.LeaveConfirmationPayload;
-import com.employee.LeaveService.dto.request.LeaveEmailPayload;
-import com.employee.LeaveService.dto.request.NotificationPayload;
+import com.employee.LeaveService.dto.request.*;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,4 +18,10 @@ public interface CommunicationClient {
 
     @PostMapping("/api/communication/email/sendConfirmLeaveEmail")
     void sendConfirmationLeaveEmail(@RequestBody LeaveConfirmationPayload payload);
+
+    @PostMapping("/api/communication/email/sendLeaveApprovedEmail")
+    void sendLeaveApprovedEmail(@RequestBody LeaveApprovePayload payload);
+
+    @PostMapping("/api/communication/email/sendLeaveRejectedEmail")
+    void sendLeaveRejectedEmail(@RequestBody LeaveRejectedPayload payload);
 }

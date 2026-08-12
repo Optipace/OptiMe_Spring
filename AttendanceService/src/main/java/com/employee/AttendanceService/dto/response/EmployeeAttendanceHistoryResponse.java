@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EmployeeAttendanceHistoryResponse {
+    private Long id;
     private String employeeId;
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;

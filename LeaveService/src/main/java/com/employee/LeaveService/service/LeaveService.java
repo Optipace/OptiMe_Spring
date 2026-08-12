@@ -1,13 +1,26 @@
 package com.employee.LeaveService.service;
 
+import com.employee.LeaveService.dto.request.ApproveLeaveRequest;
+import com.employee.LeaveService.dto.request.CancelMyLeaveRequest;
 import com.employee.LeaveService.dto.request.LeaveRequest;
-import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
-import com.employee.LeaveService.dto.response.ApiResponse;
+import com.employee.LeaveService.dto.request.RejectLeaveRequest;
 import com.employee.LeaveService.dto.response.SingleResponse;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 public interface LeaveService {
-    public SingleResponse<?> saveLeaveApplication(LeaveRequest request, String applicantEmployeeId, String applicantEmployeeName, String applicantEmailId);
+    SingleResponse<?> saveLeaveApplication(LeaveRequest request, String applicantEmployeeId, String applicantEmployeeName, String applicantEmailId);
 
-    public SingleResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId);
+    SingleResponse<?> approveLeave(ApproveLeaveRequest request, String authorityEmployeeId);
+
+    SingleResponse<?> rejectLeave(RejectLeaveRequest request, String authorityEmployeeId);
+
+    SingleResponse<?> getMyAppliedLeaves(String employeeId);
+
+    SingleResponse<?> cancelMyLeave(CancelMyLeaveRequest request, String employeeId);
+
+    SingleResponse<?> getAppliedLeavesForMe(String employeeId);
+
+    SingleResponse<?> getAllPendingLeaves();
+
+    SingleResponse<?> getAllProcessedLeaves();
 }

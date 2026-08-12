@@ -36,4 +36,7 @@ public class LeaveRequest {
     @NotNull(message = "Provide a leave type")
     private Long leaveTypeId;
 
+    @NotNull(message = "Provide requested leave(s)")
+    private Integer requestedLeaves;
+
 }

@@ -20,8 +20,10 @@ public class LeaveResponse {
     private LocalDate fromDate;
     private LocalDate toDate;
     private LocalDateTime appliedOn;
-    private String reason;
+    private String leaveReason;
+    private String remarks;
     private Long leaveTypeId;
+    private Integer numberOfLeaves;
     private String approvedBy;
     private LeaveStatusEnum leaveStatus;
 }

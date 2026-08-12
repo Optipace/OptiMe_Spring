@@ -18,4 +18,7 @@ public interface EmployeeClient {
 
     @GetMapping("/api/employee/internal/getEmployeeByEmployeeId")
     ApiResponse<EmployeeResponse> getEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId);
+
+    @GetMapping("/api/employee/internal/getEmployeeName")
+    ApiResponse<?> getEmployeeName(@RequestParam("employeeId") String employeeId);
 }

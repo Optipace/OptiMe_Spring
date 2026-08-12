@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -36,11 +37,17 @@ public interface AdminService {
 
     public SingleResponse<?> getTodayAttendanceRecords();
 
-    public SingleResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId);
+//    public SingleResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId);
+
+    SingleResponse<?> approveLeave(ApproveLeaveRequest request, String authorityEmployeeId);
+
+    SingleResponse<?> rejectLeave(RejectLeaveRequest request, String authorityEmployeeId);
 
     public SingleResponse<PageResponse<AdminResponse>> getAllAdmin(Pageable pageable);
 
     SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request);
 
     SingleResponse<?> getWeeklyAttendanceLogs(String employeeId);
+
+    SingleResponse<?> updateCheckoutRecordByEmpId(UpdateCheckOutRecordsRequest request);
 }

@@ -1,6 +1,6 @@
-package com.employee.LeaveService.dto.response;
+package com.employee.AdminService.dto.response;
 
-import com.employee.LeaveService.enums.LeaveStatusEnum;
+import com.employee.AdminService.enums.LeaveStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class LeaveResponse {
+public class ListOfLeaveResponse {
     private Long leaveId;
     private String employeeName;
     private String employeeId;

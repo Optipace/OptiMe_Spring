@@ -106,10 +106,24 @@ public class AdminController {
         return ResponseEntity.status(200).body(response);
     }
 
-    @PutMapping("/approval")
-    public ResponseEntity<SingleResponse<?>> updateLeave(@RequestBody UpdateLeaveRequest request,
-                                                         @RequestHeader("X-Employee-Id") String approvedEmployeeId){
-        SingleResponse<?> response = adminService.updateLeave(request, approvedEmployeeId);
+//    @PutMapping("/approveLeave")
+//    public ResponseEntity<SingleResponse<?>> updateLeave(@RequestBody UpdateLeaveRequest request,
+//                                                         @RequestHeader("X-Employee-Id") String approvedEmployeeId){
+//        SingleResponse<?> response = adminService.updateLeave(request, approvedEmployeeId);
+//        return ResponseEntity.status(200).body(response);
+//    }
+
+    @PutMapping("/approveLeave")
+    public ResponseEntity<SingleResponse<?>> approveLeave(@Valid @RequestBody ApproveLeaveRequest request,
+                                                          @RequestHeader("X-Employee-Id") String authorityEmployeeId){
+        SingleResponse<?> response = adminService.approveLeave(request, authorityEmployeeId);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PutMapping("/rejectLeave")
+    public ResponseEntity<SingleResponse<?>> rejectLeave(@Valid @RequestBody RejectLeaveRequest request,
+                                                         @RequestHeader("X-Employee-Id") String authorityEmployeeId){
+        SingleResponse<?> response = adminService.rejectLeave(request, authorityEmployeeId);
         return ResponseEntity.status(200).body(response);
     }
 
@@ -131,4 +145,10 @@ public class AdminController {
         SingleResponse<?> response = adminService.getWeeklyAttendanceLogs(employeeId);
         return ResponseEntity.status(200).body(response);
     }
+
+    @PutMapping("/updateCheckout")
+    public ResponseEntity<SingleResponse<?>> updateCheckOutRecordByEmpId(@Valid @RequestBody UpdateCheckOutRecordsRequest request){
+        return ResponseEntity.status(200).body(adminService.updateCheckoutRecordByEmpId(request));
+    }
+
 }

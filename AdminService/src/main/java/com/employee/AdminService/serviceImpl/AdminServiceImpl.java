@@ -426,13 +426,13 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public SingleResponse<?> getAllAppliedLeaves() {
 
-        List<LeaveResponse> leaveResponses = new ArrayList<>();
+        List<ListOfLeaveResponse> leaveResponses = new ArrayList<>();
         try {
-            ApiResponse<List<LeaveResponse>> apiResponse = leaveClient.getAllAppliedLeaves();
+            ApiResponse<List<ListOfLeaveResponse>> apiResponse = leaveClient.getAllAppliedLeaves();
             log.info("LEAVE SERVICE CALLED");
             if (apiResponse != null && apiResponse.getData() != null) {
                 leaveResponses = apiResponse.getData().stream()
-                        .map(l -> modelMapper.map(l, LeaveResponse.class))
+                        .map(l -> modelMapper.map(l, ListOfLeaveResponse.class))
                         .toList();
             }
         } catch (FeignException fe) {
@@ -579,10 +579,10 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public SingleResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId) {
+    public SingleResponse<?> approveLeave(ApproveLeaveRequest request, String approvedEmployeeId) {
         ApiResponse<?> apiResponse;
         try {
-            apiResponse = leaveClient.updateLeave(request, approvedEmployeeId);
+            apiResponse = leaveClient.approveLeave(request, approvedEmployeeId);
         } catch (FeignException fe) {
             String rawErrorJson = fe.contentUTF8();
             String cleanErrorMessage = "Microservices call failed";
@@ -613,6 +613,45 @@ public class AdminServiceImpl implements AdminService {
         }
         return new SingleResponse<>(
                null, // TODO : Send error message if recieved
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<?> rejectLeave(RejectLeaveRequest request, String approvedEmployeeId) {
+        ApiResponse<?> apiResponse;
+        try {
+            apiResponse = leaveClient.rejectLeave(request, approvedEmployeeId);
+        } catch (FeignException fe) {
+            String rawErrorJson = fe.contentUTF8();
+            String cleanErrorMessage = "Microservices call failed";
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+                if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").toString();
+                } else {
+                    cleanErrorMessage = rawErrorJson;
+                }
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+
+            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            if (fe.status() > 0) {
+                try {
+                    responseStatus = HttpStatus.valueOf(fe.status());
+                } catch (IllegalArgumentException ex) {
+                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+            } else {
+                cleanErrorMessage = "Service is unreachable. Please try again later.";
+                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
+            }
+            throw new CustomException(cleanErrorMessage, responseStatus);
+        }
+        return new SingleResponse<>(
+                null, // TODO : Send error message if recieved
                 CustomStatus.SUCCESS
         );
     }
@@ -696,8 +735,28 @@ public class AdminServiceImpl implements AdminService {
         }
         List<EmployeeAttendanceHistoryResponse> responses;
         try {
-            ApiResponse<List<EmployeeAttendanceHistoryResponse>> apiResponse = attendanceClient.getDateWiseAttendanceRecords(request);
-            responses = apiResponse.getData();
+            ApiResponse<List<EmployeeAttendanceHistoryInternalResponse>> apiResponse = attendanceClient.getDateWiseAttendanceRecords(request);
+            apiResponse.getData().forEach(attendance -> {
+                log.info("Feign ID = {}", attendance.getId());
+                log.info("Feign Attendance Type ID = {}", attendance.getAttendanceTypeId());
+            });
+            responses = apiResponse.getData().stream()
+                    .map(attendance -> {
+
+                        EmployeeAttendanceHistoryResponse response =
+                                new EmployeeAttendanceHistoryResponse();
+
+                        response.setId(attendance.getId());
+                        response.setEmployeeId(attendance.getEmployeeId());
+                        response.setCheckInTime(attendance.getCheckInTime());
+                        response.setCheckOutTime(attendance.getCheckOutTime());
+                        response.setAttendanceStatus(attendance.getAttendanceStatus());
+                        response.setTotalWorkMin(attendance.getTotalWorkMin());
+                        response.setAttendanceTypeId(attendance.getAttendanceTypeId());
+
+                        return response;
+                    })
+                    .toList();
 
         } catch (FeignException e) { // TODO handle exception properly
             String rawErrorJson = e.contentUTF8();
@@ -805,4 +864,109 @@ public class AdminServiceImpl implements AdminService {
                 CustomStatus.SUCCESS
         );
     }
+
+    @Override
+    public SingleResponse<?> updateCheckoutRecordByEmpId(UpdateCheckOutRecordsRequest request) {
+
+        ApiResponse<?> apiResponse;
+
+        try {
+
+            apiResponse = attendanceClient.updateCheckoutRecordByEmployeeId(request);
+
+        } catch (FeignException e) {
+
+            String cleanErrorMessage = "Attendance microservice call failed";
+            CustomStatus fallbackStatus = CustomStatus.MICROSERVICE_CALL_FAILED;
+            int statusCode = 500;
+
+            String rawErrorJson = e.contentUTF8();
+
+            // Get HTTP status from Feign
+            if (e.status() > 0) {
+                statusCode = e.status();
+            }
+
+            // Extract message from Attendance Service response
+            try {
+
+                if (rawErrorJson != null && !rawErrorJson.isBlank()) {
+
+                    JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+
+                    if (errorNode.has("message")
+                            && !errorNode.get("message").isNull()) {
+
+                        cleanErrorMessage =
+                                errorNode.get("message").asText();
+
+                    }
+
+                    else if (errorNode.has("response")
+                            && errorNode.get("response").has("message")) {
+
+                        cleanErrorMessage =
+                                errorNode.get("response")
+                                        .get("message")
+                                        .asText();
+                    }
+                }
+
+            } catch (Exception parseException) {
+
+                log.error(
+                        "Failed to parse Attendance Service error response: {}",
+                        rawErrorJson,
+                        parseException
+                );
+
+                cleanErrorMessage = "Attendance microservice call failed";
+            }
+
+            if (statusCode == 404) {
+
+                fallbackStatus = CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND;
+
+            } else if (statusCode == 405) {
+
+                fallbackStatus = CustomStatus.INVALID_REQUEST_FORMAT;
+
+            } else if (statusCode == 400) {
+
+                fallbackStatus = CustomStatus.INVALID_REQUEST_FORMAT;
+
+            } else if (statusCode == 503) {
+
+                fallbackStatus = CustomStatus.MICROSERVICE_CALL_FAILED;
+            }
+            throw new CustomException(
+                    cleanErrorMessage,
+                    fallbackStatus,
+                    statusCode
+            );
+        }
+
+        if (apiResponse == null) {
+            throw new CustomException(
+                    "Empty response received from Attendance Service",
+                    CustomStatus.MICROSERVICE_CALL_FAILED,
+                    502
+            );
+        }
+
+        if (apiResponse.getStatus() != 200) {
+
+            throw new CustomException(
+                    apiResponse.getMessage(),
+                    CustomStatus.MICROSERVICE_CALL_FAILED,
+                    apiResponse.getStatus()
+            );
+        }
+
+        return new SingleResponse<>(
+                null,
+                CustomStatus.SUCCESS
+        );
+    }
+
 }

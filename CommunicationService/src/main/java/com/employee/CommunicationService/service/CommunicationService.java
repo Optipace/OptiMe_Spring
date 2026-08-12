@@ -1,9 +1,8 @@
 package com.employee.CommunicationService.service;
 
-import com.employee.CommunicationService.dto.request.InterviewRequest;
-import com.employee.CommunicationService.dto.request.LeaveConfirmationRequest;
-import com.employee.CommunicationService.dto.request.LeaveEmailRequest;
+import com.employee.CommunicationService.dto.request.*;
 import com.employee.CommunicationService.dto.response.ApiResponse;
+import org.springframework.web.bind.annotation.RequestBody;
 
 public interface CommunicationService {
 
@@ -18,4 +17,8 @@ public interface CommunicationService {
     void sendConfirmationLeaveEmail(LeaveConfirmationRequest request);
 
     void sendInterviewEmail(InterviewRequest request);
+
+    void sendLeaveApprovedEmail(LeaveApproveRequest request);
+
+    void sendLeaveRejectedEmail(LeaveRejectedRequest request);
 }

@@ -1,8 +1,6 @@
 package com.employee.CommunicationService.serviceImpl;
 
-import com.employee.CommunicationService.dto.request.InterviewRequest;
-import com.employee.CommunicationService.dto.request.LeaveConfirmationRequest;
-import com.employee.CommunicationService.dto.request.LeaveEmailRequest;
+import com.employee.CommunicationService.dto.request.*;
 import com.employee.CommunicationService.dto.response.ApiResponse;
 import com.employee.CommunicationService.service.CommunicationService;
 import com.employee.CommunicationService.service.EmailService;
@@ -113,5 +111,40 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         log.info("Communication Service: Sending basic details form email to {}", request.getEmailId());
         emailService.sendHtmlEmail(request.getEmailId(), subject, htmlBody);
+    }
+
+    @Override
+    public void sendLeaveApprovedEmail(LeaveApproveRequest request) {
+        Context context = new Context();
+        context.setVariable("employeeName", request.getEmployeeName());
+        context.setVariable("managerName", request.getManagerName());
+        context.setVariable("leaveType", request.getLeaveType());
+        context.setVariable("fromDate", request.getFromDate());
+        context.setVariable("toDate", request.getToDate());
+        context.setVariable("approvalRemarks", request.getApprovalRemarks());
+
+        log.info("Remarks is {}",request.getApprovalRemarks());
+        String htmlBody = templateEngine.process("LeaveApproveTemplate", context);
+        String subject = "Leave Status update";
+
+        log.info("Communication Service: Sending leave approval email to {}", request.getEmployeeEmailId());
+        emailService.sendHtmlEmail(request.getEmployeeEmailId(), subject, htmlBody);
+    }
+
+    @Override
+    public void sendLeaveRejectedEmail(LeaveRejectedRequest request) {
+        Context context = new Context();
+        context.setVariable("employeeName", request.getEmployeeName());
+        context.setVariable("managerName", request.getManagerName());
+        context.setVariable("leaveType", request.getLeaveType());
+        context.setVariable("fromDate", request.getFromDate());
+        context.setVariable("toDate",request.getToDate());
+        context.setVariable("rejectionReason", request.getRejectionReason());
+
+        String htmlBody = templateEngine.process("LeaveRejectTemplate", context);
+        String subject = "Leave Status update";
+
+        log.info("Communication Service: Sending leave rejected email to {}",request.getEmployeeEmailId());
+        emailService.sendHtmlEmail(request.getEmployeeEmailId(), subject, htmlBody);
     }
 }

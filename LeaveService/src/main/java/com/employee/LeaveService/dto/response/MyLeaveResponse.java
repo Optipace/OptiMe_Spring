@@ -1,4 +1,34 @@
 package com.employee.LeaveService.dto.response;
 
+import com.employee.LeaveService.enums.LeaveStatusEnum;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class MyLeaveResponse {
+    private Long leaveId;
+    private String employeeName;
+    private String employeeId;
+    private LocalDate fromDate;
+    private LocalDate toDate;
+    private LocalDateTime appliedOn;
+    private String leaveReason;
+    private String remarks;
+    private Long leaveTypeId;
+    private Integer numberOfLeavesApplied;
+    private String approvedBy;
+    private String approvedByEmployeeId;
+    private String approverName;
+    private String approverEmployeeId;
+    private LeaveStatusEnum leaveStatus;
+    private Integer pendingLeaves;
+
 }

@@ -29,8 +29,14 @@ public class Leave {
     @Column(name = "applied_on", nullable = false)
     private LocalDateTime appliedOn;
 
-    @Column(name = "reason", nullable = false)
-    private String reason;
+    @Column(name = "remarks")
+    private String remarks;
+
+    @Column(name = "leave_reason", nullable = false)
+    private String leaveReason;
+
+    @Column(name = "wanted_leaves", nullable = false)
+    private Integer wantedLeaves;
 
     @Column(name = "approved_by", length = 20)
     private String approvedBy;

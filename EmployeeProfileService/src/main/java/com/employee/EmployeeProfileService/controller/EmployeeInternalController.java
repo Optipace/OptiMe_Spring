@@ -111,4 +111,9 @@ public class EmployeeInternalController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @GetMapping("/getEmployeeName")
+    public ResponseEntity<ApiResponse<?>> getEmployeeName(@RequestParam String employeeId){
+        ApiResponse<?> response = empInternalService.getEmployeeName(employeeId);
+        return ResponseEntity.status(200).body(response);
+    }
 }

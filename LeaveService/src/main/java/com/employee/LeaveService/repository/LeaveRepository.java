@@ -1,5 +1,6 @@
 package com.employee.LeaveService.repository;
 
+import com.employee.LeaveService.enums.LeaveStatusEnum;
 import com.employee.LeaveService.model.Leave;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -39,5 +40,23 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
             @Param("endDate") LocalDate endDate
     );
 
+    @Query("SELECT l FROM Leave l WHERE l.applicantEmployeeId = :employeeId " +
+            "AND l.fromDate >= :startOfYear AND l.toDate <= :endOfYear")
+    Optional<List<Leave>> findByApplicantEmployeeIdAndDateRange(
+            @Param("employeeId") String employeeId,
+            @Param("startOfYear") LocalDate startOfYear,
+            @Param("endOfYear") LocalDate endOfYear
+    );
+
+    Optional<List<Leave>> findByApproverEmpId(String employeeId);
+
+    Optional<List<Leave>> findByLeaveStatus(LeaveStatusEnum status);
+
+    List<Leave> findByLeaveStatusInAndToDateGreaterThanEqual(
+            List<LeaveStatusEnum> statuses,
+            LocalDate date
+    );
+
+    Optional<List<Leave>> findByApplicantEmployeeId(String employeeId);
 //    Optional<Leave> findByEmployeeId(String employeeId);
 }

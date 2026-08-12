@@ -66,6 +66,12 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     @Query("SELECT a FROM Attendance a WHERE a.checkOutTime IS NULL AND a.checkInTime < :startOfToday")
     List<Attendance> findPendingCheckoutsBefore(@Param("startOfToday") LocalDateTime startOfToday);
 
+//    Optional<Attendance> findByEmployeeIdAndCheckoutDateTimeBetween(
+//            String employeeId,
+//            LocalDateTime startOfDay,
+//            LocalDateTime endOfDay
+//    );
+
 //        @Query(value =
 //            "SELECT SUM(total_work_min) "+
 //            "FROM Attendance "+

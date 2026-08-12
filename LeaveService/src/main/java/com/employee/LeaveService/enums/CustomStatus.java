@@ -52,9 +52,11 @@ public enum CustomStatus {
     INVALID_DATE_RANGE(-48, "The 'To Date' cannot be earlier than the 'From Date'."),
     LEAVE_ID_NOT_FOUND(-49, "Leave Id not found."),
     LEAVE_TYPE_NOT_FOUND(-50, "Leave type not found."),
-    UNAUTHORIZED_LEAVE_APPROVER(-51, "You are not authorized to approve leave."),
+    UNAUTHORIZED_LEAVE_APPROVER(-51, "You are not authorized to do this action."),
     LEAVE_ALREADY_PROCESSED(-52, "Leave has already been processed."),
-
+    EMPLOYEE_LEAVE_BALANCE_RECORD_NOT_FOUND(-85,"Employee leave balance record not found"),
+    LEAVE_ALREADY_STARTED(-86, "Leave has been already started"),
+    UNAUTHORISED_ACCESS(-87, "Unauthorised ownership to do this action"),
 
     // 206: Attendance & Office Failures
     OFFICE_INACTIVE(-3, "Office is inactive."),

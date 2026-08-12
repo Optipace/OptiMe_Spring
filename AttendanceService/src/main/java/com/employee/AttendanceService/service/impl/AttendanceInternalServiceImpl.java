@@ -3,6 +3,7 @@ package com.employee.AttendanceService.service.impl;
 import com.employee.AttendanceService.client.EmployeeClient;
 import com.employee.AttendanceService.client.LeaveClient;
 import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
+import com.employee.AttendanceService.dto.request.UpdateCheckOutRecordsRequest;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
 import com.employee.AttendanceService.enums.CustomStatus;
@@ -52,7 +53,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         // Check Leave Microservice first
         if (isEmployeeOnLeaveInMicroservice(employeeId, today)) {
             attendanceStatus = AttendanceStatusEnum.ON_LEAVE.toString();
-            return new ApiResponse<>("Attendance Status", attendanceStatus, 200);
+            return new ApiResponse<>(true,"Attendance Status", attendanceStatus, LocalDateTime.now(),200);
         }else {
 
             Optional<List<Attendance>> todayAttendance = attendanceRepository.findTodayAttendanceByEmployeeId(employeeId, startOfDay, endOfDay);
@@ -71,7 +72,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
 
         log.info("Attendance service returning status {}", attendanceStatus);
 
-        return new ApiResponse<>("Attendance Status", attendanceStatus, 200);
+        return new ApiResponse<>(true,"Attendance Status", attendanceStatus,LocalDateTime.now(), 200);
     }
 
     private boolean isEmployeeOnLeaveInMicroservice(String employeeId, LocalDate date) {
@@ -109,7 +110,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
                 cleanErrorMessage = "Service is unreachable. Please try again later.";
                 responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
             }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+            throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE ,responseStatus.value());
         }
 
         LocalDate today = LocalDate.now();
@@ -183,7 +184,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
                         cleanErrorMessage = "Service is unreachable. Please try again later.";
                         responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
                     }
-                    throw new CustomException(cleanErrorMessage, responseStatus);
+                    throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE ,responseStatus.value());
                 }
                 responseList.add(new EmployeeAttendanceResponse(
                         empId,
@@ -202,7 +203,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
 
 // responseList now contains sorted present employees first, and absent employees last!
 
-        return new ApiResponse<>("Attendance Records", responseList, 200);
+        return new ApiResponse<>(true, "Attendance Records", responseList,LocalDateTime.now(), 200);
     }
 
     @Override
@@ -236,7 +237,9 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         List<EmployeeAttendanceHistoryResponse> historyResponse = attendanceRecords.stream()
                 .map(record -> {
                     EmployeeAttendanceHistoryResponse dto = new EmployeeAttendanceHistoryResponse();
-
+                    log.info("Record ID = {}", record.getId());
+                    log.info("Record Attendance Type ID = {}", record.getAttendanceTypeId());
+                    dto.setId(record.getId());
                     dto.setEmployeeId(record.getEmployeeId());
 
                     // Formatter guards to prevent null pointers if times are unrecorded
@@ -250,6 +253,8 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
 
                     dto.setTotalWorkMin(record.getTotalWorkMin());
                     dto.setAttendanceTypeId(record.getAttendanceTypeId());
+                    log.info("DTO ID = {}", dto.getId());
+                    log.info("DTO Attendance Type ID = {}", dto.getAttendanceTypeId());
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -258,6 +263,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         for (LocalDate leaveDate : leaveDates) {
             if (!processedDates.contains(leaveDate)) {
                 EmployeeAttendanceHistoryResponse leaveResponse = new EmployeeAttendanceHistoryResponse();
+                leaveResponse.setId(null);
                 leaveResponse.setEmployeeId(employeeId);
                 leaveResponse.setTotalWorkMin(0L);
                 leaveResponse.setAttendanceTypeId(null);
@@ -274,8 +280,10 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         }
 
         return new ApiResponse<>(
+                true,
                 "Attendance history retrieved successfully",
                 historyResponse,
+                LocalDateTime.now(),
                 200
         );
     }
@@ -351,6 +359,32 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         return new SingleResponse<>(
                 response,
                 CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public ApiResponse<?> updateCheckoutRecordsByEmpId(UpdateCheckOutRecordsRequest request) {
+
+        Attendance attendance = attendanceRepository.findById(request.getId())
+                .orElseThrow(() -> new CustomException(null, CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND, 404));
+
+        if(!request.getEmployeeId().equals(attendance.getEmployeeId())){
+            throw new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404);
+        }
+
+//        LocalDate checkedInDate = attendance.getCheckInTime().toLocalDate();
+//        LocalDate requestedCheckedOutDate = request.getCheckoutDateTime().toLocalDate();
+
+        attendance.setAdminRemarks(request.getRemarks());
+        attendance.setCheckOutTime(request.getCheckoutDateTime().withNano(0));
+        attendance.setAdminModified(true);
+        attendanceRepository.save(attendance);
+        return new ApiResponse<>(
+                true,
+                "Checkout time updated",
+                null,
+                LocalDateTime.now(),
+                200
         );
     }
 

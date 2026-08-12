@@ -1,10 +1,15 @@
 package com.employee.LeaveService.controller;
 
+import com.employee.LeaveService.dto.request.ApproveLeaveRequest;
+import com.employee.LeaveService.dto.request.RejectLeaveRequest;
 import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.LeaveTypeResponse;
+import com.employee.LeaveService.dto.response.SingleResponse;
 import com.employee.LeaveService.service.LeaveInternalService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -33,9 +38,21 @@ public class LeaveInternalController {
         return leaveInternalService.isEmployeeOnLeave(employeeId, today);
     }
 
-    @PutMapping("/leaveApproval")
-    public ApiResponse<?> updateLeave(@RequestBody UpdateLeaveRequest request,@RequestParam String approvedEmployeeId){
-        return leaveInternalService.updateLeave(request, approvedEmployeeId);
+//    @PutMapping("/leaveApproval")
+//    public ApiResponse<?> updateLeave(@RequestBody UpdateLeaveRequest request,@RequestParam String approvedEmployeeId){
+//        return leaveInternalService.updateLeave(request, approvedEmployeeId);
+//    }
+
+    @PutMapping("/approveLeave")
+    public ApiResponse<?> approveLeave(@Valid @RequestBody ApproveLeaveRequest request,
+                                       @RequestParam String authorityEmployeeId){
+        return leaveInternalService.approveLeave(request, authorityEmployeeId);
+    }
+
+    @PutMapping("/rejectLeave")
+    public ApiResponse<?> rejectLeave(@Valid @RequestBody RejectLeaveRequest request,
+                                      @RequestParam String authorityEmployeeId){
+        return leaveInternalService.rejectLeave(request, authorityEmployeeId);
     }
 
     @GetMapping("/leaveDates/{employeeId}")

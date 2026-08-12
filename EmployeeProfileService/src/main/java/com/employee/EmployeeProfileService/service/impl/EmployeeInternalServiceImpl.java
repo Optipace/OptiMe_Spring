@@ -168,7 +168,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 cleanErrorMessage = "Service is unreachable. Please try again later.";
                 responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
             }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+            throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE ,responseStatus.value());
         }
         return new ApiResponse<>(
                 true,
@@ -239,10 +239,14 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         EmployeeInternalResponse response = modelMapper.map(employee, EmployeeInternalResponse.class);
         response.setEmployeeDesignation(employee.getDesignation().getDesignation());
         response.setEmployeeStatus(employee.getStatus().getStatus());
-        String designation = employee.getDesignation().getDesignation().toUpperCase();
-        boolean canApproveLeave = designation.contains("MANAGER") || designation.contains("HR") ||
-                designation.contains("PROJECT_MANAGER") || designation.contains("TEAM LEADER") || designation.contains("CEO") ||
-                designation.contains("CTO");
+//        String designation = employee.getDesignation().getDesignation().toUpperCase();
+//        boolean canApproveLeave = designation.contains("MANAGER") || designation.contains("HR") ||
+//                designation.contains("PROJECT_MANAGER") || designation.contains("TEAM LEADER") || designation.contains("CEO") ||
+//                designation.contains("CTO");
+        log.info("The employee role is {}", employee.getRole().toString());
+        boolean canApproveLeave = employee.getRole().equals(RoleEnum.ADMIN);
+        log.info("The employee with id {} can approve leave : {}",employee.getEmployeeId(), canApproveLeave);
+
         response.setCanApproveLeave(canApproveLeave);
 
         return new ApiResponse<>(
@@ -417,6 +421,21 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 true,
                 "Admin List",
                 response,
+                LocalDateTime.now(),
+                200
+        );
+    }
+
+    @Override
+    public ApiResponse<?> getEmployeeName(String employeeId) {
+        Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
+
+        String empName = employee.getEmployeeName();
+        return new ApiResponse<>(
+                true,
+                "Employee Name",
+                empName,
                 LocalDateTime.now(),
                 200
         );

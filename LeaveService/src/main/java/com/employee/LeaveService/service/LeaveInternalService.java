@@ -1,8 +1,11 @@
 package com.employee.LeaveService.service;
 
+import com.employee.LeaveService.dto.request.ApproveLeaveRequest;
+import com.employee.LeaveService.dto.request.RejectLeaveRequest;
 import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.LeaveTypeResponse;
+import com.employee.LeaveService.dto.response.SingleResponse;
 import org.springframework.cglib.core.Local;
 import org.springframework.web.bind.annotation.PutMapping;
 
@@ -17,7 +20,11 @@ public interface LeaveInternalService {
 
     boolean isEmployeeOnLeave(String employeeId, LocalDate today);
 
-    ApiResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId);
+//    ApiResponse<?> updateLeave(UpdateLeaveRequest request, String approvedEmployeeId);
+
+    ApiResponse<?> approveLeave(ApproveLeaveRequest request, String authorityEmployeeId);
+
+    ApiResponse<?> rejectLeave(RejectLeaveRequest request, String authorityEmployeeId);
 
     ApiResponse<Set<LocalDate>> getEmployeeLeaveDatesInRange(String employeeId, LocalDate startDate, LocalDate endDate);
 }
