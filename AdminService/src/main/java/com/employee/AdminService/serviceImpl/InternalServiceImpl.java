@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -28,6 +29,7 @@ public class InternalServiceImpl implements InternalService {
         List<Office> officeList = officeRepository.findAll();
 
         List<OfficeResponse> officeResponseList = officeList.stream()
+                .sorted(Comparator.comparing(Office::getOfficeName, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(o -> modelMapper.map(o,OfficeResponse.class))
                 .toList();
 //        ListOfOfficeResponse officeResponsesList = new ListOfOfficeResponse(officeResponseList);

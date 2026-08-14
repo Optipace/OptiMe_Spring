@@ -16,13 +16,16 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -188,14 +191,17 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         List<EmployeeStatus> employeeStatusList = employeeStatusRepository.findAll();
 
         List<EmployeeDesignationResponse> employeeDesignationResponseList = employeeDesignationList.stream()
+                .sorted(Comparator.comparing(EmployeeDesignation::getId))
                 .map(designation -> modelMapper.map(designation, EmployeeDesignationResponse.class))
                 .toList();
 
         List<WorkTypeResponse> workTypeResponseList = workTypeList.stream()
+                .sorted(Comparator.comparing(WorkType::getId))
                 .map(workType -> modelMapper.map(workType, WorkTypeResponse.class))
                 .toList();
 
         List<EmployeeStatusResponse> employeeStatusResponseList = employeeStatusList.stream()
+                .sorted(Comparator.comparing(EmployeeStatus::getId))
                 .map(status -> modelMapper.map(status, EmployeeStatusResponse.class))
                 .toList();
 
@@ -312,17 +318,33 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
     @Override
     public ApiResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable) {
-        Page<Employee> employeePage = employeeRepository.findAll(pageable);
+        Pageable sortedPageable = pageable.getSort().isSorted() ? pageable :
+                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                        Sort.by(Sort.Order.asc("employeeName").nullsLast()));
+
+        Page<Employee> employeePage = employeeRepository.findAll(sortedPageable);
         List<Employee> employeeList = employeePage.getContent();
 
         if(employeePage.isEmpty()){
             throw new CustomException("Employee Records not found", HttpStatus.NOT_FOUND);
         }
 
+//        List<String> employeeIds = employeeList.stream()
+//                .map(Employee::getEmployeeId)
+//                .toList();
+
+        // TODO Make ONE bulk network call to fetch all statuses at once (Create an api in ATTENDANCE SERVICE for bulk api call)
+//        log.info("Attendance service is calling bulk status for {} employees", employeeIds.size());
+//        ApiResponse<Map<String, String>> bulkApiResponse = attendanceClient.getBulkAttendanceStatus(employeeIds);
+//        Map<String, String> attendanceStatusMap = bulkApiResponse != null && bulkApiResponse.getData() != null
+//                ? bulkApiResponse.getData()
+//                : Collections.emptyMap();
+//        log.info("Bulk attendance service call complete");
+
         List<EmployeeResponse> employeeResponseList = employeeList.stream()
                 .map(employee -> {
                     log.info("Attendance service is calling for employee {}",employee.getEmployeeId());
-                    ApiResponse<String> apiResponse = attendanceClient.getAttendanceStatus(employee.getEmployeeId());
+                    ApiResponse<String> apiResponse = attendanceClient.getAttendanceStatus(employee.getEmployeeId()); // TODO Make ONE bulk network call to fetch all statuses at once
                     log.info("Attendance service called");
 
                     String attendanceStatus = apiResponse.getData();

@@ -28,6 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -485,19 +486,25 @@ public class LeaveServiceImpl implements LeaveService {
             throw new CustomException(null, CustomStatus.UNAUTHORISED_ACCESS, 200);
         }
 
-        if(leave.getFromDate().isBefore(LocalDate.now())){
-            throw new CustomException(null , CustomStatus.LEAVE_ALREADY_STARTED, 200);
+        if (leave.getLeaveStatus().equals(LeaveStatusEnum.APPROVED)
+                && !leave.getFromDate().isAfter(LocalDate.now())) {
+            throw new CustomException(null, CustomStatus.LEAVE_ALREADY_STARTED, 200);
         }
 
-        if(!leave.getLeaveStatus().equals(LeaveStatusEnum.PENDING)){
-            throw new CustomException(null, CustomStatus.LEAVE_ALREADY_PROCESSED, 200);
+        if (leave.getLeaveStatus().equals(LeaveStatusEnum.APPROVED)) {
+            AvailableLeaves balance = availableLeavesRepository.findByEmployeeId(employeeId)
+                    .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_LEAVE_BALANCE_RECORD_NOT_FOUND, 404));
+
+            balance.setRemainingLeaves(balance.getRemainingLeaves() + leave.getWantedLeaves());
+            availableLeavesRepository.save(balance);
         }
 
-        if(StringUtils.hasText(request.getReason())){
+        if (StringUtils.hasText(request.getReason())) {
             leave.setRemarks(request.getReason().trim());
         }
-        leave.setWantedLeaves(0);
+
         leave.setLeaveStatus(LeaveStatusEnum.CANCEL);
+
         leaveRepository.save(leave);
 
         return new SingleResponse<>(
@@ -512,6 +519,11 @@ public class LeaveServiceImpl implements LeaveService {
                 .orElseThrow(() -> new CustomException(null, CustomStatus.LEAVE_RECORDS_NOT_FOUND, 200));
 
         List<LeaveResponse> leaveResponseList = leaveList.stream()
+                .sorted(Comparator.comparing(Leave::getLeaveStatus, (status1, status2) -> {
+                    if (status1 == LeaveStatusEnum.PENDING && status2 != LeaveStatusEnum.PENDING) return -1;
+                    if (status1 != LeaveStatusEnum.PENDING && status2 == LeaveStatusEnum.PENDING) return 1;
+                    return 0; // If statuses are the same or neither is PENDING, keep their relative position
+                }).thenComparing(Leave::getAppliedOn, Comparator.nullsLast(Comparator.reverseOrder())))
 //                .filter(leave -> leave.getLeaveStatus().equals(LeaveStatusEnum.PENDING)) // TODO REMOVE FILTER
                 .map(leave -> {
                     String approverName = getEmployeeNameByEmpId(leave.getApproverEmpId());
@@ -541,6 +553,7 @@ public class LeaveServiceImpl implements LeaveService {
 
         List<LeaveResponse> leaveResponseList = leaveList.stream()
                 .filter(leave -> leave.getLeaveStatus() == LeaveStatusEnum.PENDING)
+                .sorted(Comparator.comparing(Leave::getFromDate, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(leave -> {
                     String approverName = getEmployeeNameByEmpId(leave.getApproverEmpId());
                     String approvedByName = getEmployeeNameByEmpId(leave.getApprovedBy());
@@ -576,6 +589,7 @@ public class LeaveServiceImpl implements LeaveService {
 
         List<LeaveResponse> leaveResponseList = leaveList.stream()
                 .filter(leave -> leave.getLeaveStatus() != LeaveStatusEnum.PENDING)
+                .sorted(Comparator.comparing(Leave::getFromDate, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(leave -> {
                     String approverName = getEmployeeNameByEmpId(leave.getApproverEmpId());
                     String approvedByName = getEmployeeNameByEmpId(leave.getApprovedBy());

@@ -15,7 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -248,7 +250,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public SingleResponse<PageResponse<OfficeResponse>> getOfficeList(Pageable pageable) {
-        Page<Office> officePage = officeRepository.findAll(pageable);
+        Pageable sortedPageable = pageable.getSort().isSorted() ? pageable :
+                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Order.asc("officeName").nullsLast()));
+        Page<Office> officePage = officeRepository.findAll(sortedPageable);
         List<Office> officeList = officePage.getContent();
 
         if(officePage.isEmpty()){
@@ -315,7 +319,10 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public SingleResponse<PageResponse<String>> getOfficeNames(Pageable pageable) {
-        Page<Office> officePage = officeRepository.findAll(pageable);
+        Pageable sortedPageable = pageable.getSort().isSorted() ? pageable :
+                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                        Sort.by(Sort.Order.asc("officeName").nullsLast()));
+        Page<Office> officePage = officeRepository.findAll(sortedPageable);
         List<Office> officeList = officePage.getContent();
 
         List<String> officeNames = officeList.stream()

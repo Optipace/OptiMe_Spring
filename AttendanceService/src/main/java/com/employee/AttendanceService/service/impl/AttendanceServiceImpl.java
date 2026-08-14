@@ -7,11 +7,9 @@ import com.employee.AttendanceService.config.AppProperties;
 import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
 import com.employee.AttendanceService.dto.request.EmployeeAttendanceRequest;
 import com.employee.AttendanceService.dto.request.NotificationPayload;
-import com.employee.AttendanceService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
 import com.employee.AttendanceService.enums.CustomStatus;
-import com.employee.AttendanceService.enums.EmployeeAccountStatus;
 import com.employee.AttendanceService.exception.CustomException;
 import com.employee.AttendanceService.model.*;
 import com.employee.AttendanceService.repository.AttendanceRepository;
@@ -297,7 +295,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         LocalDateTime startOfWeek = LocalDateTime.of(mondayDate, LocalTime.MIDNIGHT);
 
-        List<Attendance> weeklyLogs = attendanceRepository.findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeAsc(employeeId, startOfWeek);
+        List<Attendance> weeklyLogs = attendanceRepository.findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeDesc(employeeId, startOfWeek);
         log.info("Fetched {} database attendance record(s) for employeeId: {} since {}", weeklyLogs.size(), employeeId, startOfWeek);
 
         ApiResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, mondayDate, LocalDate.now());
@@ -465,51 +463,74 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request) {
-
         LocalDate fromDate = request.getFromDate();
         LocalDate toDate = request.getToDate();
         String employeeId = request.getEmployeeId();
-        ;
 
-        // 1. Basic validation check
         if (toDate.isBefore(fromDate)) {
             throw new CustomException(null, CustomStatus.INVALID_DATE_RANGE, 409);
         }
 
-        // 2. Fetch records from the database
         List<Attendance> attendanceRecords = attendanceRepository.findAttendanceByEmployeeAndDateRange(employeeId, fromDate, toDate);
 
-        if (attendanceRecords.isEmpty()) {
-            throw new CustomException(
-                    null,
-                    CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND,
-                    409
-            );
-        }
+        ApiResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, fromDate, toDate);
+        Set<LocalDate> leaveDates = apiResponse != null && apiResponse.getData() != null ? apiResponse.getData() : Collections.emptySet();
+        log.info("Fetched {} active leave date(s) for employeeId: {} in date wise range", leaveDates.size(), employeeId);
 
-        // 3. Map the entities to your response DTOs using Java Streams
+
+        Set<LocalDate> processedDates = new HashSet<>();
+
+
         List<EmployeeAttendanceHistoryResponse> historyResponse = attendanceRecords.stream()
                 .map(record -> {
                     EmployeeAttendanceHistoryResponse dto = new EmployeeAttendanceHistoryResponse();
                     dto.setEmployeeId(record.getEmployeeId());
                     dto.setId(record.getId());
-
-                    // Formatter guards to prevent null pointers if times are unrecorded
-                    dto.setCheckInTime(record.getCheckInTime() != null ? record.getCheckInTime() : null);
-                    dto.setCheckOutTime(record.getCheckOutTime() != null ? record.getCheckOutTime() : null);
-
-                    // Map Enum to String
-                    if (record.getAttendanceStatus() != null) {
-                        dto.setAttendanceStatus(record.getAttendanceStatus().name());
-                    }
-
                     dto.setTotalWorkMin(record.getTotalWorkMin());
                     dto.setAttendanceTypeId(record.getAttendanceTypeId());
+
+                    LocalDate logDate = record.getCheckInTime() != null ? record.getCheckInTime().toLocalDate() : null;
+                    if (logDate != null) {
+                        processedDates.add(logDate);
+                    }
+
+                    boolean isEmployeeOnLeave = logDate != null && leaveDates.contains(logDate);
+                    if (isEmployeeOnLeave) {
+                        log.debug("Overriding DB log to ON_LEAVE for employeeId: {} on date: {}", employeeId, logDate);
+                        dto.setCheckInTime(null);
+                        dto.setCheckOutTime(null);
+                        dto.setTotalWorkMin(0L);
+                        dto.setAttendanceTypeId(null);
+                        dto.setAttendanceStatus(AttendanceStatusEnum.ON_LEAVE.name());
+                    } else {
+                        dto.setCheckInTime(record.getCheckInTime());
+                        dto.setCheckOutTime(record.getCheckOutTime());
+                        if (record.getAttendanceStatus() != null) {
+                            dto.setAttendanceStatus(record.getAttendanceStatus().name());
+                        }
+                    }
                     return dto;
                 })
-                .toList();
+                .collect(Collectors.toList());
 
-        // 4. Return standard API Envelope wrapper
+        for (LocalDate leaveDate : leaveDates) {
+            if (!processedDates.contains(leaveDate)) {
+                EmployeeAttendanceHistoryResponse leaveResponse = new EmployeeAttendanceHistoryResponse();
+                leaveResponse.setEmployeeId(employeeId);
+                leaveResponse.setTotalWorkMin(0L);
+                leaveResponse.setAttendanceTypeId(null);
+                leaveResponse.setCheckInTime(leaveDate.atStartOfDay());
+                leaveResponse.setCheckOutTime(leaveDate.atStartOfDay());
+                leaveResponse.setAttendanceStatus(AttendanceStatusEnum.ON_LEAVE.name());
+
+                historyResponse.add(leaveResponse);
+            }
+        }
+
+        if (historyResponse.isEmpty()) {
+            throw new CustomException(null, CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND, 409);
+        }
+
         return new SingleResponse<>(
                 historyResponse,
                 CustomStatus.SUCCESS

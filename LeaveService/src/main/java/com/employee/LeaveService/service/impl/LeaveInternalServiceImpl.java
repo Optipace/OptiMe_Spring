@@ -27,6 +27,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -56,6 +57,7 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
 
         List<ListOfLeaveResponse> leaveResponses = leaves.stream()
                 .filter(leave -> leave.getLeaveStatus() != LeaveStatusEnum.CANCEL)
+                .sorted(Comparator.comparing(Leave::getAppliedOn, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(l -> {
                     if(l.getApprovedBy() == null){
                          l.setApprovedBy(null);
@@ -108,6 +110,7 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
         List<LeaveType> leaveTypeList = leaveTypeRepository.findAll();
 
         List<LeaveTypeResponse> leaveTypeResponseList = leaveTypeList.stream()
+                .sorted(Comparator.comparing(LeaveType::getLeaveType, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(leaveType -> modelMapper.map(leaveType, LeaveTypeResponse.class))
                 .toList();
         return new ApiResponse<>(

@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,6 +64,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
         List<Employee> employeeList = employeeRepository.findAll();
 
         List<ListOfEmployeeResponse> employeeResponse = employeeList.stream()
+                .sorted(Comparator.comparing(Employee::getEmployeeName, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map((employee) ->{
 
                     log.info("Calling admin Service to get Office details for office Id {} for the employee {}",employee.getOfficeId(), employee.getEmployeeId());

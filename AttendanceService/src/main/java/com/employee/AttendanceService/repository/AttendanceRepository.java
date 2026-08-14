@@ -25,7 +25,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     Optional<Attendance> findByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(String employeeId, LocalDateTime time);
 
     // Fetches all logs from Monday 12:00 AM up to the current moment
-    List<Attendance> findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeAsc(String employeeId, LocalDateTime startOfWeek);
+    List<Attendance> findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeDesc(String employeeId, LocalDateTime startOfWeek);
 
     @Query(
             value =
@@ -56,7 +56,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     @Query("SELECT a FROM Attendance a WHERE a.employeeId = :employeeId " +
             "AND CAST(a.checkInTime AS date) BETWEEN :fromDate AND :toDate " +
-            "ORDER BY a.checkInTime ASC")
+            "ORDER BY a.checkInTime DESC")
     List<Attendance> findAttendanceByEmployeeAndDateRange(
             @Param("employeeId") String employeeId,
             @Param("fromDate") LocalDate fromDate,
