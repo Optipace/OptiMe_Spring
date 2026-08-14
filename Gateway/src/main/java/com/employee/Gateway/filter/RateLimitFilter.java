@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RateLimitFilter implements GlobalFilter {
     private final Map<String, Bucket> cache=new ConcurrentHashMap<>();
     private Bucket createBucket(){
-        Bandwidth limit=Bandwidth.builder().capacity(5).refillGreedy(5, Duration.ofMinutes(1)).build();
+        Bandwidth limit=Bandwidth.builder().capacity(36).refillGreedy(36, Duration.ofMinutes(1)).build();
         return Bucket.builder().addLimit(limit).build();
     }
 
