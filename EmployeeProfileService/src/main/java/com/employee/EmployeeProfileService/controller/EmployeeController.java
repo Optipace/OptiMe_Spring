@@ -78,4 +78,10 @@ public class EmployeeController {
 //    public ResponseEntity<Resource> getEmployeeProfile(@RequestHeader ("Authorization") String authHeader){
 //        return empService.getEmployeeProfile(authHeader);
 //    }
+
+    @PostMapping(value="/uploadDocument",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<SingleResponse<?>> uploadDocument(@RequestParam("file") MultipartFile file,@RequestParam("employeeId") String employeeId,@RequestParam("documentType") String documentType,@RequestParam("documentNo") String documentNo){
+        SingleResponse<?> response = empService.uploadDocument(file,employeeId,documentNo,documentType);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }

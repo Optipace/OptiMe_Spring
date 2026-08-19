@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import javax.swing.text.Document;
+
 @Configuration
 @ConfigurationProperties(prefix = "app")
 @Data
@@ -17,6 +19,7 @@ public class AppProperties {
 //    private Jwt jwt = new Jwt();
 //    private Video video = new Video();
     private Image image = new Image();
+    private Document document = new Document();
 
 
 //    @Data
@@ -47,6 +50,11 @@ public class AppProperties {
         private String uploadDir;
     }
 
+    @Data
+    public static class Document{
+        private String uploadDir;
+    }
+
     /**
      * Logs property values safely at startup.
      */
@@ -60,6 +68,7 @@ public class AppProperties {
 //        log.info("✅ JWT refresh expiration (ms): {}", jwt.getExpirationRefresh());
 //        log.info("✅ Video upload directory: {}", video.getUploadDir());
         log.info("✅ Image upload directory: {}", image.getUploadDir());
+        log.info("✅ Document upload directory: {}", document.getUploadDir());
     }
 
     /**

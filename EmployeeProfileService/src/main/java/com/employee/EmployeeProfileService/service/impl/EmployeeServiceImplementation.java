@@ -11,7 +11,9 @@ import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.enums.*;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.Employee;
+import com.employee.EmployeeProfileService.model.EmployeeDocument;
 import com.employee.EmployeeProfileService.model.Feedback;
+import com.employee.EmployeeProfileService.repository.EmployeeDocumentRepository;
 import com.employee.EmployeeProfileService.repository.EmployeeRepository;
 import com.employee.EmployeeProfileService.repository.FeedbackRepository;
 import com.employee.EmployeeProfileService.service.EmployeeService;
@@ -58,6 +60,8 @@ public class EmployeeServiceImplementation implements EmployeeService {
     private final ObjectMapper objectMapper;
 
     private final AdminClient adminClient;
+
+    private final EmployeeDocumentRepository employeeDocumentRepository;
 
     @Override
     public SingleResponse<List<ListOfEmployeeResponse>> getAllEmployees() {
@@ -417,5 +421,55 @@ public class EmployeeServiceImplementation implements EmployeeService {
         } catch (IOException e) {
             throw new CustomException(null, CustomStatus.FILE_UPLOAD_FAILED, 409);
         }
+    }
+
+    @Override
+    public SingleResponse<?> uploadDocument(MultipartFile file, String employeeId, String documentNo,String documentType){
+        Employee employee=employeeRepository.findEmployeeByEmployeeId(employeeId).orElseThrow(()->
+                new CustomException(
+                        null,
+                        CustomStatus.EMPLOYEE_NOT_FOUND,
+                        404));
+        String contentType=file.getContentType();
+        if(!("application/pdf".equals(contentType)
+                || "image/jpeg".equals(contentType)
+                || "image/jpg".equals(contentType))){
+            throw new RuntimeException("Only PDF and JPG files are allowed");
+        }
+        String filePath=saveFile(
+                file,
+                appProperties.getDocument().getUploadDir()
+                        +employeeId
+                        +"/");
+        String folderPath=appProperties.getDocument().getUploadDir()+employeeId;
+        EmployeeDocument document = employeeDocumentRepository
+                .findByEmployee(employee)
+                .orElseGet(EmployeeDocument::new);
+        document.setEmployee(employee);
+        document.setPath(folderPath);
+        switch (documentType.toUpperCase()){
+            case "SSLC":
+                document.setSslcCertificate(filePath);
+                document.setSslcDocumentNo(documentNo);
+                break;
+
+            case "PAN":
+                document.setPanCard(filePath);
+                document.setPanCardDocumentNo(documentNo);
+                break;
+
+            case "AADHAR":
+                document.setAadharCard(filePath);
+                document.setAadharCardDocumentNo(documentNo);
+                break;
+
+            default:
+                throw new RuntimeException("Invalid document type");
+        }
+        employeeDocumentRepository.save(document);
+                return new SingleResponse<>(
+                null,
+                CustomStatus.SUCCESS
+        );
     }
 }

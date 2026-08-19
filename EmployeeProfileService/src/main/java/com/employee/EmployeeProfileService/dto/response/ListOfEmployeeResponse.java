@@ -1,5 +1,6 @@
 package com.employee.EmployeeProfileService.dto.response;
 
+import com.employee.EmployeeProfileService.enums.RoleEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,4 +19,5 @@ public class ListOfEmployeeResponse {
     private Long workTypeId;
     private String officeId;
     private String officeName;
+    private RoleEnum role;
 }

@@ -26,5 +26,7 @@ public interface EmployeeService {
 
     public SingleResponse<List<ListOfAdminResponse>> getAllAdminDetails();
 
+    public SingleResponse<?> uploadDocument(MultipartFile file, String employeeId, String documentNo, String documentType);
+
 //    public ResponseEntity<Resource> getEmployeeProfile(String authHeader);
 }
