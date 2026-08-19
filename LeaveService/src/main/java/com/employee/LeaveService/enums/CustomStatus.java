@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum CustomStatus {
     UNKNOWN(-999,"Something went wrong"),
-// Highest -84
+// Highest -87
     // 200 Business Logic Failures
     INVALID_REQUEST_FORMAT(-105, "Invalid request format or Invalid body"),
     APPLICATION_DETAILS_NOT_FOUND(-84, "No application records found"),

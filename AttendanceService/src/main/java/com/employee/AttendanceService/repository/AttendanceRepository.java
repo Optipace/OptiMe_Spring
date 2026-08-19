@@ -53,6 +53,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     List<Attendance> findByCheckInTimeBetweenOrderByCheckInTimeAsc(LocalDateTime startOfDay, LocalDateTime endOfDay);
 
+    List<Attendance> findByEmployeeIdAndCheckInTimeAfter(String employeeId, LocalDateTime time);
 
     @Query("SELECT a FROM Attendance a WHERE a.employeeId = :employeeId " +
             "AND CAST(a.checkInTime AS date) BETWEEN :fromDate AND :toDate " +
@@ -65,6 +66,17 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     @Query("SELECT a FROM Attendance a WHERE a.checkOutTime IS NULL AND a.checkInTime < :startOfToday")
     List<Attendance> findPendingCheckoutsBefore(@Param("startOfToday") LocalDateTime startOfToday);
+
+    Optional<Attendance> findFirstByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeDesc(String employeeId, LocalDateTime time);
+
+    Optional<Attendance> findFirstByEmployeeIdAndCheckInTimeBetweenOrderByCheckInTimeDesc(
+            String employeeId,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
+
+    boolean existsByEmployeeIdAndCheckInTimeBetween(String employeeId, LocalDateTime start, LocalDateTime end);
+
 
 //    Optional<Attendance> findByEmployeeIdAndCheckoutDateTimeBetween(
 //            String employeeId,

@@ -4,6 +4,7 @@ import com.employee.AttendanceService.client.CommunicationClient;
 import com.employee.AttendanceService.client.EmployeeClient;
 import com.employee.AttendanceService.client.LeaveClient;
 import com.employee.AttendanceService.config.AppProperties;
+import com.employee.AttendanceService.dto.request.AddEmpAttendanceRequest;
 import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
 import com.employee.AttendanceService.dto.request.EmployeeAttendanceRequest;
 import com.employee.AttendanceService.dto.request.NotificationPayload;
@@ -562,11 +563,31 @@ public class AttendanceServiceImpl implements AttendanceService {
             if (isEmployeeIdEmpty ||
                     request.getAttendanceTypeId() == null ||
                     request.getRemarks() == null ||
-                    request.getCheckInTime() == null ||
-                    request.getCheckOutTime() == null)
-            {
+                    request.getCheckInTime() == null) {
                 log.warn("Validation failed for creation path. Missing required parameters for Employee ID: {}", request.getEmployeeId());
                 throw new CustomException(null, CustomStatus.INVALID_REQUEST_BODY, 400);
+            }
+
+            // Check if employee already has a record for today
+//            LocalDateTime startOfToday = request.getCheckInTime().toLocalDate().atStartOfDay();
+//            Optional<Attendance> existingTodayRecord = attendanceRepository
+//                    .findFirstByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeDesc(request.getEmployeeId(), startOfToday);
+
+            LocalDate targetDate = request.getCheckInTime().toLocalDate();
+            LocalDateTime startOfTargetDay = targetDate.atStartOfDay();
+            LocalDateTime endOfTargetDay = targetDate.atTime(LocalTime.MAX);
+
+            Optional<Attendance> existingTodayRecord = attendanceRepository.findFirstByEmployeeIdAndCheckInTimeBetweenOrderByCheckInTimeDesc(
+                    request.getEmployeeId(),
+                    startOfTargetDay,
+                    endOfTargetDay
+            );
+
+//            System.out.println("Got data from db = "+((existingTodayRecord.get().getId() != null) ? existingTodayRecord.get().getId():"NULL"));
+
+            if (existingTodayRecord.isPresent()) {
+                log.warn("Employee {} already has an attendance record for today. Use update branch instead.", request.getEmployeeId());
+                throw new CustomException("Employee already checked in today. Please update the existing record.", CustomStatus.ATTENDANCE_RECORDS_EXISTS, 400);
             }
 
             ApiResponse<?> employeeResponse = null;
@@ -605,7 +626,13 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendance.setFilePath(null);
             attendance.setAdminModified(true);
             attendance.setAdminRemarks(request.getRemarks().isBlank() ? null : request.getRemarks());
-            attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
+
+            if (request.getCheckOutTime() != null) {
+                attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
+            } else {
+                attendance.setTotalWorkMin(0L);
+            }
+//            attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
             attendanceRepository.save(attendance);
             log.info("Successfully created and saved attendance record for Employee ID: {}", request.getEmployeeId());
         } else {
@@ -619,7 +646,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 throw new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 200);
             }
 
-            if(request.getRemarks().isEmpty()){
+            if (request.getRemarks().isEmpty()) {
                 throw new CustomException(null, CustomStatus.INVALID_REQUEST_BODY, 400);
             }
 
@@ -642,7 +669,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 attendance.setCheckInTime(request.getCheckInTime());
                 if (attendance.getCheckOutTime() != null) {
                     attendance.setTotalWorkMin(Duration.between(request.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
-                }else{
+                } else {
                     log.warn("Calculated TotalWorkMin skipped for Record ID: {}. Database CheckOutTime is currently null.", request.getId());
                 }
 
@@ -665,6 +692,30 @@ public class AttendanceServiceImpl implements AttendanceService {
                 CustomStatus.SUCCESS
         );
 
+    }
+
+    @Override
+    public SingleResponse<?> addEmployeeAttendance(AddEmpAttendanceRequest request) {
+        List<Attendance> attendanceList = attendanceRepository.findByEmployeeIdAndCheckInTimeAfter(request.getEmployeeId(), request.getCheckInTime());
+
+        if (!attendanceList.isEmpty()) {
+            throw new CustomException(null, CustomStatus.ATTENDANCE_RECORDS_FOUND, 200);
+        }
+
+        Attendance attendance = new Attendance();
+        attendance.setEmployeeId(request.getEmployeeId());
+        attendance.setAttendanceTypeId(request.getAttendanceTypeId());
+        attendance.setAttendanceStatus(AttendanceStatusEnum.OFFLINE);
+        attendance.setLatitude("00.0000");
+        attendance.setLongitude("00.0000");
+        attendance.setCheckInTime(request.getCheckInTime());
+        attendance.setCheckOutTime(request.getCheckOutTime());
+        attendance.setFilePath(null);
+        attendance.setAdminModified(true);
+        attendance.setAdminRemarks(request.getRemarks().isBlank() ? null : request.getRemarks());
+        attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
+        attendanceRepository.save(attendance);
+        return null;
     }
 
     private String saveFile(MultipartFile file, String folder) {
@@ -698,7 +749,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         return totalWorkMin;
     }
 
-    @Scheduled(cron = "0 0 6 * * ?", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 0 6 * * ?", zone = "Asia/Kolkata") // Everyday 6 AM
     @Transactional
     public void autoCheckOutScheduler() {
         log.info("Starting automated checkout scheduler for missing checkouts ...");
@@ -739,10 +790,63 @@ public class AttendanceServiceImpl implements AttendanceService {
         log.info("Automated checkout scheduler completed. Processed {} records.", missingCheckOuts.size());
     }
 
-    @Scheduled(cron = "0 15 6 * * ?", zone = "Asia/Kolkata")
+    // Runs every day at 9:00 PM Asia/Kolkata time
+    @Scheduled(cron = "0 0 21 * * ?", zone = "Asia/Kolkata")
     @Transactional
     public void autoAttendanceUpdateScheduler() {
+        log.info("Starting distributed auto Attendance update scheduler at 9 PM...");
 
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59, 999999999);
+
+        try {
+            ApiResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
+
+            if (apiResponse.getData() == null || apiResponse.getData().getEmployeeIds().isEmpty()) {
+                log.warn("No active employees fetched from Employee Profile Service.");
+                return;
+            }
+
+            for (String employeeId : apiResponse.getData().getEmployeeIds()) {
+
+
+                boolean hasAttendanceRecord = attendanceRepository.existsByEmployeeIdAndCheckInTimeBetween(
+                        employeeId, startOfDay, endOfDay
+                );
+
+                boolean hasLeaveRecord = checkLeaveStatusFromService(employeeId, startOfDay.toLocalDate());
+
+                if (!hasAttendanceRecord && !hasLeaveRecord) {
+                    log.info("No record found. Inserting absent entry for Employee ID: {}", employeeId);
+
+                    Attendance absentRecord = new Attendance();
+                    absentRecord.setEmployeeId(employeeId);
+                    absentRecord.setCheckInTime(startOfDay);
+                    absentRecord.setCheckOutTime(startOfDay);
+                    absentRecord.setAttendanceTypeId(4L);
+                    absentRecord.setTotalWorkMin(0L);
+                    absentRecord.setAttendanceStatus(AttendanceStatusEnum.ABSENT);
+                    absentRecord.setAdminRemarks("Updated by scheduler");
+                    absentRecord.setLatitude("0");
+                    absentRecord.setLongitude("0");
+                    absentRecord.setFilePath(null);
+
+                    attendanceRepository.save(absentRecord);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error occurred during multi-service scheduler execution: ", e);
+        }
+    }
+
+    private boolean checkLeaveStatusFromService(String employeeId, LocalDate date) {
+        try {
+            return leaveClient.isEmployeeOnLeave(employeeId, date);
+        } catch (Exception e) {
+            log.error("Failed to fetch leave status for employee {}: {}", employeeId, e.getMessage());
+            // Fallback strategy: return true to avoid false-marking "absent" if Leave API drops
+            return true;
+        }
     }
 
 }

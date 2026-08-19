@@ -1,5 +1,6 @@
 package com.employee.AttendanceService.controller;
 
+import com.employee.AttendanceService.dto.request.AddEmpAttendanceRequest;
 import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
 import com.employee.AttendanceService.dto.request.EmployeeAttendanceRequest;
 import com.employee.AttendanceService.dto.response.*;
@@ -63,5 +64,10 @@ public class AttendanceController {
     @PostMapping("/employeeAttendance")
     public ResponseEntity<SingleResponse<?>> createEmployeeAttendance(@RequestBody EmployeeAttendanceRequest request, @RequestHeader("X-User-Role") String role){
         return ResponseEntity.status(200).body(attendanceService.createEmployeeAttendance(request, role));
+    }
+
+    @PostMapping("/addEmployeeAttendance")
+    public ResponseEntity<SingleResponse<?>> addEmployeeAttendance(@RequestBody AddEmpAttendanceRequest request){
+        return ResponseEntity.status(200).body(attendanceService.addEmployeeAttendance(request));
     }
 }

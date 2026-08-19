@@ -1,5 +1,6 @@
 package com.employee.AttendanceService.service;
 
+import com.employee.AttendanceService.dto.request.AddEmpAttendanceRequest;
 import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
 import com.employee.AttendanceService.dto.request.EmployeeAttendanceRequest;
 import com.employee.AttendanceService.dto.response.*;
@@ -22,4 +23,6 @@ public interface AttendanceService {
     public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request);
 
     SingleResponse<?> createEmployeeAttendance(EmployeeAttendanceRequest request, String role);
+
+    SingleResponse<?> addEmployeeAttendance(AddEmpAttendanceRequest request);
 }

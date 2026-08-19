@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum CustomStatus {
     UNKNOWN(-999,"Something went wrong"),
-// Highest -84
+// Highest -88
     // 200 Business Logic Failures
     INVALID_REQUEST_FORMAT(-105, "Invalid request format or Invalid body"),
     APPLICATION_DETAILS_NOT_FOUND(-84, "No application records found"),
@@ -52,9 +52,11 @@ public enum CustomStatus {
     INVALID_DATE_RANGE(-48, "The 'To Date' cannot be earlier than the 'From Date'."),
     LEAVE_ID_NOT_FOUND(-49, "Leave Id not found."),
     LEAVE_TYPE_NOT_FOUND(-50, "Leave type not found."),
-    UNAUTHORIZED_LEAVE_APPROVER(-51, "You are not authorized to approve leave."),
+    UNAUTHORIZED_LEAVE_APPROVER(-51, "You are not authorized to do this action."),
     LEAVE_ALREADY_PROCESSED(-52, "Leave has already been processed."),
-
+    EMPLOYEE_LEAVE_BALANCE_RECORD_NOT_FOUND(-85,"Employee leave balance record not found"),
+    LEAVE_ALREADY_STARTED(-86, "Leave has been already started"),
+    UNAUTHORISED_ACCESS(-87, "Unauthorised ownership to do this action"),
 
     // 206: Attendance & Office Failures
     OFFICE_INACTIVE(-3, "Office is inactive."),
@@ -67,6 +69,8 @@ public enum CustomStatus {
     ATTENDANCE_STATUS_NOT_FOUND(-16, "Attendance status not found."),
     INVALID_WORK_TYPE(-17, "Invalid work type."),
     ACTIVE_OFFICE_NOT_FOUND(-41, "No active office found."),
+    ATTENDANCE_RECORDS_FOUND(-88,"Attendance Records found"),
+    ATTENDANCE_RECORDS_EXISTS(-89, "Existing attendance records found"),
 
     // 207: Communications & Feedback Failures
     FEEDBACK_NOT_FOUND(-7, "Feedback not found."),
