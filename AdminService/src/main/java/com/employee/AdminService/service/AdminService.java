@@ -2,11 +2,7 @@ package com.employee.AdminService.service;
 
 import com.employee.AdminService.dto.request.*;
 import com.employee.AdminService.dto.response.*;
-import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -19,7 +15,7 @@ public interface AdminService {
 
     public SingleResponse<PageResponse<OfficeResponse>> getOfficeList(Pageable pageable);
 
-    public SingleResponse<?> updateOffice(OfficeRequest request);
+    public SingleResponse<?> updateOffice(UpdateOfficeRequest request);
 
     public SingleResponse<PageResponse<String>> getOfficeNames(Pageable pageable);
 
@@ -47,7 +43,7 @@ public interface AdminService {
 
     SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request);
 
-    SingleResponse<?> getWeeklyAttendanceLogs(String employeeId);
+    SingleResponse<?> getWeeklyAttendanceLogs(Long employeeId);
 
     SingleResponse<?> updateCheckoutRecordByEmpId(UpdateCheckOutRecordsRequest request);
 }

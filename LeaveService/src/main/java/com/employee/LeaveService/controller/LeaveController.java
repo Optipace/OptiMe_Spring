@@ -21,43 +21,44 @@ public class LeaveController {
     private final LeaveService leaveService;
 
     @PostMapping("/applyLeave")
-    public ResponseEntity<SingleResponse<?>> saveLeaveApplication(@RequestHeader("X-Employee-Id") String applicantEmployeeId,
+    public ResponseEntity<SingleResponse<?>> saveLeaveApplication(@RequestHeader("X-Id") String employeeId,
+                                                                  @RequestHeader("X-Employee-Id") String applicantEmployeeId,
                                                                   @Valid @RequestBody LeaveRequest request,
                                                                   @RequestHeader("X-Employee-Name") String applicantEmployeeName,
                                                                   @RequestHeader("X-Email-Id")String applicantEmailId){
-        SingleResponse<?> response = leaveService.saveLeaveApplication(request, applicantEmployeeId, applicantEmployeeName, applicantEmailId);
+        SingleResponse<?> response = leaveService.saveLeaveApplication(request, employeeId, applicantEmployeeId, applicantEmployeeName, applicantEmailId);
         return ResponseEntity.status(200).body(response);
     }
 
     @PutMapping("/approveLeave")
     public ResponseEntity<SingleResponse<?>> approveLeave(@Valid @RequestBody ApproveLeaveRequest request,
-                                                          @RequestHeader("X-Employee-Id") String authorityEmployeeId){
-        SingleResponse<?> response = leaveService.approveLeave(request, authorityEmployeeId);
+                                                          @RequestHeader("X-Id") String authorityId){
+        SingleResponse<?> response = leaveService.approveLeave(request, authorityId);
         return ResponseEntity.status(200).body(response);
     }
 
     @PutMapping("/rejectLeave")
     public ResponseEntity<SingleResponse<?>> rejectLeave(@Valid @RequestBody RejectLeaveRequest request,
-                                                         @RequestHeader("X-Employee-Id") String authorityEmployeeId){
-        SingleResponse<?> response = leaveService.rejectLeave(request, authorityEmployeeId);
+                                                         @RequestHeader("X-Id") String authorityId){
+        SingleResponse<?> response = leaveService.rejectLeave(request, authorityId);
         return ResponseEntity.status(200).body(response);
     }
 
     @GetMapping("/myAppliedLeaves")
-    public ResponseEntity<SingleResponse<?>> getMyAppliedLeaves(@RequestHeader("X-Employee-Id")String employeeId){
+    public ResponseEntity<SingleResponse<?>> getMyAppliedLeaves(@RequestHeader("X-Id")String employeeId){
         SingleResponse<?> response = leaveService.getMyAppliedLeaves(employeeId);
         return ResponseEntity.status(200).body(response);
     }
 
     @PutMapping("/cancelMyLeave")
     public ResponseEntity<SingleResponse<?>> cancelMyLeave(@RequestBody CancelMyLeaveRequest request,
-                                                           @RequestHeader("X-Employee-Id") String employeeId){
+                                                           @RequestHeader("X-Id") String employeeId){
         SingleResponse<?> response = leaveService.cancelMyLeave(request,employeeId);
         return ResponseEntity.status(200).body(response);
     }
 
     @GetMapping("/getAppliedLeavesForMe")
-    public ResponseEntity<SingleResponse<?>> getAppliedLeavesForMe(@RequestHeader("X-Employee-Id") String employeeId){
+    public ResponseEntity<SingleResponse<?>> getAppliedLeavesForMe(@RequestHeader("X-Id") String employeeId){
         return ResponseEntity.status(200).body(leaveService.getAppliedLeavesForMe(employeeId));
     }
 

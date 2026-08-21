@@ -17,8 +17,8 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class LeaveRequest {
 
-    @NotBlank(message = "Authority employee Id is mandatory")
-    private String authorityEmployeeId;
+    @NotNull(message = "Authority employee Id is mandatory")
+    private Long authorityEmployeeId;
 
     @NotNull(message = "From Date is required")
     @FutureOrPresent(message = "From Date must be today or future date")

@@ -2,6 +2,7 @@ package com.employee.CommunicationService.controller;
 
 import com.employee.CommunicationService.dto.request.*;
 import com.employee.CommunicationService.dto.response.ApiResponse;
+import com.employee.CommunicationService.dto.response.SingleResponse;
 import com.employee.CommunicationService.service.CommunicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,17 +22,17 @@ public class EmailInternalController {
     }
 
     @PostMapping("/sendNewOtpToEmail")
-    public ApiResponse<String> sendNewOtpToEmail(@RequestParam("emailId") String emailId, @RequestParam("otp") String otp, @RequestParam("expiryMinutes") Long otpExpiryMinutes){
+    public SingleResponse<String> sendNewOtpToEmail(@RequestParam("emailId") String emailId, @RequestParam("otp") String otp, @RequestParam("expiryMinutes") Long otpExpiryMinutes){
         return communicationService.sendNewOtpToEmail(emailId, otp, otpExpiryMinutes);
     }
 
     @PostMapping("/sendCompletedRegistrationEmail")
-    public ApiResponse<String> sendCompletedRegistrationEmail(@RequestParam("emailId") String emailId){
+    public SingleResponse<String> sendCompletedRegistrationEmail(@RequestParam("emailId") String emailId){
         return communicationService.sendCompletedRegistrationEmail(emailId);
     }
 
     @PostMapping("/sendLeaveEmail")
-    public ApiResponse<String> sendLeaveEmail(@RequestBody LeaveEmailRequest request){
+    public SingleResponse<String> sendLeaveEmail(@RequestBody LeaveEmailRequest request){
         return communicationService.sendLeaveEmail(request);
     }
 

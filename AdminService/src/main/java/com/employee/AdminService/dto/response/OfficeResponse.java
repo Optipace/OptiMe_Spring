@@ -10,12 +10,14 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OfficeResponse {
+    private Long id;
     private String OfficeId;
     private String officeName;
     private String latitude;
     private String longitude;
-    private String hr;
+    private Long hr;
     private String address;
     private String contact;
     private String googleMap;
+    private String groupLinks;
 }

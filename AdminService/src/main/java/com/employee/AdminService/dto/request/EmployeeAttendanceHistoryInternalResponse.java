@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class EmployeeAttendanceHistoryInternalResponse {
 
     private Long id;
-    private String employeeId;
+    private Long employeeId;
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
     private String attendanceStatus;

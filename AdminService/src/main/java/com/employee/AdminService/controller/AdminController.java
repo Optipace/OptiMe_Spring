@@ -24,7 +24,7 @@ public class AdminController {
     @PostMapping("/addUser")
     public ResponseEntity<SingleResponse<?>> addNewUser(
             @Valid @RequestBody RegisterRequest request,
-            @RequestHeader("X-Employee-Id") String adminEmployeeId) { // Supplied by API Gateway!
+            @RequestHeader("X-User-Id") String adminEmployeeId) { // Supplied by API Gateway!
 
         SingleResponse<?> response = adminService.addNewUser(request, adminEmployeeId);
 
@@ -52,7 +52,7 @@ public class AdminController {
     }
 
     @PatchMapping("/updateOffice")
-    public ResponseEntity<SingleResponse<?>> updateOffice(@RequestBody OfficeRequest request){
+    public ResponseEntity<SingleResponse<?>> updateOffice(@RequestBody UpdateOfficeRequest request){
         SingleResponse<?> response = adminService.updateOffice(request);
         return ResponseEntity.status(200).body(response);
     }
@@ -115,14 +115,14 @@ public class AdminController {
 
     @PutMapping("/approveLeave")
     public ResponseEntity<SingleResponse<?>> approveLeave(@Valid @RequestBody ApproveLeaveRequest request,
-                                                          @RequestHeader("X-Employee-Id") String authorityEmployeeId){
+                                                          @RequestHeader("X-Id") String authorityEmployeeId){
         SingleResponse<?> response = adminService.approveLeave(request, authorityEmployeeId);
         return ResponseEntity.status(200).body(response);
     }
 
     @PutMapping("/rejectLeave")
     public ResponseEntity<SingleResponse<?>> rejectLeave(@Valid @RequestBody RejectLeaveRequest request,
-                                                         @RequestHeader("X-Employee-Id") String authorityEmployeeId){
+                                                         @RequestHeader("X-Id") String authorityEmployeeId){
         SingleResponse<?> response = adminService.rejectLeave(request, authorityEmployeeId);
         return ResponseEntity.status(200).body(response);
     }
@@ -141,7 +141,7 @@ public class AdminController {
     }
 
     @GetMapping("/getWeeklyAttendanceLogs")
-    public ResponseEntity<SingleResponse<?>> getWeeklyAttendanceLogs(@RequestParam String employeeId){
+    public ResponseEntity<SingleResponse<?>> getWeeklyAttendanceLogs(@RequestParam Long employeeId){
         SingleResponse<?> response = adminService.getWeeklyAttendanceLogs(employeeId);
         return ResponseEntity.status(200).body(response);
     }

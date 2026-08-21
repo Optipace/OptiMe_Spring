@@ -34,9 +34,9 @@ public class Attendance {
     @Column(name = "attendance_status", nullable = false)
     private AttendanceStatusEnum attendanceStatus;
 
-    @NotBlank
+    @NotNull
     @Column(name = "employee_id",nullable = false, length = 12)
-    private String employeeId;
+    private Long employeeId;
 
     @NotBlank(message = "Provide latitude")
     @Column(nullable = false, length = 13)

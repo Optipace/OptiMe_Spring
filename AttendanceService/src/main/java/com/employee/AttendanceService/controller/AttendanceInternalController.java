@@ -21,24 +21,24 @@ public class AttendanceInternalController {
     private final AttendanceInternalService internalService;
 
     @GetMapping("/getAttendanceStatus")
-    public ResponseEntity<ApiResponse<?>> getAttendanceStatus(@RequestParam String employeeId){
-        ApiResponse<?> response = internalService.getAttendanceStatus(employeeId);
+    public ResponseEntity<SingleResponse<?>> getAttendanceStatus(@RequestParam Long employeeId){
+        SingleResponse<?> response = internalService.getAttendanceStatus(employeeId);
         return ResponseEntity.status(200).body(response);
     }
 
     @GetMapping("/getTodayAttendanceRecords")
-    public ResponseEntity<ApiResponse<?>> getTodayAttendanceRecords(){
-        ApiResponse<?> response = internalService.getTodayAttendanceRecords();
+    public ResponseEntity<SingleResponse<?>> getTodayAttendanceRecords(){
+        SingleResponse<?> response = internalService.getTodayAttendanceRecords();
         return ResponseEntity.status(200).body(response);
     }
 
     @PostMapping("/getDateWiseAttendanceRecords")
-    public ApiResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(@Valid @RequestBody DateWiseAttendanceRequest request){
+    public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(@Valid @RequestBody DateWiseAttendanceRequest request){
         return internalService.getDateWiseAttendanceRecords(request);
     }
 
     @GetMapping("/getWeeklyAttendanceLogs")
-    public ResponseEntity<SingleResponse<WeeklyAttendanceLogsOfEmployeeRes>> getWeeklyAttendanceLogs(@RequestParam String employeeId){
+    public ResponseEntity<SingleResponse<WeeklyAttendanceLogsOfEmployeeRes>> getWeeklyAttendanceLogs(@RequestParam Long employeeId){
         SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> response = internalService.getWeeklyAttendanceLogs(employeeId);
         return ResponseEntity.status(200).body(response);
     }

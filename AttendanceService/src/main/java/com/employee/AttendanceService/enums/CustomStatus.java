@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum CustomStatus {
     UNKNOWN(-999,"Something went wrong"),
-// Highest -88
+// Highest -90
     // 200 Business Logic Failures
     INVALID_REQUEST_FORMAT(-105, "Invalid request format or Invalid body"),
     APPLICATION_DETAILS_NOT_FOUND(-84, "No application records found"),
@@ -42,6 +42,7 @@ public enum CustomStatus {
     EMPLOYEE_PROFILE_ALREADY_EXISTS(-37, "Employee profile already exists."),
     EMPLOYEE_PROFILE_NOT_FOUND(-40, "Employee profile not found."),
     PROFILE_ALREADY_COMPLETED(-44, "Profile is already completed."),
+    DESIGNATION_NOT_FOUND(-90, "Provide designation not found in the database"),
 
     // 203: Leave Management Failures
     DUPLICATE_LEAVE_APPLICATION(-80, "You have already applied for leave during this date range."),
@@ -125,4 +126,14 @@ public enum CustomStatus {
 
     private final int code;
     private final String message;
+
+    public static CustomStatus fromCode(int code) {
+        for (CustomStatus status : CustomStatus.values()) {
+            if (status.getCode() == code) {
+                return status;
+            }
+        }
+        // Fallback if the downstream code isn't explicitly defined in this gateway service enum
+        return CustomStatus.MICROSERVICE_CALL_FAILED;
+    }
 }

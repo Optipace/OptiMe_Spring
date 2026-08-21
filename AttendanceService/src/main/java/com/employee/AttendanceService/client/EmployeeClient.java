@@ -3,6 +3,7 @@ package com.employee.AttendanceService.client;
 import com.employee.AttendanceService.dto.request.UpdateEmployeeStatusPayload;
 import com.employee.AttendanceService.dto.response.ApiResponse;
 import com.employee.AttendanceService.dto.response.ListOfEmployeeIdResponse;
+import com.employee.AttendanceService.dto.response.SingleResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,8 +21,8 @@ public interface EmployeeClient {
     boolean checkWorkTypeIdExists(@RequestParam("workTypeId")Long workTypeId);
 
     @GetMapping("/api/employee/internal/getAllEmployeeId")
-    ApiResponse<ListOfEmployeeIdResponse> getAllEmployeeId();
+    SingleResponse<ListOfEmployeeIdResponse> getAllEmployeeId();
 
     @GetMapping("/api/employee/internal/getEmployeeName")
-    ApiResponse<?> getEmployeeName(@RequestParam("employeeId") String employeeId);
+    SingleResponse<?> getEmployeeName(@RequestParam("employeeId") Long employeeId);
 }

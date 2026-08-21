@@ -1,7 +1,13 @@
 package com.employee.AuthService.service.impl;
 
+import com.employee.AuthService.client.EmployeeClient;
 import com.employee.AuthService.dto.request.AuthIdentityRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
+import com.employee.AuthService.dto.response.EmployeeResponse;
+import com.employee.AuthService.dto.response.NewUserResponse;
+import com.employee.AuthService.dto.response.SingleResponse;
+import com.employee.AuthService.enums.CustomStatus;
+import com.employee.AuthService.enums.RoleEnum;
 import com.employee.AuthService.enums.UserStatusEnum;
 import com.employee.AuthService.exception.CustomException;
 import com.employee.AuthService.model.User;
@@ -22,15 +28,23 @@ public class InternalServiceImpl implements InternalService {
 
     private final UserRepository userRepository;
 
+    private final EmployeeClient employeeClient;
+
     @Override
-    public ApiResponse<?> createIdentity(AuthIdentityRequest request) {
+    public SingleResponse<NewUserResponse> createIdentity(AuthIdentityRequest request) {
 
-        User user = userRepository.findByEmployeeId(request.getCreatedBy())
-                .orElseThrow(() -> new CustomException("Admin ID not found", HttpStatus.NOT_FOUND));
+        log.info("The creater Id is {}",request.getCreatedBy());
 
+//        User user = userRepository.findByEmployeeId(request.getCreatedBy())
+//                .orElseThrow(() -> new CustomException("Admin ID not found", HttpStatus.NOT_FOUND));
+        User user = userRepository.findById(request.getCreatedBy())
+                .orElseThrow(() -> new CustomException(null, CustomStatus.ADMIN_NOT_FOUND, 404));
 
+        if(!user.getRole().equals(RoleEnum.ADMIN)){
+            throw new CustomException(null, CustomStatus.UNAUTHORISED_ACCESS, 401);
+        }
         if(userRepository.findByEmployeeId(request.getEmployeeId()).isPresent()){
-            throw new CustomException("Employee ID already exists", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.EMPLOYEE_ID_ALREADY_EXISTS, 400);
         }
 
         User newUser = new User();
@@ -43,14 +57,13 @@ public class InternalServiceImpl implements InternalService {
         newUser.setCreatedOn(LocalDateTime.now());
         newUser.setCreatedBy(request.getCreatedBy());
         newUser.setUserStatus(UserStatusEnum.INACTIVE);
-        userRepository.save(newUser);
+        newUser = userRepository.save(newUser);
 
-        return new ApiResponse<>(
-                true,
-                "Identity created successfully",
-                null,
-                LocalDateTime.now(),
-                200
+        NewUserResponse newUserResponse = new NewUserResponse(newUser.getId());
+
+        return new SingleResponse<>(
+                newUserResponse,
+                CustomStatus.SUCCESS
         );
     }
 

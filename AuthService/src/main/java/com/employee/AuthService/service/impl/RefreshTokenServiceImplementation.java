@@ -1,5 +1,6 @@
 package com.employee.AuthService.service.impl;
 
+import com.employee.AuthService.client.EmployeeClient;
 import com.employee.AuthService.dto.request.RefreshTokenRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
 import com.employee.AuthService.dto.response.SingleResponse;
@@ -28,8 +29,9 @@ public class RefreshTokenServiceImplementation implements RefreshTokenService {
 
     private final JwtUtil jwtUtil;
 
+    private final EmployeeClient employeeClient;
     @Transactional // Ensures clean dirty-checking and state synchronization
-    public String create(User user) {
+    public String create(User user, Long employeeId) {
         // Look up existing token for this user
         RefreshToken token = refreshTokenRepository.findByUser(user).orElse(null);
 
@@ -41,6 +43,7 @@ public class RefreshTokenServiceImplementation implements RefreshTokenService {
             // Create a brand new token profile
             token = new RefreshToken();
             token.setUser(user);
+            token.setEmployeeId(employeeId);
             token.setToken(UUID.randomUUID().toString());
 //            token.setExpiryDate(LocalDateTime.now().plusDays(7));
         }
@@ -53,12 +56,13 @@ public class RefreshTokenServiceImplementation implements RefreshTokenService {
     public SingleResponse<?> getNewAccessToken(RefreshTokenRequest request) {
         var token = validate(request.getRefreshToken());
 
-        String newAccessToken =  jwtUtil.generateToken(
+        String newAccessToken = jwtUtil.generateToken(
                 token.getUser().getUserName(),
-                token.getUser().getContact(),
+                token.getUser().getId().toString(),
                 token.getUser().getEmailId(),
                 token.getUser().getEmployeeId(),
-                String.valueOf(token.getUser().getRole())
+                String.valueOf(token.getUser().getRole()),
+                token.getEmployeeId().toString()
         );
         return new SingleResponse<>(
                 newAccessToken,

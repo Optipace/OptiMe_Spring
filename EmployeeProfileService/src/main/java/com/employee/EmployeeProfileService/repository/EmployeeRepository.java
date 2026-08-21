@@ -14,14 +14,17 @@ import java.util.Optional;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+    @Query("SELECT e FROM Employee e WHERE e.userId = :employeeId")
+    Optional<Employee> findEmployeeByUserId(@Param("employeeId") Long employeeId);
+
     @Query("SELECT e FROM Employee e WHERE e.employeeId = :employeeId")
     Optional<Employee> findEmployeeByEmployeeId(@Param("employeeId") String employeeId);
 
-    boolean existsByEmployeeId(String employeeId);
+    boolean existsByEmployeeId(Long employeeId);
 
 //    @Query("SELECT e.employeeId FROM Employee e WHERE e.accountStatus = 'ACTIVE'") // <- can use this or next
-    @Query("SELECT e.employeeId FROM Employee e WHERE e.profileStatus >= 6 AND e.role NOT IN('ADMIN')")
-    List<String> findActiveEmployeeIds();
+    @Query("SELECT e.id FROM Employee e WHERE e.profileStatus >= 6 AND e.role NOT IN('ADMIN')")
+    List<Long> findActiveEmployeeIds();
 
 
     // 1. Fetch with pagination support (Recommended for your Pageable controllers)

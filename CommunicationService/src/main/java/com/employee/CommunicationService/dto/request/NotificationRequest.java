@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class NotificationRequest {
-    private String employeeId; // Who receives this?
+    private Long employeeId; // Who receives this?
     private String topic; // ex: "New employee created"
     private String message; // ex: "OPTI001 has successfully registered
     private String type; // ex: "INFO" , "ALERT" , "SUCCESS"

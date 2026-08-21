@@ -2,6 +2,7 @@ package com.employee.AdminService.dto.request;
 
 import com.employee.AdminService.enums.OfficeStatus;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -26,8 +27,8 @@ public class AddNewOfficeRequest {
     @NotBlank(message = "Longitude cannot be blank")
     private String longitude;
 
-    @NotBlank(message = "HR Emp Id cannot be blank")
-    private String hrEmpId;
+    @NotNull(message = "HR Emp Id cannot be blank")
+    private Long hrEmpId;
 
     @NotBlank(message = "Office Address cannot be blank")
     private String address;
@@ -39,5 +40,7 @@ public class AddNewOfficeRequest {
 
     @NotBlank(message = "Google map link cannot be blank")
     private String googleMap;
+
+    private String groupLink;
 
 }

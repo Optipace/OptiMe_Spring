@@ -19,20 +19,20 @@ public interface EmployeeClient {
     void deleteIdentity(@RequestParam("employeeId") String employeeId);
 
     @GetMapping("/api/employee/internal/getFeedback")
-    ApiResponse<List<FeedbackResponse>> getFeedback();
+    SingleResponse<List<FeedbackResponse>> getFeedback();
 
     @PutMapping("/api/employee/internal/updateFeedback")
-    ApiResponse<?> updateFeedback(@RequestBody FeedbackUpdateRequest request);
+    SingleResponse<?> updateFeedback(@RequestBody FeedbackUpdateRequest request);
 
     @GetMapping("/api/employee/internal/getMasterDetails")
-    ApiResponse<MasterEmployeeResponse> getMasterDetails();
+    SingleResponse<MasterEmployeeResponse> getMasterDetails();
 
     @GetMapping("/api/employee/internal/getAllEmployee")
-    ApiResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable);
+    SingleResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable);
 
     @GetMapping("/api/employee/internal/isHrEmpId")
-    boolean isHrEmployeeId(@RequestParam("employeeId")String hrEmpId);
+    boolean isHrEmployeeId(@RequestParam("employeeId")Long hrEmpId);
 
     @GetMapping("/api/employee/internal/getAllAdmin")
-    ApiResponse<PageResponse<ListOfAdminResponse>> getAllAdmin(Pageable pageable);
+    SingleResponse<PageResponse<ListOfAdminResponse>> getAllAdmin(Pageable pageable);
 }

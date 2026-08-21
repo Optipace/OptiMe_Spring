@@ -1,6 +1,8 @@
 package com.employee.CommunicationService.serviceImpl;
 
 import com.employee.CommunicationService.dto.response.ApiResponse;
+import com.employee.CommunicationService.dto.response.SingleResponse;
+import com.employee.CommunicationService.enums.CustomStatus;
 import com.employee.CommunicationService.service.EmailService;
 import jakarta.mail.internet.MimeMessage;
 import lombok.AllArgsConstructor;
@@ -20,7 +22,7 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
 
     @Override
-    public ApiResponse<String> sendHtmlEmail(String to, String subject, String body) {
+    public SingleResponse<String> sendHtmlEmail(String to, String subject, String body) {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
 
         try{
@@ -60,21 +62,15 @@ public class EmailServiceImpl implements EmailService {
 
             mailSender.send(mimeMessage);
             log.info("Email sent successfully to {}",to);
-            return new ApiResponse<>(
-                    true,
-                    "Email sent successfully to "+to,
+            return new SingleResponse<>(
                     null,
-                    LocalDateTime.now(),
-                    200
+                    CustomStatus.SUCCESS
             );
         } catch (Exception e){
             log.error("Email sending failed ",e);
-            return new ApiResponse<>(
-                    false,
-                    "Email sending failed",
+            return new SingleResponse<>(
                     null,
-                    LocalDateTime.now(),
-                    500
+                    CustomStatus.SUCCESS
             );
         }
     }

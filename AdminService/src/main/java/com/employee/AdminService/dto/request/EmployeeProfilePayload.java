@@ -20,8 +20,9 @@ public class EmployeeProfilePayload {
     private RoleEnum role;
     private GenderEnum gender;
     private Long workTypeId;
-    private String officeId;
+    private Long officeId;
     private LocalDate dateOfBirth;
     private LocalDate dateOfJoining;
     private String permanentAddress;
+    private Long userId;
 }

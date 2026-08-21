@@ -10,7 +10,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class NotificationPayload {
-    private String employeeId;
+    private Long employeeId;
     private String title;
     private String message;
     private String type;

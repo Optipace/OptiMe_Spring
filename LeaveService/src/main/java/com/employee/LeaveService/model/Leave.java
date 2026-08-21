@@ -3,6 +3,7 @@ package com.employee.LeaveService.model;
 import com.employee.LeaveService.enums.LeaveStatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -39,22 +40,22 @@ public class Leave {
     private Integer wantedLeaves;
 
     @Column(name = "approved_by", length = 20)
-    private String approvedBy;
+    private Long approvedBy;
 
     @Column(nullable = false, length = 20)
-    private String approverEmpId;
+    private Long approverEmpId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "leave_status", nullable = false)
     private LeaveStatusEnum leaveStatus = LeaveStatusEnum.PENDING;
 
-    @NotBlank(message = "Provide employee Id")
+    @NotNull(message = "Provide employee Id")
     @Column(name = "applicant_employee_id", nullable = false, length = 20)
-    private String applicantEmployeeId;
+    private Long applicantEmployeeId;
 
-    @NotBlank(message = "Employee name required")
-    @Column(name = "applicant_employee_name", nullable = false, length = 50)
-    private String applicantEmployeeName;
+//    @NotBlank(message = "Employee name required")
+//    @Column(name = "applicant_employee_name", nullable = false, length = 50)
+//    private String applicantEmployeeName;
 
     @ManyToOne
     @JoinColumn(name = "leave_type_id", nullable = false)

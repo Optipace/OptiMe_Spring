@@ -13,4 +13,5 @@ public class CompleteProfileRequest {
     private String currentAddress;
     private String emergencyContact;
     private String bloodGroup;
+    private Long userId;
 }

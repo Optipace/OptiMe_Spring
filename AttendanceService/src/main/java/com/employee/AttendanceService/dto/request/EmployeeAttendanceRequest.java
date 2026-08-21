@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Setter
 public class EmployeeAttendanceRequest {
     private Long id;
-    private String employeeId;
+    private Long employeeId;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime checkInTime;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

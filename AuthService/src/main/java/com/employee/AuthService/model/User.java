@@ -2,10 +2,7 @@ package com.employee.AuthService.model;
 
 import com.employee.AuthService.enums.*;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.*;
 import org.hibernate.generator.EventType;
 
@@ -47,7 +44,7 @@ public class User {
     private String personalEmail;
 
     @Pattern(regexp = "^[6-9]\\d{9}$", message = "Contact must be a valid 10-digit number")
-    @Column(name = "contact", nullable = false, unique = true, length = 10)
+    @Column(name = "contact", nullable = false, length = 10) // TODO unique constraint (unique=true) is removed need to be checked in the service layer based on role
     private String contact;
 
     @Enumerated(EnumType.STRING)
@@ -62,9 +59,9 @@ public class User {
     @Column(length = 10)
     private RoleEnum role = RoleEnum.EMP;
 
-    @NotBlank(message = "Creator information is mandatory")
+    @NotNull(message = "Creator information is mandatory")
     @Column(name = "created_by", nullable = false, updatable = false)
-    private String createdBy;
+    private Long createdBy;
 
     @Column(name = "created_on",insertable = false, nullable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     @org.hibernate.annotations.Generated(event = EventType.INSERT)

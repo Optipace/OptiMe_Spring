@@ -54,13 +54,13 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     private final AttendanceClient attendanceClient;
 
     @Override
-    public ApiResponse<?> createProfile(EmployeeProfileRequest request) {
+    public SingleResponse<?> createProfile(EmployeeProfileRequest request) {
 
         EmployeeDesignation designation = designationRepository.findById(request.getDesignationId())
-                .orElseThrow(() -> new CustomException("No such designation found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("No such designation found", CustomStatus.DESIGNATION_NOT_FOUND, 404));
 
         WorkType workType = workTypeRepository.findById(request.getWorkTypeId())
-                .orElseThrow(() -> new CustomException("No such work type found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("No such work type found", CustomStatus.INVALID_WORK_TYPE, 404));
 
         Employee newEmployee =  new Employee();
         newEmployee.setEmployeeId(request.getEmployeeId());
@@ -81,30 +81,28 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         newEmployee.setDateOfJoining(request.getDateOfJoining());
         newEmployee.setPermanentAddress(request.getPermanentAddress());
         newEmployee.setOfficeId(request.getOfficeId());
-        EmployeeStatus status = employeeStatusRepository.findById(5L)
-                        .orElseThrow(() -> new CustomException("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR));
+        newEmployee.setUserId(request.getUserId());
+        EmployeeStatus status = employeeStatusRepository.findByStatus("NEW JOINEE")
+                        .orElseThrow(() -> new CustomException("Failed to update status", CustomStatus.EMPLOYEE_STATUS_UPDATE_FAILED, 409));
         newEmployee.setStatus(status);
 
         employeeRepository.save(newEmployee);
-        return new ApiResponse<>(
-                true,
-                "Employee profile created",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> completeProfile(CompleteProfileRequest request) {
+    public SingleResponse<?> completeProfile(CompleteProfileRequest request) {
 
-        Employee employee = employeeRepository.findEmployeeByEmployeeId(request.getEmployeeId())
-                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+        Employee employee = employeeRepository.findEmployeeByUserId(request.getUserId())
+                .orElseThrow(() -> new CustomException("Employee not found",CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
 
         int currentStatus = employee.getProfileStatus();
 
         if(currentStatus == 6 || currentStatus == 7){
-            throw new CustomException("Profile already completed please login", HttpStatus.BAD_REQUEST);
+            throw new CustomException("Profile already completed please login", CustomStatus.PROFILE_ALREADY_COMPLETED, 400);
         }
         employee.setCurrentAddress(request.getCurrentAddress());
         employee.setEmergencyContact(request.getEmergencyContact());
@@ -115,27 +113,41 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         employee.setAccountStatus(AccountStatus.ACTIVE);
         employeeRepository.save(employee);
 
-        return new ApiResponse<>(
-                true,
-                "Employee saved successfully",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<EmployeeProfileResponse> getProfile(String employeeId) {
+    public SingleResponse<Long> getEmployeeByUserId(Long userId) {
+        Employee employee = employeeRepository.findEmployeeByUserId(userId)
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
+
+        return new SingleResponse<>(
+                employee.getId(),
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<EmployeeGetProfileResponse> getProfile(String employeeId) {
         Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException("Employee not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException("Employee not found", CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
 
 
-        EmployeeProfileResponse response = modelMapper.map(employee,EmployeeProfileResponse.class);
+        EmployeeGetProfileResponse response = modelMapper.map(employee,EmployeeGetProfileResponse.class);
         response.setWorkType(employee.getWorkType().getName());
+        response.setId(employee.getId());
+        response.setEmployeeId(employee.getEmployeeId());
+        if(employee.getRole() != null){
+            response.setRole(employee.getRole().toString());
+        }
+
         try {
 
             log.info("Calling Admin service for office response");
-            ApiResponse<OfficeResponse> officeApiResponse = adminClient.getOfficeDetails(employee.getOfficeId());
+            SingleResponse<OfficeResponse> officeApiResponse = adminClient.getOfficeDetails(employee.getOfficeId());
             log.info("Received response from Admin service");
 
             if(officeApiResponse.getData() != null){
@@ -146,44 +158,44 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
-            String cleanErrorMessage = "Microservice called failed";
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").asString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
-            // Resolve status code safely.
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (e.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(e.status());
-                    System.out.println(responseStatus);
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE ,responseStatus.value());
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
-        return new ApiResponse<>(
-                true,
-                "Employee details",
+        return new SingleResponse<>(
                 response,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> getMasterDetails(){
+    public SingleResponse<?> getMasterDetails(){
 
         List<EmployeeDesignation> employeeDesignationList = designationRepository.findAll();
         List<RoleEnum> roleEnumList = List.of(RoleEnum.values());
@@ -207,44 +219,40 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
         MasterEmployeeResponse masterEmployeeResponse = new MasterEmployeeResponse(employeeDesignationResponseList, roleEnumList, workTypeResponseList, employeeStatusResponseList);
 
-        return new ApiResponse<>(
-                true,
-                "Master Response",
+        return new SingleResponse<>(
                 masterEmployeeResponse,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public boolean checkEmployeeByEmployeeId(String employeeId) {
-        return employeeRepository.existsByEmployeeId(employeeId);
+    public boolean checkEmployeeByEmployeeId(Long employeeId) {
+        return employeeRepository.existsById(employeeId);
     }
 
     @Override
-    public ApiResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request) {
-        Employee employee = employeeRepository.findEmployeeByEmployeeId(request.getEmployeeId())
-                .orElseThrow(() -> new CustomException("Employee-Id not found", HttpStatus.NOT_FOUND));
+    public SingleResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request) {
+        Employee employee = employeeRepository.findEmployeeByUserId(request.getEmployeeId())
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
 
         employee.setAccountStatus(request.getAccountStatus());
         employeeRepository.save(employee);
-        return new ApiResponse<>(
-                true,
-                "Employee status updated",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<EmployeeInternalResponse> getEmployeeByEmployeeId(String employeeId) {
-        Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException("Employee id not found", HttpStatus.NOT_FOUND));
+    public SingleResponse<EmployeeInternalResponse> getEmployeeById(Long employeeId) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
 
         EmployeeInternalResponse response = modelMapper.map(employee, EmployeeInternalResponse.class);
+        response.setId(employee.getId());
         response.setEmployeeDesignation(employee.getDesignation().getDesignation());
         response.setEmployeeStatus(employee.getStatus().getStatus());
+        response.setEmployeeId(employee.getEmployeeId());
 //        String designation = employee.getDesignation().getDesignation().toUpperCase();
 //        boolean canApproveLeave = designation.contains("MANAGER") || designation.contains("HR") ||
 //                designation.contains("PROJECT_MANAGER") || designation.contains("TEAM LEADER") || designation.contains("CEO") ||
@@ -255,59 +263,47 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
         response.setCanApproveLeave(canApproveLeave);
 
-        return new ApiResponse<>(
-                true,
-                "Employee details",
+        return new SingleResponse<>(
                 response,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> deleteIdentity(String employeeId) {
+    public SingleResponse<?> deleteIdentity(String employeeId) {
         employeeRepository.findEmployeeByEmployeeId(employeeId).ifPresent( employee -> {
             log.info("Rollback executed: Employee {} deleted.", employeeId);
             employeeRepository.delete(employee);
         });
-        return new ApiResponse<>(
-                true,
-                "Employee identity rollback processed",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<List<FeedbackResponse>> getFeedback() {
+    public SingleResponse<List<FeedbackResponse>> getFeedback() {
         List<Feedback> feedbackList = feedbackRepository.findAll();
 
         List<FeedbackResponse> feedbackResponses = feedbackList.stream()
                 .map(f -> modelMapper.map(f, FeedbackResponse.class))
                 .toList();
-        return new ApiResponse<>(
-                true,
-                "Feedback List",
+        return new SingleResponse<>(
                 feedbackResponses,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request) {
+    public SingleResponse<?> updateFeedback(FeedbackUpdateRequest request) {
         Feedback feedback = feedbackRepository.findById(request.getFeedbackId())
-                .orElseThrow(() -> new CustomException("Respected Feedback Id not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.FEEDBACK_NOT_FOUND, 404));
 
         feedback.setStatusEnum(request.getFeedbackStatus());
         feedbackRepository.save(feedback);
-        return new ApiResponse<>(
-                true,
-                "Feedback Updated",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
@@ -317,7 +313,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     }
 
     @Override
-    public ApiResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable) {
+    public SingleResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable) {
         Pageable sortedPageable = pageable.getSort().isSorted() ? pageable :
                 PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
                         Sort.by(Sort.Order.asc("employeeName").nullsLast()));
@@ -326,7 +322,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         List<Employee> employeeList = employeePage.getContent();
 
         if(employeePage.isEmpty()){
-            throw new CustomException("Employee Records not found", HttpStatus.NOT_FOUND);
+            throw new CustomException("Employee Records not found", CustomStatus.EMPLOYEE_NOT_FOUND,404);
         }
 
 //        List<String> employeeIds = employeeList.stream()
@@ -343,8 +339,8 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 
         List<EmployeeResponse> employeeResponseList = employeeList.stream()
                 .map(employee -> {
-                    log.info("Attendance service is calling for employee {}",employee.getEmployeeId());
-                    ApiResponse<String> apiResponse = attendanceClient.getAttendanceStatus(employee.getEmployeeId()); // TODO Make ONE bulk network call to fetch all statuses at once
+                    log.info("Attendance service is calling for Id {} employee {}", employee.getId(), employee.getEmployeeId());
+                    SingleResponse<String> apiResponse = attendanceClient.getAttendanceStatus(employee.getId()); // TODO Make ONE bulk network call to fetch all statuses at once
                     log.info("Attendance service called");
 
                     String attendanceStatus = apiResponse.getData();
@@ -371,67 +367,74 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 employeePage.getTotalPages(),
                 employeePage.isLast()
         );
-        return new ApiResponse<>(
-                true,
-                "Employee List",
+        return new SingleResponse<>(
                 response,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<ListOfEmployeeIdResponse> getAllEmployeeId() {
-        List<String> employeeList = employeeRepository.findActiveEmployeeIds();
+    public SingleResponse<ListOfEmployeeIdResponse> getAllEmployeeId() {
+        List<Long> employeeList = employeeRepository.findActiveEmployeeIds();
         ListOfEmployeeIdResponse employeeIdResponse = new ListOfEmployeeIdResponse();
         employeeIdResponse.setEmployeeIds(employeeList);
-        return new ApiResponse<>(
-                true,
-                "List of Active employee Ids",
+        return new SingleResponse<>(
                 employeeIdResponse,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public boolean isHrEmployeeId(String hrEmpId) {
-        Optional<Employee> employeeOpt = employeeRepository.findEmployeeByEmployeeId(hrEmpId);
+    public boolean isHrEmployeeId(Long hrEmpId) {
+        Employee employee = employeeRepository.findById(hrEmpId)
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
 
-        if (employeeOpt.isEmpty()) {
-            log.info("The provided employee id {} not found", hrEmpId);
+        if (employee.getDesignation() == null || employee.getDesignation().getDesignation() == null) {
+            log.warn("The employee ID {} has no active designation assigned.", hrEmpId);
             return false;
         }
 
-        Employee employee = employeeOpt.get();
-        if (!employee.getDesignation().getDesignation().contains("HR")) {
-            log.info("The employee Id {} is not HR", hrEmpId);
+        boolean isHr = employee.getDesignation().getDesignation().toUpperCase().contains("HR");
+
+        if (!isHr) {
+            log.info("Authorization Rejected: The employee ID {} is not an HR member.", hrEmpId);
             return false;
-        } else {
-            log.info("The employee Id {} is HR", hrEmpId);
-            return true;
         }
+
+        log.info("Authorization Approved: The employee ID {} is verified as HR.", hrEmpId);
+        return true;
     }
 
     @Override
-    public ApiResponse<PageResponse<ListOfAdminResponse>> getAllAdminDetails(Pageable pageable) {
+    public SingleResponse<PageResponse<ListOfAdminInternalResponse>> getAllAdminDetails(Pageable pageable) {
         Page<Employee> adminPage = employeeRepository.findByRole(RoleEnum.ADMIN,pageable);
         List<Employee> adminList = adminPage.getContent();
 
         if(adminPage.isEmpty()){
-            throw new CustomException("Employee Records not found", HttpStatus.NOT_FOUND);
+            throw new CustomException("Employee Records not found", CustomStatus.EMPLOYEE_NOT_FOUND, 404);
         }
 
-        List<ListOfAdminResponse> adminResponseList = adminList.stream()
+        List<ListOfAdminInternalResponse> adminResponseList = adminList.stream()
                 .map(admin -> {
-                    ListOfAdminResponse response = modelMapper.map(admin, ListOfAdminResponse.class);
-                    response.setDesignationId(admin.getDesignation().getId());
+                    ListOfAdminInternalResponse response = new ListOfAdminInternalResponse();
+                    response.setEmployeeId(admin.getId());
+                    response.setContact(admin.getContact());
+                    response.setEmployeeName(admin.getEmployeeName());
+                    response.setEmailId(admin.getEmailId());
+                    response.setWorkTypeId(admin.getWorkType().getId());
+
+                    if (admin.getDesignation() != null) {
+                        response.setDesignationId(admin.getDesignation().getId());
+                    }
+                    if (admin.getOfficeId() != null) {
+                        response.setOfficeId(admin.getOfficeId());
+                    }
 
                     return response;
                 })
                 .toList();
 
-        PageResponse<ListOfAdminResponse> response = new PageResponse<>(
+        PageResponse<ListOfAdminInternalResponse> response = new PageResponse<>(
                 adminResponseList,
                 adminPage.getNumber(),
                 adminPage.getSize(),
@@ -439,27 +442,21 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 adminPage.getTotalPages(),
                 adminPage.isLast()
         );
-        return new ApiResponse<>(
-                true,
-                "Admin List",
+        return new SingleResponse<>(
                 response,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> getEmployeeName(String employeeId) {
-        Employee employee = employeeRepository.findEmployeeByEmployeeId(employeeId)
+    public SingleResponse<?> getEmployeeName(Long employeeId) {
+        Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
 
         String empName = employee.getEmployeeName();
-        return new ApiResponse<>(
-                true,
-                "Employee Name",
+        return new SingleResponse<>(
                 empName,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 }

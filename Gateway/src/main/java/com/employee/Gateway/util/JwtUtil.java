@@ -69,8 +69,8 @@ public class JwtUtil {
         return extractClaims(token).get("emailId",String.class);
     }
 
-    public String extractContact(String token){
-        return extractClaims(token).get("contact", String.class);
+    public String extractUserId(String token){
+        return extractClaims(token).get("userId", String.class);
     }
 
     public String extractRole(String token) {
@@ -79,6 +79,10 @@ public class JwtUtil {
 
     public String extractEmployeeId(String token){
         return extractClaims(token).get("employeeId", String.class);
+    }
+
+    public String extractId(String token){
+        return extractClaims(token).get("id", String.class);
     }
 
 }

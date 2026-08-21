@@ -37,6 +37,6 @@ public class AuthIdentityRequest {
     @NotNull(message = "Please provide the role")
     private RoleEnum role;
 
-    @NotBlank(message = "Created by identity not found")
-    private String createdBy;
+    @NotNull(message = "Created by identity not found")
+    private Long createdBy;
 }

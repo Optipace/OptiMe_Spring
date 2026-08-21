@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EmployeeAttendanceHistoryResponse {
-    private Long id;
-    private String employeeId;
+    private Long id; // TODO : Can be renamed as attendanceId
+    private Long employeeId;
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
     private String attendanceStatus;

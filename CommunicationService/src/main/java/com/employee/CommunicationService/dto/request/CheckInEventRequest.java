@@ -10,7 +10,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CheckInEventRequest {
-    private String employeeId;
+    private Long employeeId;
     private String employeeName;
     private String checkInTime;
     private String location;

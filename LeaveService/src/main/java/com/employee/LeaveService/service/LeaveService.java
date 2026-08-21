@@ -8,9 +8,9 @@ import com.employee.LeaveService.dto.response.SingleResponse;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 public interface LeaveService {
-    SingleResponse<?> saveLeaveApplication(LeaveRequest request, String applicantEmployeeId, String applicantEmployeeName, String applicantEmailId);
+    SingleResponse<?> saveLeaveApplication(LeaveRequest request, String employeeId, String applicantEmployeeId, String applicantEmployeeName, String applicantEmailId);
 
-    SingleResponse<?> approveLeave(ApproveLeaveRequest request, String authorityEmployeeId);
+    SingleResponse<?> approveLeave(ApproveLeaveRequest request, String authorityId);
 
     SingleResponse<?> rejectLeave(RejectLeaveRequest request, String authorityEmployeeId);
 

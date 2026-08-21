@@ -1,11 +1,15 @@
-package com.employee.AuthService.dto.response;
+package com.employee.EmployeeProfileService.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class EmployeeResponse {
+@AllArgsConstructor
+@NoArgsConstructor
+public class EmployeeGetProfileResponse {
     private Long id;
     private String employeeName;
     private String employeeId;
@@ -15,7 +19,6 @@ public class EmployeeResponse {
     private String dailyStatus;
     private String role;
     private String gender;
-//    private String employeeProfilePath;
     private String permanentAddress;
     private String currentAddress;
     private String dateOfBirth;
@@ -24,3 +27,4 @@ public class EmployeeResponse {
     private String profileStatus;
     private OfficeResponse office;
 }
+

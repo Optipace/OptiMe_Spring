@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class MyLeaveResponse {
     private Long leaveId;
     private String employeeName;
-    private String employeeId;
+    private Long employeeId;
     private LocalDate fromDate;
     private LocalDate toDate;
     private LocalDateTime appliedOn;
@@ -25,9 +25,9 @@ public class MyLeaveResponse {
     private Long leaveTypeId;
     private Integer numberOfLeavesApplied;
     private String approvedBy;
-    private String approvedByEmployeeId;
+    private Long approvedByEmployeeId;
     private String approverName;
-    private String approverEmployeeId;
+    private Long approverEmployeeId;
     private LeaveStatusEnum leaveStatus;
     private Integer pendingLeaves;
 

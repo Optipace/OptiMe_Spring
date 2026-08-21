@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<SingleResponse<?>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex){
+    public ResponseEntity<SingleResponse<?>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
         String errorMessage = ex.getBindingResult().getFieldError().getDefaultMessage();
         SingleResponse<?> response = new SingleResponse<>(HttpStatus.BAD_REQUEST.value(), errorMessage);
         return ResponseEntity
@@ -21,9 +21,25 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    //    @ExceptionHandler(CustomException.class)
+//    public ResponseEntity<SingleResponse<?>> handleCustomException(CustomException e){
+//        SingleResponse<?> response = new SingleResponse<>(null,e.getCustomStatus());
+//        return ResponseEntity
+//                .status(e.getStatusCode())
+//                .body(response);
+//    }
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<SingleResponse<?>> handleCustomException(CustomException e){
-        SingleResponse<?> response = new SingleResponse<>(null,e.getCustomStatus());
+    public ResponseEntity<SingleResponse<?>> handleCustomException(CustomException e) {
+        SingleResponse<?> response;
+
+        // Check if custom status exists to prevent NullPointerException
+        if (e.getCustomStatus() != null) {
+            response = new SingleResponse<>(null, e.getCustomStatus(), e.getStatusCode());
+        } else {
+            // Fallback for CustomException instances initialized with just message and HttpStatus
+            response = new SingleResponse<>(e.getMessage(), org.springframework.http.HttpStatus.valueOf(e.getStatusCode()));
+        }
+
         return ResponseEntity
                 .status(e.getStatusCode())
                 .body(response);

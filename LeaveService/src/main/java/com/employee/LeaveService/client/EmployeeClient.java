@@ -2,6 +2,7 @@ package com.employee.LeaveService.client;
 
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.EmployeeResponse;
+import com.employee.LeaveService.dto.response.SingleResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,9 +17,9 @@ public interface EmployeeClient {
 //    @PostMapping("/api/employee/internal/updateEmployeeStatus")
 //    void updateEmployeeStatus(@RequestBody UpdateEmployeeStatusPayload payload);
 
-    @GetMapping("/api/employee/internal/getEmployeeByEmployeeId")
-    ApiResponse<EmployeeResponse> getEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId);
+    @GetMapping("/api/employee/internal/getEmployeeById")
+    SingleResponse<EmployeeResponse> getEmployeeByEmployeeId(@RequestParam("employeeId") Long employeeId);
 
     @GetMapping("/api/employee/internal/getEmployeeName")
-    ApiResponse<?> getEmployeeName(@RequestParam("employeeId") String employeeId);
+    SingleResponse<?> getEmployeeName(@RequestParam("employeeId") Long employeeId);
 }

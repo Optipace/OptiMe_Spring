@@ -24,6 +24,6 @@ public class DateWiseAttendanceRequest {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate toDate;
 
-    @NotBlank(message = "Employee ID required")
-    private String employeeId;
+    @NotNull(message = "Employee ID required")
+    private Long employeeId;
 }

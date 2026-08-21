@@ -19,13 +19,13 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     // Finds if there is an ongoing session for this employee
 //    boolean existsByEmployeeIdAndCheckOutTimeIsNull(String employeeId);
-    boolean existsByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(String employeeId, LocalDateTime time);
+    boolean existsByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(Long employeeId, LocalDateTime time);
 
     // Finds today's active check-in session
-    Optional<Attendance> findByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(String employeeId, LocalDateTime time);
+    Optional<Attendance> findByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(Long employeeId, LocalDateTime time);
 
     // Fetches all logs from Monday 12:00 AM up to the current moment
-    List<Attendance> findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeDesc(String employeeId, LocalDateTime startOfWeek);
+    List<Attendance> findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeDesc(Long employeeId, LocalDateTime startOfWeek);
 
     @Query(
             value =
@@ -35,7 +35,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
                             "AND check_in_time BETWEEN :fromDate AND :toDate ",
             nativeQuery = true
     )
-    Optional<Long> getTotalWorkMin(@Param("employeeId") String employeeId, @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate);
+    Optional<Long> getTotalWorkMin(@Param("employeeId") Long employeeId, @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate);
 
     @Query(
             value = "SELECT * FROM attendance " +
@@ -44,7 +44,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
             nativeQuery = true
     )
     Optional<List<Attendance>> findTodayAttendanceByEmployeeId(
-            @Param("employeeId") String employeeId,
+            @Param("employeeId") Long employeeId,
             @Param("startOfDay") LocalDateTime startOfDay,
             @Param("endOfDay") LocalDateTime endOfDay
     );
@@ -53,13 +53,13 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     List<Attendance> findByCheckInTimeBetweenOrderByCheckInTimeAsc(LocalDateTime startOfDay, LocalDateTime endOfDay);
 
-    List<Attendance> findByEmployeeIdAndCheckInTimeAfter(String employeeId, LocalDateTime time);
+    List<Attendance> findByEmployeeIdAndCheckInTimeAfter(Long employeeId, LocalDateTime time);
 
     @Query("SELECT a FROM Attendance a WHERE a.employeeId = :employeeId " +
             "AND CAST(a.checkInTime AS date) BETWEEN :fromDate AND :toDate " +
             "ORDER BY a.checkInTime DESC")
     List<Attendance> findAttendanceByEmployeeAndDateRange(
-            @Param("employeeId") String employeeId,
+            @Param("employeeId") Long employeeId,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate
     );
@@ -70,12 +70,12 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     Optional<Attendance> findFirstByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeDesc(String employeeId, LocalDateTime time);
 
     Optional<Attendance> findFirstByEmployeeIdAndCheckInTimeBetweenOrderByCheckInTimeDesc(
-            String employeeId,
+            Long employeeId,
             LocalDateTime startDateTime,
             LocalDateTime endDateTime
     );
 
-    boolean existsByEmployeeIdAndCheckInTimeBetween(String employeeId, LocalDateTime start, LocalDateTime end);
+    boolean existsByEmployeeIdAndCheckInTimeBetween(Long employeeId, LocalDateTime start, LocalDateTime end);
 
 
 //    Optional<Attendance> findByEmployeeIdAndCheckoutDateTimeBetween(

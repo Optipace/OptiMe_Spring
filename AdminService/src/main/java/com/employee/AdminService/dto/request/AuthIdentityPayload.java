@@ -14,5 +14,5 @@ public class AuthIdentityPayload {
     private String emailId;
     private String contact;
     private RoleEnum role;
-    private String createdBy;
+    private Long createdBy;
 }

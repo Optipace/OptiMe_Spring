@@ -14,7 +14,7 @@ public interface EmployeeService {
 
     public SingleResponse<EmployeeResponse> getEmployeeByEmployeeId(String employeeId);
 
-    public ListResponse<?> getOfficeNames();
+    public SingleResponse<?> getOfficeNames();
 
     public SingleResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId);
 

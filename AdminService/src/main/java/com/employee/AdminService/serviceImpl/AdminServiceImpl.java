@@ -50,8 +50,9 @@ public class AdminServiceImpl implements AdminService {
     public SingleResponse<?> addNewUser(RegisterRequest request, String adminEmployeeId) {
 
         officeRepository.findById(request.getOfficeId())
-                .orElseThrow(() -> new CustomException("Office Id not found", CustomStatus.OFFICE_NOT_FOUND, 409));
+                .orElseThrow(() -> new CustomException("Office Id not found", CustomStatus.OFFICE_NOT_FOUND, 404));
 
+        Long createdByEmpId = Long.parseLong(adminEmployeeId);
         // 1. Prepare Auth Payload (Security Data)
         AuthIdentityPayload authPayload = new AuthIdentityPayload(
                 request.getEmployeeName(),
@@ -59,37 +60,42 @@ public class AdminServiceImpl implements AdminService {
                 request.getEmailId(),
                 request.getContact(),
                 request.getRole(),
-                adminEmployeeId // The logged-in admin who is making this request
+                createdByEmpId // The logged-in admin who is making this request
         );
 
-        // 2. Prepare Profile Payload (HR Data)
-        EmployeeProfilePayload profilePayload = new EmployeeProfilePayload(
-                request.getEmployeeId(),
-                request.getEmployeeName(),
-                request.getContact(),
-                request.getEmailId(),
-                request.getDesignationId(),
-                request.getRole(),
-                request.getGender(),
-                request.getWorkTypeId(),
-                request.getOfficeId(),
-                request.getDateOfBirth(),
-                request.getDateOfJoining(),
-                request.getPermanentAddress()
-        );
+
         boolean isAuthCreated = false;
         boolean isEmployeeCreated = false;
 
         try {
             // 3. Call Auth service via Feign
-            authClient.createIdentity(authPayload);
+            SingleResponse<NewUserResponse> newUserResponse = authClient.createIdentity(authPayload);
             log.info("Auth Service is called");
-            isAuthCreated = true;
 
-            // 4. Call Employee Profile service via Feign
-            employeeClient.createProfile(profilePayload);
-            log.info("Employee Service is called");
-            isEmployeeCreated = true;
+                isAuthCreated = true;
+                // 2. Prepare Profile Payload (HR Data)
+                EmployeeProfilePayload profilePayload = new EmployeeProfilePayload(
+                        request.getEmployeeId(),
+                        request.getEmployeeName(),
+                        request.getContact(),
+                        request.getEmailId(),
+                        request.getDesignationId(),
+                        request.getRole(),
+                        request.getGender(),
+                        request.getWorkTypeId(),
+                        request.getOfficeId(),
+                        request.getDateOfBirth(),
+                        request.getDateOfJoining(),
+                        request.getPermanentAddress(),
+                        newUserResponse.getData().getUserId()
+                );
+
+                // 4. Call Employee Profile service via Feign
+                employeeClient.createProfile(profilePayload);
+                log.info("Employee Service is called");
+
+
+                isEmployeeCreated = true;
 
             // 5. For email service
             communicationClient.sendAccountCreatedEmail(request.getEmailId());
@@ -98,44 +104,53 @@ public class AdminServiceImpl implements AdminService {
 
             // 6. Sending broadcast notification to ALL
             NotificationPayload payload = new NotificationPayload();
-            payload.setEmployeeId("ALL");
+//            payload.setEmployeeId("ALL");
             payload.setTitle("Company Announcement");
             payload.setMessage("Please welcome our new employee: " + request.getEmployeeName());
             payload.setType("INFO");
 
             communicationClient.sendBroadCastNotification(payload);
             log.info("Notification is broadcasted to everyone");
-        } catch (FeignException e) {
+        }  catch (FeignException e) {
             if (isAuthCreated) {
-                try {
-                    authClient.deleteIdentity(request.getEmployeeId());
-                } catch (Exception ex) {
-                    log.error("Rollback failed {} ", ex.getMessage());
-                }
+                try { authClient.deleteIdentity(request.getEmployeeId()); }
+                catch (Exception ex) { log.error("Rollback failed {} ", ex.getMessage()); }
+            }
+            if (isEmployeeCreated) {
+                try { employeeClient.deleteIdentity(request.getEmployeeId()); }
+                catch (Exception ex) { log.error("Rollback failed {}", ex.getMessage()); }
             }
 
-            if (isEmployeeCreated) {
-                try {
-                    employeeClient.deleteIdentity(request.getEmployeeId());
-                } catch (Exception ex) {
-                    log.error("Rollback failed {}", ex.getMessage());
-                }
-            }
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
                     cleanErrorMessage = errorNode.get("message").asText();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
                 }
             } catch (Exception parseException) {
-                // If the error isn't JSON, just return the raw string
                 cleanErrorMessage = rawErrorJson;
             }
-            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
         return new SingleResponse<>(
                 null,
@@ -148,24 +163,26 @@ public class AdminServiceImpl implements AdminService {
         PageResponse<EmployeeResponse> pageData;
         try {
             // Call Employee Profile service via Feign
-            ApiResponse<PageResponse<EmployeeResponse>> apiResponse = employeeClient.getAllEmployee(pageable);
+            SingleResponse<PageResponse<EmployeeResponse>> apiResponse = employeeClient.getAllEmployee(pageable);
             log.info("Employee Service is called");
 
             pageData = apiResponse.getData();
             List<EmployeeResponse> employeeResponseList = pageData.getContent();
             employeeResponseList.forEach(employee ->{
                 if (employee.getOffice().getOfficeId() != null){
-                    Office office = officeRepository.findById(employee.getOffice().getOfficeId())
+                    Office office = officeRepository.findById(employee.getOffice().getId())
                                     .orElse(null);
                     OfficeResponse officeResponse = new OfficeResponse(
                             office.getId(),
+                            office.getOfficeId(),
                             office.getOfficeName(),
                             office.getLatitude(),
                             office.getLongitude(),
                             office.getHrEmpId(),
                             office.getAddress(),
                             office.getContact(),
-                            office.getGoogleMap()
+                            office.getGoogleMap(),
+                            office.getGroupLink()
                     );
                     employee.setOffice(officeResponse);
                 }
@@ -174,19 +191,34 @@ public class AdminServiceImpl implements AdminService {
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
                     cleanErrorMessage = errorNode.get("message").asText();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
                 }
             } catch (Exception parseException) {
-                // If the error isn't JSON, just return the raw string
                 cleanErrorMessage = rawErrorJson;
             }
-            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
         return new SingleResponse<>(
                 pageData,
@@ -197,17 +229,19 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public SingleResponse<?> addNewOffice(AddNewOfficeRequest request) {
-        if (officeRepository.existsById(request.getOfficeId())) {
+
+        if (officeRepository.existsByOfficeId(request.getOfficeId())) {
             throw new CustomException(null, CustomStatus.OFFICE_ALREADY_EXISTS, 409);
         }
 
         Office newOffice = new Office();
-        newOffice.setId(request.getOfficeId());
+        newOffice.setOfficeId(request.getOfficeId());
         newOffice.setOfficeName(request.getOfficeName());
         newOffice.setContact(request.getContact());
         newOffice.setAddress(request.getAddress());
         newOffice.setLatitude(request.getLatitude());
         newOffice.setLongitude(request.getLongitude());
+        newOffice.setGroupLink(request.getGroupLink());
         boolean isHrEmpId = false;
         try {
             isHrEmpId = employeeClient.isHrEmployeeId(request.getHrEmpId());
@@ -216,19 +250,34 @@ public class AdminServiceImpl implements AdminService {
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
                     cleanErrorMessage = errorNode.get("message").asText();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
                 }
             } catch (Exception parseException) {
-                // If the error isn't JSON, just return the raw string
                 cleanErrorMessage = rawErrorJson;
             }
-            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
 
         if(isHrEmpId){
@@ -278,9 +327,13 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public SingleResponse<?> updateOffice(OfficeRequest request) {
-        Office office = officeRepository.findById(request.getOfficeId())
+    public SingleResponse<?> updateOffice(UpdateOfficeRequest request) {
+        Office office = officeRepository.findById(request.getId())
                 .orElseThrow(() -> new CustomException(null, CustomStatus.NO_OFFICE_RECORDS_FOUND, 409));
+
+        if(request.getOfficeId() != null){
+            office.setOfficeId(request.getOfficeId());
+        }
 
         if(request.getOfficeName() != null){
             office.setOfficeName(request.getOfficeName());
@@ -349,39 +402,43 @@ public class AdminServiceImpl implements AdminService {
         List<FeedbackResponse> feedbackResponses = null;
         try{
             log.info("Calling employee service");
-            ApiResponse<List<FeedbackResponse>> apiResponse = employeeClient.getFeedback();
+            SingleResponse<List<FeedbackResponse>> apiResponse = employeeClient.getFeedback();
             log.info("Employee service called for feedbacks list");
 
             if(apiResponse != null && apiResponse.getData() != null){
                 feedbackResponses = apiResponse.getData();
             }
-        }catch (FeignException fe){
-            String rawErrorJson = fe.contentUTF8();
+        }catch (FeignException e){
+            String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
-            try{
+            try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if(errorNode.has("message")){
-                    cleanErrorMessage = errorNode.get("message").toString();
-                }else{
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
-            }catch (Exception e){
+            } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
 
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if(fe.status() > 0){
-                try{
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                }catch (IllegalArgumentException ex){
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            }else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
         return new SingleResponse<>(
                 feedbackResponses,
@@ -393,35 +450,39 @@ public class AdminServiceImpl implements AdminService {
     public SingleResponse<?> updateFeedback(FeedbackUpdateRequest request) {
         String message= "";
         try{
-           ApiResponse<?> apiResponse = employeeClient.updateFeedback(request);
+            SingleResponse<?> apiResponse = employeeClient.updateFeedback(request);
            message = apiResponse.getMessage();
-        }catch (FeignException fe){
-            String rawErrorJson = fe.contentUTF8();
-            String cleanErrorMessage = "Microservices call failed";
+        }catch (FeignException e){
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").toString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
 
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (fe.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
         return new SingleResponse<>(
                 message,
@@ -429,46 +490,49 @@ public class AdminServiceImpl implements AdminService {
         );
     }
 
-
     @Override
     public SingleResponse<?> getAllAppliedLeaves() {
 
         List<ListOfLeaveResponse> leaveResponses = new ArrayList<>();
         try {
-            ApiResponse<List<ListOfLeaveResponse>> apiResponse = leaveClient.getAllAppliedLeaves();
+            SingleResponse<List<ListOfLeaveResponse>> apiResponse = leaveClient.getAllAppliedLeaves();
             log.info("LEAVE SERVICE CALLED");
             if (apiResponse != null && apiResponse.getData() != null) {
                 leaveResponses = apiResponse.getData().stream()
                         .map(l -> modelMapper.map(l, ListOfLeaveResponse.class))
                         .toList();
             }
-        } catch (FeignException fe) {
-            String rawErrorJson = fe.contentUTF8();
-            String cleanErrorMessage = "Microservices call failed";
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").toString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
 
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (fe.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
         return new SingleResponse<>(
                 leaveResponses,
@@ -477,9 +541,9 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public SingleResponse<?> sendBroadcastMessage(NotificationRequest request) {
+    public SingleResponse<?> sendBroadcastMessage(NotificationRequest request) { // TODO need to look at id
         NotificationPayload payload = new NotificationPayload();
-        payload.setEmployeeId("ALL");
+//        payload.setEmployeeId("ALL");
         payload.setTitle(request.getTitle());
         payload.setMessage(request.getMessage());
         payload.setType(request.getType());
@@ -498,8 +562,8 @@ public class AdminServiceImpl implements AdminService {
         List<OfficeResponse> officeResponse = officeList.stream()
                 .map(office -> modelMapper.map(office, OfficeResponse.class))
                 .toList();
-        ApiResponse<MasterEmployeeResponse> empResponse = employeeClient.getMasterDetails();
-        ApiResponse<List<LeaveTypeResponse>> leaveResponse = leaveClient.getLeaveTypeList();
+        SingleResponse<MasterEmployeeResponse> empResponse = employeeClient.getMasterDetails();
+        SingleResponse<List<LeaveTypeResponse>> leaveResponse = leaveClient.getLeaveTypeList();
 
         List<EmployeeDesignationResponse> employeeDesignationResponseList = new ArrayList<>();
         List<RoleEnum> roleEnumList = new ArrayList<>();
@@ -549,35 +613,39 @@ public class AdminServiceImpl implements AdminService {
     public SingleResponse<?> getTodayAttendanceRecords() {
         List<EmployeeAttendanceResponse> responses;
         try {
-            ApiResponse<List<EmployeeAttendanceResponse>> apiResponse = attendanceClient.getTodayAttendanceRecords();
+            SingleResponse<List<EmployeeAttendanceResponse>> apiResponse = attendanceClient.getTodayAttendanceRecords();
             responses = apiResponse.getData();
-        } catch (FeignException fe) {
-            String rawErrorJson = fe.contentUTF8();
-            String cleanErrorMessage = "Microservices call failed";
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").toString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
 
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (fe.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
         return new SingleResponse<>(
                 responses,
@@ -587,36 +655,40 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public SingleResponse<?> approveLeave(ApproveLeaveRequest request, String approvedEmployeeId) {
-        ApiResponse<?> apiResponse;
+        SingleResponse<?> apiResponse;
         try {
             apiResponse = leaveClient.approveLeave(request, approvedEmployeeId);
-        } catch (FeignException fe) {
-            String rawErrorJson = fe.contentUTF8();
-            String cleanErrorMessage = "Microservices call failed";
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").toString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
 
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (fe.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
         return new SingleResponse<>(
                null, // TODO : Send error message if recieved
@@ -626,36 +698,40 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public SingleResponse<?> rejectLeave(RejectLeaveRequest request, String approvedEmployeeId) {
-        ApiResponse<?> apiResponse;
+        SingleResponse<?> apiResponse;
         try {
             apiResponse = leaveClient.rejectLeave(request, approvedEmployeeId);
-        } catch (FeignException fe) {
-            String rawErrorJson = fe.contentUTF8();
-            String cleanErrorMessage = "Microservices call failed";
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").toString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
 
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (fe.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
         return new SingleResponse<>(
                 null, // TODO : Send error message if recieved
@@ -667,7 +743,7 @@ public class AdminServiceImpl implements AdminService {
     public SingleResponse<PageResponse<AdminResponse>> getAllAdmin(Pageable pageable) {
         try {
             // 1. Call Employee Profile microservice via Feign client
-            ApiResponse<PageResponse<ListOfAdminResponse>> apiResponse = employeeClient.getAllAdmin(pageable);
+            SingleResponse<PageResponse<ListOfAdminResponse>> apiResponse = employeeClient.getAllAdmin(pageable);
             log.info("Employee Service call completed successfully");
 
             PageResponse<ListOfAdminResponse> rawPageData = apiResponse.getData();
@@ -692,13 +768,15 @@ public class AdminServiceImpl implements AdminService {
                                     .ifPresent(office -> {
                                         OfficeResponse officeResponse = new OfficeResponse(
                                                 office.getId(),
+                                                office.getOfficeId(),
                                                 office.getOfficeName(),
                                                 office.getLatitude(),
                                                 office.getLongitude(),
                                                 office.getHrEmpId(),
                                                 office.getAddress(),
                                                 office.getContact(),
-                                                office.getGoogleMap()
+                                                office.getGoogleMap(),
+                                                office.getGroupLink()
                                         );
                                         adminResponse.setOfficeResponse(officeResponse);
                                     });
@@ -722,16 +800,34 @@ public class AdminServiceImpl implements AdminService {
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
                     cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
-            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
     }
 
@@ -742,7 +838,7 @@ public class AdminServiceImpl implements AdminService {
         }
         List<EmployeeAttendanceHistoryResponse> responses;
         try {
-            ApiResponse<List<EmployeeAttendanceHistoryInternalResponse>> apiResponse = attendanceClient.getDateWiseAttendanceRecords(request);
+            SingleResponse<List<EmployeeAttendanceHistoryInternalResponse>> apiResponse = attendanceClient.getDateWiseAttendanceRecords(request);
             apiResponse.getData().forEach(attendance -> {
                 log.info("Feign ID = {}", attendance.getId());
                 log.info("Feign Attendance Type ID = {}", attendance.getAttendanceTypeId());
@@ -832,10 +928,10 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public SingleResponse<?> getWeeklyAttendanceLogs(String employeeId) {
+    public SingleResponse<?> getWeeklyAttendanceLogs(Long employeeId) {
         WeeklyAttendanceLogsOfEmployeeRes responses = new WeeklyAttendanceLogsOfEmployeeRes();
         try {
-            ApiResponse<WeeklyAttendanceLogsOfEmployeeRes> apiResponse = attendanceClient.getWeeklyAttendanceLogs(employeeId);
+            SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> apiResponse = attendanceClient.getWeeklyAttendanceLogs(employeeId);
             if(apiResponse != null && apiResponse.getData() != null){
                 responses = apiResponse.getData();
             }
