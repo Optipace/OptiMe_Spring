@@ -140,7 +140,7 @@ public class AdminServiceImpl implements AdminService {
         }
 
         // 5. For email service
-        communicationClient.sendAccountCreatedEmail(request.getEmailId());
+        communicationClient.sendAccountCreatedEmail(request.getEmailId(), request.getContact());
         log.info("Triggered account created email");
         log.info("Communication service is called to send welcome email");
 

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 public interface CommunicationService {
 
-    void sendAccountCreatedEmail(String emailId);
+    void sendAccountCreatedEmail(String emailId, String contact);
 
     SingleResponse<String> sendNewOtpToEmail(String emailId, String otp, Long otpExpiryMinutes);
 

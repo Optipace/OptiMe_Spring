@@ -21,10 +21,11 @@ public class CommunicationServiceImpl implements CommunicationService {
 
 
     @Override
-    public void sendAccountCreatedEmail(String emailId) {
-        String registrationUrl = "http://localhost:/completedregistration"; // Put final registration url here
+    public void sendAccountCreatedEmail(String emailId, String contact) {
+        String registrationUrl = "http://stage4.optipacetech.com:9114/optipace/register"; // Put final registration url here
         Context context = new Context();
         context.setVariable("emailId",emailId);
+        context.setVariable("contact", contact);
         context.setVariable("registrationUrl", registrationUrl);
 
         String htmlBody = templateEngine.process("AccountCreationTemplate", context);
@@ -54,7 +55,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     @Override
     public SingleResponse<String> sendCompletedRegistrationEmail(String emailId){
-        String loginUrl = "http:login.optipace.com"; // Put final login url here
+        String loginUrl = "http://stage4.optipacetech.com:9114/optipace/login"; // Put final login url here
         // 1. Variable for the HTML template
         Context context = new Context();
         context.setVariable("loginUrl", loginUrl);

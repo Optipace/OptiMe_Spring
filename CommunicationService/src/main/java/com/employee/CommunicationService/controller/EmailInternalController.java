@@ -16,8 +16,8 @@ public class EmailInternalController {
     private final CommunicationService communicationService;
 
     @PostMapping("/sendWelcomeEmail")
-    public ResponseEntity<String> sendAccountCreatedEmail(@RequestParam("emailId") String emailId){
-        communicationService.sendAccountCreatedEmail(emailId);
+    public ResponseEntity<String> sendAccountCreatedEmail(@RequestParam("emailId") String emailId, @RequestParam("contact") String contact){
+        communicationService.sendAccountCreatedEmail(emailId, contact);
         return ResponseEntity.ok("Email processed");
     }
 

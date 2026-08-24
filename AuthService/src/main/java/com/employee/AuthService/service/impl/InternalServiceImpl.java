@@ -44,12 +44,19 @@ public class InternalServiceImpl implements InternalService {
             throw new CustomException(null, CustomStatus.UNAUTHORISED_ACCESS, 401);
         }
         if(userRepository.findByEmployeeId(request.getEmployeeId()).isPresent()){
-            throw new CustomException(null, CustomStatus.EMPLOYEE_ID_ALREADY_EXISTS, 400);
+            throw new CustomException(null, CustomStatus.EMPLOYEE_ID_ALREADY_EXISTS, 409);
         }
 
-        if(userRepository.findByEmailId(request.getEmailId()).isPresent()){
-            throw new CustomException(null, CustomStatus.EMAIL_ID_EXISTS, 400);
+        if (userRepository.findByEmailId(request.getEmailId()).isPresent()) {
+            throw new CustomException(null, CustomStatus.EMAIL_ID_EXISTS, 409);
         }
+
+        if (request.getRole() != RoleEnum.ADMIN) {
+            if (userRepository.findByContact(request.getContact()).isPresent()) {
+                throw new CustomException(null, CustomStatus.CONTACT_EXISTS, 409);
+            }
+        }
+
 
         User newUser = new User();
         newUser.setUserName(request.getEmployeeName());
