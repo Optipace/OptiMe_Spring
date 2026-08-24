@@ -542,14 +542,25 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public SingleResponse<?> sendBroadcastMessage(NotificationRequest request) { // TODO need to look at id
-        NotificationPayload payload = new NotificationPayload();
-//        payload.setEmployeeId("ALL");
-        payload.setTitle(request.getTitle());
-        payload.setMessage(request.getMessage());
-        payload.setType(request.getType());
+    public SingleResponse<?> sendBroadcastMessage(NotificationRequest request) {
 
-        communicationClient.sendBroadCastNotification(payload);
+        if(request.getEmployeeId() == null){
+            NotificationPayload payload = new NotificationPayload();
+//        payload.setEmployeeId("ALL");
+            payload.setTitle(request.getTitle());
+            payload.setMessage(request.getMessage());
+            payload.setType(request.getType());
+
+            communicationClient.sendBroadCastNotification(payload);
+        }else{
+            NotificationPayload payload = new NotificationPayload();
+            payload.setEmployeeId(request.getEmployeeId());
+            payload.setTitle(request.getTitle());
+            payload.setMessage(request.getMessage());
+            payload.setType(request.getType());
+
+            communicationClient.sendPrivateNotification(payload);
+        }
 
         return new SingleResponse<>(
                 null,

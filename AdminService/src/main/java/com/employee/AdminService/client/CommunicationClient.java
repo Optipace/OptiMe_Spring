@@ -19,4 +19,7 @@ public interface CommunicationClient {
 
     @PostMapping("/api/communication/email/interviewEmail")
     void sendInterviewEmail(@RequestBody InterviewPayload payload);
+
+    @PostMapping("/api/notifications/internal/send")
+    void sendPrivateNotification(@RequestBody NotificationPayload payload);
 }
