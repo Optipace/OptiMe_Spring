@@ -35,6 +35,7 @@ public enum CustomStatus {
     EMPLOYEE_ID_NOT_FOUND(-26, "Employee ID not found."),
     EMPLOYEE_ID_ALREADY_REGISTERED(-29, "Employee is already fully registered."),
     PERSONAL_EMAIL_ALREADY_EXISTS(-30, "Personal email already exists."),
+    EMAIL_ID_EXISTS(-91, "Provided email id already exists"),
     USER_NOT_FOUND(-31, "User not found."),
     EMPLOYEE_ID_ALREADY_EXISTS(-33, "Employee ID already exists."),
     PROFILE_COMPLETION_REQUIRED(-35, "Profile completion is required."),

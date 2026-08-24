@@ -97,20 +97,6 @@ public class AdminServiceImpl implements AdminService {
 
                 isEmployeeCreated = true;
 
-            // 5. For email service
-            communicationClient.sendAccountCreatedEmail(request.getEmailId());
-            log.info("Triggered account created email");
-            log.info("Communication service is called to send welcome email");
-
-            // 6. Sending broadcast notification to ALL
-            NotificationPayload payload = new NotificationPayload();
-//            payload.setEmployeeId("ALL");
-            payload.setTitle("Company Announcement");
-            payload.setMessage("Please welcome our new employee: " + request.getEmployeeName());
-            payload.setType("INFO");
-
-            communicationClient.sendBroadCastNotification(payload);
-            log.info("Notification is broadcasted to everyone");
         }  catch (FeignException e) {
             if (isAuthCreated) {
                 try { authClient.deleteIdentity(request.getEmployeeId()); }
@@ -152,6 +138,21 @@ public class AdminServiceImpl implements AdminService {
             // Pass the clean extracted message to CustomException
             throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
+
+        // 5. For email service
+        communicationClient.sendAccountCreatedEmail(request.getEmailId());
+        log.info("Triggered account created email");
+        log.info("Communication service is called to send welcome email");
+
+        // 6. Sending broadcast notification to ALL
+        NotificationPayload payload = new NotificationPayload();
+//            payload.setEmployeeId("ALL");
+        payload.setTitle("Company Announcement");
+        payload.setMessage("Please welcome our new employee: " + request.getEmployeeName());
+        payload.setType("INFO");
+
+        communicationClient.sendBroadCastNotification(payload);
+        log.info("Notification is broadcasted to everyone");
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS

@@ -47,6 +47,10 @@ public class InternalServiceImpl implements InternalService {
             throw new CustomException(null, CustomStatus.EMPLOYEE_ID_ALREADY_EXISTS, 400);
         }
 
+        if(userRepository.findByEmailId(request.getEmailId()).isPresent()){
+            throw new CustomException(null, CustomStatus.EMAIL_ID_EXISTS, 400);
+        }
+
         User newUser = new User();
         newUser.setUserName(request.getEmployeeName());
         newUser.setEmployeeId(request.getEmployeeId());
