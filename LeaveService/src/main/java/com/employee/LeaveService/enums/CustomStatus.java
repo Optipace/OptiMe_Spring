@@ -2,6 +2,7 @@ package com.employee.LeaveService.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @AllArgsConstructor
@@ -95,6 +96,13 @@ public enum CustomStatus {
     WEBSOCKET_CONNECTION_REJECTED(-61, "WebSocket connection rejected."),
     IMAGE_SIZE_EXCEEDED(-12, "Image exceeds the maximum allowed size."),
     INVALID_IMAGE_FORMAT(-11, "Only JPEG, JPG or PNG files are allowed."),
+
+    //holiday
+    HOLIDAY_ALREADY_PRESENT(-93, "Duplicate Holidays are not allowed-"),
+    HOLIDAY_NOT_FOUND(-94, "Holiday not found."),
+    ERROR_WHILE_DELETE_HOLIDAY(-95, "Error while deleting holiday."),
+
+
 
     // 500 Series
     UNEXPECTED_ERROR(-73, "An unexpected error occurred."),

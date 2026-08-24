@@ -3,6 +3,8 @@ package com.employee.LeaveService.exception;
 import com.employee.LeaveService.dto.response.SingleResponse;
 import com.employee.LeaveService.enums.CustomStatus;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -24,12 +26,34 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<SingleResponse<?>> handleConstraintViolationException(
+            ConstraintViolationException ex) {
+
+        String errorMessage = ex.getConstraintViolations()
+                .stream()
+                .map(ConstraintViolation::getMessage
+                )
+                .findFirst()
+                .orElse("Validation failed");
+
+        SingleResponse<?> response = new SingleResponse<>(
+                HttpStatus.BAD_REQUEST.value(),
+                errorMessage
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<SingleResponse<?>> handleCustomException(CustomException e){
-        SingleResponse<?> response = new SingleResponse<>(null,e.getCustomStatus());
-        return ResponseEntity
-                .status(e.getStatusCode())
-                .body(response);
+            SingleResponse<?> response = new SingleResponse<>(null, e.getCustomStatus(), e.getMessage());
+            return ResponseEntity
+                    .status(e.getStatusCode())
+                    .body(response);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

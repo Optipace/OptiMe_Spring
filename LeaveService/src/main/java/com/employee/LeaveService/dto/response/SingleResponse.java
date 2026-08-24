@@ -25,6 +25,15 @@ public class SingleResponse<T> {
         this.response = new Response(status.getCode(), status.getMessage());
     }
 
+    public SingleResponse(T data, CustomStatus status, String message){
+        this.data = data;
+        if(message!=null){
+            this.response = new Response(status.getCode(), status.getMessage() + message);
+        }else{
+            this.response = new Response(status.getCode(), status.getMessage());
+        }
+    }
+
     public SingleResponse(T data, CustomStatus status, int statusCode){
         this.data = data;
         this.statusCode = statusCode;
