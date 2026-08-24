@@ -459,4 +459,76 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 CustomStatus.SUCCESS
         );
     }
+
+    @Override
+    public SingleResponse<?> updateProfile(AdminUpdateEmployeeRequest request) {
+        if (request.getEmployeeId() == null) {
+            throw new CustomException(
+                    null,
+                    CustomStatus.EMPLOYEE_ID_NOT_FOUND,
+                    404
+            );
+        }
+        Employee employee = employeeRepository.findEmployeeByEmployeeId(request.getEmployeeId())
+                .orElseThrow(() ->
+                        new CustomException(
+                                null,
+                                CustomStatus.EMPLOYEE_ID_NOT_FOUND,
+                                404
+                        ));
+        if (request.getEmployeeName() != null) {
+            employee.setEmployeeName(request.getEmployeeName());
+        }
+        if (request.getContact() != null) {
+            employee.setContact(request.getContact());
+        }
+        if (request.getEmailId() != null) {
+            employee.setEmailId(request.getEmailId());
+        }
+        if (request.getRole() != null) {
+            employee.setRole(request.getRole());
+        }
+        if (request.getGender() != null) {
+            employee.setGender(request.getGender());
+        }
+        if (request.getPermanentAddress() != null) {
+            employee.setPermanentAddress(request.getPermanentAddress());
+        }
+        if (request.getDateOfBirth() != null) {
+            employee.setDateOfBirth(request.getDateOfBirth());
+        }
+        if (request.getDateOfJoining() != null) {
+            employee.setDateOfJoining(request.getDateOfJoining());
+        }
+        if (request.getWorkTypeId() != null) {
+            WorkType workType = workTypeRepository
+                    .findById(request.getWorkTypeId())
+                    .orElseThrow(() -> new CustomException(
+                                    null,
+                                    CustomStatus.INVALID_WORK_TYPE,
+                                    400
+                            )
+                    );
+            employee.setWorkType(workType);
+        }
+        if (request.getDesignationId() != null) {
+            EmployeeDesignation designation = designationRepository
+                    .findById(request.getDesignationId())
+                    .orElseThrow(()->new CustomException(
+                                    null,
+                                    CustomStatus.DESIGNATION_NOT_FOUND,
+                                    400
+                            )
+                    );
+            employee.setDesignation(designation);
+        }
+        if (request.getOfficeId() != null) {
+            employee.setOfficeId(request.getOfficeId());
+        }
+        employeeRepository.save(employee);
+        return new SingleResponse<>(
+                null,
+               CustomStatus.SUCCESS
+        );
+    }
 }

@@ -7,6 +7,7 @@ import com.employee.EmployeeProfileService.config.AppProperties;
 import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.request.NotificationPayload;
+import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeRequest;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.enums.*;
 import com.employee.EmployeeProfileService.exception.CustomException;
@@ -522,7 +523,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
     @Override
     public SingleResponse<?> uploadDocument(MultipartFile file, String empId, String documentNo, String documentType) {
         Long employeeId = Long.parseLong(empId);
-        Employee employee = employeeRepository.findEmployeeByUserId(employeeId).orElseThrow(() ->
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() ->
                 new CustomException(
                         null,
                         CustomStatus.EMPLOYEE_NOT_FOUND,
@@ -564,6 +565,41 @@ public class EmployeeServiceImplementation implements EmployeeService {
                 throw new RuntimeException("Invalid document type");
         }
         employeeDocumentRepository.save(document);
+        return new SingleResponse<>(
+                null,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<?> updateEmployee(UpdateEmployeeRequest request){
+        if(request.getEmployeeId()==null){
+            throw new CustomException(
+                    null,
+                    CustomStatus.EMPLOYEE_ID_NOT_FOUND,
+                    404
+            );
+        }
+        Employee employee = employeeRepository.findEmployeeByEmployeeId(request.getEmployeeId())
+                .orElseThrow(()->
+                        new CustomException(
+                                null,
+                                CustomStatus.EMPLOYEE_ID_NOT_FOUND,
+                                404
+                        ));
+        if(request.getCurrentAddress()!=null){
+            employee.setCurrentAddress(request.getCurrentAddress());
+        }
+        if(request.getEmergencyContact()!=null){
+            employee.setEmergencyContact(request.getEmergencyContact());
+        }
+        if(request.getPersonalEmail()!=null){
+            employee.setEmailId(request.getPersonalEmail());
+        }
+        if(request.getBloodGroup()!=null){
+            employee.setBloodGroup(request.getBloodGroup());
+        }
+        employeeRepository.save(employee);
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS

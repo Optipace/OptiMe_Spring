@@ -1,5 +1,6 @@
 package com.employee.AdminService.client;
 
+import com.employee.AdminService.dto.request.AdminUpdateEmployeeRequest;
 import com.employee.AdminService.dto.request.EmployeeProfilePayload;
 import com.employee.AdminService.dto.request.FeedbackUpdateRequest;
 import com.employee.AdminService.dto.response.*;
@@ -35,4 +36,7 @@ public interface EmployeeClient {
 
     @GetMapping("/api/employee/internal/getAllAdmin")
     SingleResponse<PageResponse<ListOfAdminResponse>> getAllAdmin(Pageable pageable);
+
+    @PutMapping("/api/employee/internal/updateProfile")
+    SingleResponse<?> updateProfile(@RequestBody AdminUpdateEmployeeRequest request);
 }

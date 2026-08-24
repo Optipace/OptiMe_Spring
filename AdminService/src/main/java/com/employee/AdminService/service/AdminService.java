@@ -46,4 +46,6 @@ public interface AdminService {
     SingleResponse<?> getWeeklyAttendanceLogs(Long employeeId);
 
     SingleResponse<?> updateCheckoutRecordByEmpId(UpdateCheckOutRecordsRequest request);
+
+    SingleResponse<?> updateEmployee(UpdateEmployeeRequest request);
 }

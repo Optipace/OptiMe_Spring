@@ -151,4 +151,9 @@ public class AdminController {
         return ResponseEntity.status(200).body(adminService.updateCheckoutRecordByEmpId(request));
     }
 
+    @PutMapping("/updateEmployee")
+    public ResponseEntity<SingleResponse<?>> updateEmployee(@RequestBody UpdateEmployeeRequest request){
+        return ResponseEntity.status(200).body(adminService.updateEmployee(request));
+    }
+
 }

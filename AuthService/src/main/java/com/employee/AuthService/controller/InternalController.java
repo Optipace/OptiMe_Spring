@@ -1,6 +1,7 @@
 package com.employee.AuthService.controller;
 
 import com.employee.AuthService.dto.request.AuthIdentityRequest;
+import com.employee.AuthService.dto.request.UpdateIdentityRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
 import com.employee.AuthService.dto.response.NewUserResponse;
 import com.employee.AuthService.dto.response.SingleResponse;
@@ -27,4 +28,10 @@ public class InternalController {
         ApiResponse<?> response = internalService.deleteIdentity(employeeId);
         return ResponseEntity.status(200).body(response);
     }
+    @PutMapping("/updateIdentity")
+    public ResponseEntity<SingleResponse<?>> updateIdentity(@RequestBody UpdateIdentityRequest request){
+        SingleResponse<?> response = internalService.updateIdentity(request);
+        return ResponseEntity.status(200).body(response);
+    }
+
 }

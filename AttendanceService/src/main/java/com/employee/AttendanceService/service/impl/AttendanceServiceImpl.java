@@ -648,7 +648,12 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendance.setLatitude("00.0000");
             attendance.setLongitude("00.0000");
             attendance.setCheckInTime(request.getCheckInTime());
-            attendance.setCheckOutTime(request.getCheckOutTime());
+            if (request.getCheckOutTime() != null ||
+                    (!(request.getCheckOutTime().toString().equalsIgnoreCase("null")))) {
+                attendance.setCheckOutTime(request.getCheckOutTime());
+            } else {
+                attendance.setCheckOutTime(null);
+            }
             attendance.setFilePath(null);
             attendance.setAdminModified(true);
             attendance.setAdminRemarks(request.getRemarks().isBlank() ? null : request.getRemarks());
@@ -662,6 +667,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendanceRepository.save(attendance);
             log.info("Successfully created and saved attendance record for Employee ID: {}", request.getEmployeeId());
         } else {
+            //updating exising record
             log.info("Processing branch: Attendance Update triggered for Attendance Record ID: {}", request.getId());
             Attendance attendance = attendanceRepository.findById(request.getId())
                     .orElseThrow(() -> new CustomException(null, CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND, 200));
@@ -687,24 +693,42 @@ public class AttendanceServiceImpl implements AttendanceService {
             if (request.getCheckInTime() != null && request.getCheckOutTime() != null) {
                 log.debug("Updating both Check-In and Check-Out times for Record ID: {}", request.getId());
                 attendance.setCheckInTime(request.getCheckInTime());
-                attendance.setCheckOutTime(request.getCheckOutTime());
-                attendance.setTotalWorkMin(Duration.between(request.getCheckInTime(), request.getCheckOutTime()).toMinutes());
+                if (!request.getCheckOutTime().toString().equalsIgnoreCase("NULL")) {
+                    attendance.setCheckOutTime(request.getCheckOutTime());
+                    attendance.setTotalWorkMin(Duration.between(request.getCheckInTime(), request.getCheckOutTime()).toMinutes());
+
+                } else {
+
+                    attendance.setCheckOutTime(null);
+                    attendance.setTotalWorkMin(0L);
+
+                }
 
             } else if (request.getCheckOutTime() == null && request.getCheckInTime() != null) {
                 log.debug("Updating Check-In time only for Record ID: {}", request.getId());
                 attendance.setCheckInTime(request.getCheckInTime());
+                attendance.setCheckOutTime(null);
                 if (attendance.getCheckOutTime() != null) {
-                    attendance.setTotalWorkMin(Duration.between(request.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
+                    attendance.setTotalWorkMin(0L);
                 } else {
                     log.warn("Calculated TotalWorkMin skipped for Record ID: {}. Database CheckOutTime is currently null.", request.getId());
                 }
 
             } else if (request.getCheckOutTime() != null) {
                 log.info("Check out time is not null so updating checkout time {} for record {}", request.getCheckOutTime(), request.getId());
-                if (attendance.getCheckInTime() != null) {
-                    attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), request.getCheckOutTime()).toMinutes());
+                if (!request.getCheckOutTime().toString().equalsIgnoreCase("NULL")) {
+                    attendance.setCheckOutTime(request.getCheckOutTime());
+
+                    if (attendance.getCheckInTime() != null) {
+                        attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), request.getCheckOutTime()).toMinutes());
+                    } else {
+                        throw new CustomException(null, CustomStatus.CHECK_IN_RECORD_NOT_FOUND, 409);
+                    }
+                } else {
+                    attendance.setCheckOutTime(null);
+                    attendance.setTotalWorkMin(0L);
                 }
-                attendance.setCheckOutTime(request.getCheckOutTime());
+
             }
 
             log.info("Persisting modifications to database for Attendance Record ID: {}. Updated calculated minutes: {}",
@@ -719,6 +743,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         );
 
     }
+
 
     @Override
     public SingleResponse<?> addEmployeeAttendance(AddEmpAttendanceRequest request) {

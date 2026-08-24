@@ -1084,4 +1084,118 @@ public class AdminServiceImpl implements AdminService {
         );
     }
 
+    @Override
+    public SingleResponse<?> updateEmployee(UpdateEmployeeRequest request) {
+        SingleResponse<?> apiResponse;
+        if (request.getEmployeeId() == null) {
+            throw new CustomException(
+                    null,
+                    CustomStatus.EMPLOYEE_ID_NOT_FOUND,
+                    404
+            );
+        }
+        if(request.getOfficeId()!=null) {
+            officeRepository.findById(request.getOfficeId())
+                    .orElseThrow(()->new CustomException(
+                            "Office not found",
+                            CustomStatus.OFFICE_NOT_FOUND,
+                            404
+                    ));
+        }
+        UpdateIdentityRequest userRequest = new UpdateIdentityRequest();
+        userRequest.setEmployeeId(request.getEmployeeId());
+        userRequest.setUserName(request.getEmployeeName());
+        userRequest.setEmailId(request.getEmailId());
+        userRequest.setContact(request.getContact());
+        userRequest.setRole(request.getRole());
+        AdminUpdateEmployeeRequest employeeRequest = new AdminUpdateEmployeeRequest();
+        employeeRequest.setEmployeeId(request.getEmployeeId());
+        employeeRequest.setEmployeeName(request.getEmployeeName());
+        employeeRequest.setContact(request.getContact());
+        employeeRequest.setRole(request.getRole());
+        employeeRequest.setGender(request.getGender());
+        employeeRequest.setPermanentAddress(request.getPermanentAddress());
+        employeeRequest.setDateOfBirth(request.getDateOfBirth());
+        employeeRequest.setDateOfJoining(request.getDateOfJoining());
+        employeeRequest.setOfficeId(request.getOfficeId());
+        employeeRequest.setWorkTypeId(request.getWorkTypeId());
+        employeeRequest.setDesignationId(request.getDesignationId());
+        try {
+            authClient.updateIdentity(userRequest);
+            apiResponse = employeeClient.updateProfile(employeeRequest);
+            if (apiResponse == null) {
+                throw new CustomException(
+                        "Empty response received from employee service",
+                        CustomStatus.MICROSERVICE_CALL_FAILED,
+                        502
+                );
+            }
+//            if (apiResponse.getStatus() != 200) {
+//                throw new CustomException(
+//                        apiResponse.getMessage(),
+//                        CustomStatus.MICROSERVICE_CALL_FAILED,
+//                        apiResponse.getStatus()
+//                );
+//            }
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
+                }
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
+            }
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
+        }
+//        catch (Exception parseException) {
+//                log.error(
+//                        "Failed to parse error response: {}",
+//                        rawErrorJson,
+//                        parseException
+//                );
+//                cleanErrorMessage = "Microservice call failed";
+//            }
+//            if (statusCode == 404) {
+//                fallbackStatus = CustomStatus.EMPLOYEE_NOT_FOUND;
+//            } else if (statusCode == 405) {
+//                fallbackStatus = CustomStatus.INVALID_REQUEST_FORMAT;
+//            } else if (statusCode == 400) {
+//                fallbackStatus = CustomStatus.INVALID_REQUEST_FORMAT;
+//            } else if (statusCode == 503) {
+//                fallbackStatus = CustomStatus.MICROSERVICE_CALL_FAILED;
+//            }
+//            throw new CustomException(
+//                    cleanErrorMessage,
+//                    fallbackStatus,
+//                    statusCode
+//            );
+//        }
+        return new SingleResponse<>(
+                null,
+                CustomStatus.SUCCESS
+        );
+    }
+
 }

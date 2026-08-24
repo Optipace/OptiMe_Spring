@@ -1,9 +1,6 @@
 package com.employee.EmployeeProfileService.service;
 
-import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
-import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
+import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,5 +43,7 @@ public interface EmployeeInternalService {
     public SingleResponse<PageResponse<ListOfAdminInternalResponse>> getAllAdminDetails(Pageable pageable);
 
     public SingleResponse<?> getEmployeeName(Long employeeId);
+
+    public SingleResponse<?> updateProfile(AdminUpdateEmployeeRequest request);
 
 }

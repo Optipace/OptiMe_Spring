@@ -1,9 +1,6 @@
 package com.employee.EmployeeProfileService.controller;
 
-import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
-import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
+import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
 import jakarta.validation.Valid;
@@ -110,5 +107,11 @@ public class EmployeeInternalController {
     @GetMapping("/getEmployeeName")
     public SingleResponse<?> getEmployeeName(@RequestParam Long employeeId){
        return empInternalService.getEmployeeName(employeeId);
+    }
+
+    @PutMapping("/updateProfile")
+    public ResponseEntity<SingleResponse<?>> updateProfile(@RequestBody AdminUpdateEmployeeRequest request){
+        SingleResponse<?> response = empInternalService.updateProfile(request);
+        return ResponseEntity.status(200).body(response);
     }
 }

@@ -1,6 +1,7 @@
 package com.employee.AdminService.client;
 
 import com.employee.AdminService.dto.request.AuthIdentityPayload;
+import com.employee.AdminService.dto.request.UpdateIdentityRequest;
 import com.employee.AdminService.dto.response.NewUserResponse;
 import com.employee.AdminService.dto.response.SingleResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -14,4 +15,7 @@ public interface AuthClient {
 
     @DeleteMapping("/api/auth/internal/deleteIdentity/{employeeId}")
     void deleteIdentity(@PathVariable("employeeId") String employeeId);
+
+    @PutMapping("/api/auth/internal/updateIdentity")
+    void updateIdentity(@RequestBody UpdateIdentityRequest request);
 }

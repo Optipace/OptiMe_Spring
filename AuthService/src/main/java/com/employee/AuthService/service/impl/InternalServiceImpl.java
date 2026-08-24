@@ -2,6 +2,7 @@ package com.employee.AuthService.service.impl;
 
 import com.employee.AuthService.client.EmployeeClient;
 import com.employee.AuthService.dto.request.AuthIdentityRequest;
+import com.employee.AuthService.dto.request.UpdateIdentityRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
 import com.employee.AuthService.dto.response.EmployeeResponse;
 import com.employee.AuthService.dto.response.NewUserResponse;
@@ -33,17 +34,17 @@ public class InternalServiceImpl implements InternalService {
     @Override
     public SingleResponse<NewUserResponse> createIdentity(AuthIdentityRequest request) {
 
-        log.info("The creater Id is {}",request.getCreatedBy());
+        log.info("The creater Id is {}", request.getCreatedBy());
 
 //        User user = userRepository.findByEmployeeId(request.getCreatedBy())
 //                .orElseThrow(() -> new CustomException("Admin ID not found", HttpStatus.NOT_FOUND));
         User user = userRepository.findById(request.getCreatedBy())
                 .orElseThrow(() -> new CustomException(null, CustomStatus.ADMIN_NOT_FOUND, 404));
 
-        if(!user.getRole().equals(RoleEnum.ADMIN)){
+        if (!user.getRole().equals(RoleEnum.ADMIN)) {
             throw new CustomException(null, CustomStatus.UNAUTHORISED_ACCESS, 401);
         }
-        if(userRepository.findByEmployeeId(request.getEmployeeId()).isPresent()){
+        if (userRepository.findByEmployeeId(request.getEmployeeId()).isPresent()) {
             throw new CustomException(null, CustomStatus.EMPLOYEE_ID_ALREADY_EXISTS, 409);
         }
 
@@ -74,6 +75,34 @@ public class InternalServiceImpl implements InternalService {
 
         return new SingleResponse<>(
                 newUserResponse,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<?> updateIdentity(UpdateIdentityRequest request) {
+        User user = userRepository.findByEmployeeId(request.getEmployeeId())
+                .orElseThrow(() ->
+                        new CustomException(
+                                null,
+                                CustomStatus.EMPLOYEE_ID_NOT_FOUND,
+                                404
+                        ));
+        if (request.getUserName() != null) {
+            user.setUserName(request.getUserName());
+        }
+        if (request.getEmailId() != null) {
+            user.setEmailId(request.getEmailId());
+        }
+        if (request.getContact() != null) {
+            user.setContact(request.getContact());
+        }
+        if (request.getRole() != null) {
+            user.setRole(request.getRole());
+        }
+        userRepository.save(user);
+        return new SingleResponse<>(
+                null,
                 CustomStatus.SUCCESS
         );
     }
