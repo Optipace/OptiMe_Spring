@@ -2,6 +2,8 @@ package com.employee.AdminService.serviceImpl;
 
 import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.dto.response.OfficeResponse;
+import com.employee.AdminService.dto.response.SingleResponse;
+import com.employee.AdminService.enums.CustomStatus;
 import com.employee.AdminService.enums.OfficeStatus;
 import com.employee.AdminService.exception.CustomException;
 import com.employee.AdminService.model.Office;
@@ -24,7 +26,7 @@ public class InternalServiceImpl implements InternalService {
     private final OfficeRepository officeRepository;
     private final ModelMapper modelMapper;
     @Override
-    public ApiResponse<List<OfficeResponse>> getOfficeList() {
+    public SingleResponse<List<OfficeResponse>> getOfficeList() {
         log.info("Requested of office list");
         List<Office> officeList = officeRepository.findAll();
 
@@ -35,55 +37,43 @@ public class InternalServiceImpl implements InternalService {
 //        ListOfOfficeResponse officeResponsesList = new ListOfOfficeResponse(officeResponseList);
 
         log.info("Returning office list {}",officeResponseList);
-        return new ApiResponse<>(
-                true,
-                "Office response list",
+        return new SingleResponse<>(
                 officeResponseList,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<OfficeResponse> getOfficeDetailsByOfficeId(String officeId) {
+    public SingleResponse<OfficeResponse> getOfficeDetailsByOfficeId(Long officeId) {
         log.info("Requested office details for office Id {}", officeId);
         Office office = officeRepository.findById(officeId)
-                .orElseThrow(() -> new CustomException("No office found for this Id", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.OFFICE_NOT_FOUND, 404));
         if(office.getOfficeStatus().equals(OfficeStatus.INACTIVE)){
             log.info("The details for office Id {} is INACTIVE so returning null", officeId);
-            return new ApiResponse<>(
-                    true,
-                    "The office with office Id "+officeId+" is INACTIVE",
+            return new SingleResponse<>(
                     null,
-                    LocalDateTime.now(),
-                    200
+                    CustomStatus.SUCCESS
             );
         }
         OfficeResponse response = modelMapper.map(office, OfficeResponse.class);
         log.info("Returning office details for office Id {}",office.getId());
-        return new ApiResponse<>(
-                true,
-                "Office details",
+        return new SingleResponse<>(
                 response,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> getOfficeNames() {
+    public SingleResponse<?> getOfficeNames() {
         List<Office> officeList = officeRepository.findAll();
 
         List<String> officeNames = officeList.stream()
                 .filter(office -> !OfficeStatus.INACTIVE.equals(office.getOfficeStatus()))
                 .map(Office::getOfficeName)
                 .toList();
-        return new ApiResponse<>(
-                true,
-                "List of office names",
+        return new SingleResponse<>(
                 officeNames,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 

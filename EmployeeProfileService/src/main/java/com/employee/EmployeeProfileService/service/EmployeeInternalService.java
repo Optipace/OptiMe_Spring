@@ -1,47 +1,49 @@
 package com.employee.EmployeeProfileService.service;
 
-import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
-import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
+import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
 public interface EmployeeInternalService {
 
-    public ApiResponse<?> createProfile(EmployeeProfileRequest request);
+    public SingleResponse<?> createProfile(EmployeeProfileRequest request);
 
-    public ApiResponse<?> completeProfile(CompleteProfileRequest request);
+    public SingleResponse<?> completeProfile(CompleteProfileRequest request);
 
-    public ApiResponse<EmployeeProfileResponse> getProfile(String employeeId);
+    SingleResponse<Long> getEmployeeByUserId(Long userId);
 
-    public ApiResponse<?> getMasterDetails();
+    public SingleResponse<EmployeeGetProfileResponse> getProfile(String employeeId);
 
-    public boolean checkEmployeeByEmployeeId(String employeeId);
+    public SingleResponse<?> getMasterDetails();
 
-    public ApiResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request);
+    public boolean checkEmployeeByEmployeeId(Long employeeId);
 
-    public ApiResponse<EmployeeInternalResponse> getEmployeeByEmployeeId(String employeeId);
+    public SingleResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request);
 
-    public ApiResponse<?> deleteIdentity(String employeeId);
+    public SingleResponse<EmployeeInternalResponse> getEmployeeById(Long employeeId);
 
-    public ApiResponse<List<FeedbackResponse>> getFeedback();
+    public SingleResponse<?> deleteIdentity(String employeeId);
 
-    public ApiResponse<?> updateFeedback(FeedbackUpdateRequest request);
+    public SingleResponse<List<FeedbackResponse>> getFeedback();
+
+    public SingleResponse<?> updateFeedback(FeedbackUpdateRequest request);
 
     public boolean getWorkTypeId(Long workTypeId);
 
-    public ApiResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable);
+    public SingleResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable);
 
-    public ApiResponse<ListOfEmployeeIdResponse> getAllEmployeeId();
+    public SingleResponse<ListOfEmployeeIdResponse> getAllEmployeeId();
 
-    public boolean isHrEmployeeId(String hrEmpId);
+    public boolean isHrEmployeeId(Long hrEmpId);
 
-    public ApiResponse<PageResponse<ListOfAdminResponse>> getAllAdminDetails(Pageable pageable);
+    public SingleResponse<PageResponse<ListOfAdminInternalResponse>> getAllAdminDetails(Pageable pageable);
 
-    public ApiResponse<?> getEmployeeName(String employeeId);
+    public SingleResponse<?> getEmployeeName(Long employeeId);
+
+    public SingleResponse<?> updateProfile(AdminUpdateEmployeeRequest request);
 
 }

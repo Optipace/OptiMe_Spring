@@ -2,6 +2,7 @@ package com.employee.CommunicationService.serviceImpl;
 
 import com.employee.CommunicationService.dto.request.*;
 import com.employee.CommunicationService.dto.response.ApiResponse;
+import com.employee.CommunicationService.dto.response.SingleResponse;
 import com.employee.CommunicationService.service.CommunicationService;
 import com.employee.CommunicationService.service.EmailService;
 import lombok.AllArgsConstructor;
@@ -20,10 +21,11 @@ public class CommunicationServiceImpl implements CommunicationService {
 
 
     @Override
-    public void sendAccountCreatedEmail(String emailId) {
-        String registrationUrl = "http://localhost:/completedregistration"; // Put final registration url here
+    public void sendAccountCreatedEmail(String emailId, String contact) {
+        String registrationUrl = "http://stage4.optipacetech.com:9114/optipace/register"; // Put final registration url here
         Context context = new Context();
         context.setVariable("emailId",emailId);
+        context.setVariable("contact", contact);
         context.setVariable("registrationUrl", registrationUrl);
 
         String htmlBody = templateEngine.process("AccountCreationTemplate", context);
@@ -37,7 +39,7 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     @Override
-    public ApiResponse<String> sendNewOtpToEmail(String emailId, String otp, Long otpExpiryMinutes) {
+    public SingleResponse<String> sendNewOtpToEmail(String emailId, String otp, Long otpExpiryMinutes) {
         // 1. Variable for the HTML template
         Context context = new Context();
         context.setVariable("otpCode", otp);
@@ -52,8 +54,8 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     @Override
-    public ApiResponse<String> sendCompletedRegistrationEmail(String emailId){
-        String loginUrl = "http:login.optipace.com"; // Put final login url here
+    public SingleResponse<String> sendCompletedRegistrationEmail(String emailId){
+        String loginUrl = "http://stage4.optipacetech.com:9114/optipace/login"; // Put final login url here
         // 1. Variable for the HTML template
         Context context = new Context();
         context.setVariable("loginUrl", loginUrl);
@@ -67,7 +69,7 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     @Override
-    public ApiResponse<String> sendLeaveEmail(LeaveEmailRequest request) {
+    public SingleResponse<String> sendLeaveEmail(LeaveEmailRequest request) {
         Context context = new Context();
         context.setVariable("managerName", request.getApproverName());
         context.setVariable("employeeName", request.getApplicantName());

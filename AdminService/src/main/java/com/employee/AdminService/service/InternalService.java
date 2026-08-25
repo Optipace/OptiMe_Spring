@@ -2,13 +2,14 @@ package com.employee.AdminService.service;
 
 import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.dto.response.OfficeResponse;
+import com.employee.AdminService.dto.response.SingleResponse;
 
 import java.util.List;
 
 public interface InternalService {
-    ApiResponse<List<OfficeResponse>> getOfficeList();
+    SingleResponse<List<OfficeResponse>> getOfficeList();
 
-    ApiResponse<OfficeResponse> getOfficeDetailsByOfficeId(String officeId);
+    SingleResponse<OfficeResponse> getOfficeDetailsByOfficeId(Long officeId);
 
-    ApiResponse<?> getOfficeNames();
+    SingleResponse<?> getOfficeNames();
 }

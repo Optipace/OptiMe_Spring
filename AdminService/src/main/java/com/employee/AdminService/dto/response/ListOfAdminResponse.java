@@ -10,11 +10,11 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ListOfAdminResponse {
-    private String employeeId;
+    private Long employeeId;
     private String employeeName;
     private String contact;
     private String emailId;
     private Long designationId;
     private Long workTypeId;
-    private String officeId;
+    private Long officeId;
 }

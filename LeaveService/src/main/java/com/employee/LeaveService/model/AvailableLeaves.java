@@ -18,7 +18,7 @@ public class AvailableLeaves {
     private Long id;
 
     @Column(name = "employee_id", nullable = false, unique = true)
-    private String employeeId;
+    private Long employeeId;
 
     @Column(name = "remaining_leaves", nullable = false)
     private Integer remainingLeaves;

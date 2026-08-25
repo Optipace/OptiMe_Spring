@@ -42,7 +42,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
     private final ModelMapper modelMapper;
 
     @Override
-    public ApiResponse<?> getAttendanceStatus(String employeeId) {
+    public SingleResponse<?> getAttendanceStatus(Long employeeId) {
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
@@ -53,7 +53,10 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         // Check Leave Microservice first
         if (isEmployeeOnLeaveInMicroservice(employeeId, today)) {
             attendanceStatus = AttendanceStatusEnum.ON_LEAVE.toString();
-            return new ApiResponse<>(true,"Attendance Status", attendanceStatus, LocalDateTime.now(),200);
+            return new SingleResponse<>(
+                    attendanceStatus,
+                    CustomStatus.SUCCESS
+                    );
         }else {
 
             Optional<List<Attendance>> todayAttendance = attendanceRepository.findTodayAttendanceByEmployeeId(employeeId, startOfDay, endOfDay);
@@ -72,45 +75,49 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
 
         log.info("Attendance service returning status {}", attendanceStatus);
 
-        return new ApiResponse<>(true,"Attendance Status", attendanceStatus,LocalDateTime.now(), 200);
+        return new SingleResponse<>(
+                attendanceStatus,
+                CustomStatus.SUCCESS
+        );
     }
 
-    private boolean isEmployeeOnLeaveInMicroservice(String employeeId, LocalDate date) {
-         return leaveClient.isEmployeeOnLeave(employeeId, date);
-    }
     @Override
-    public ApiResponse<?> getTodayAttendanceRecords() {
+    public SingleResponse<?> getTodayAttendanceRecords() {
         ListOfEmployeeIdResponse listOfEmployeeIds;
         try {
-            ApiResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
+            SingleResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
             listOfEmployeeIds = apiResponse.getData();
-        } catch (FeignException fe) {
-            String rawErrorJson = fe.contentUTF8();
-            String cleanErrorMessage = "Microservices call failed";
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").toString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
 
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (fe.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE ,responseStatus.value());
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
 
         LocalDate today = LocalDate.now();
@@ -124,7 +131,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
 
         // 2. Initialize the final response list and a basic set to track who checked in at least once
         List<EmployeeAttendanceResponse> responseList = new ArrayList<>();
-        Set<String> employeesWhoCheckedIn = new HashSet<>();
+        Set<Long> employeesWhoCheckedIn = new HashSet<>();
 
         // 3. Step 1: Add EVERY attendance record found in the DB (Allowing multiple entries per employee)
         for (Attendance attendance : attendanceList) {
@@ -143,8 +150,8 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         }
 
         // 4. Step 2: Look at all IDs and append employees who have ZERO records today to the bottom
-        List<String> allEmpIds = listOfEmployeeIds.getEmployeeIds();
-        for (String empId : allEmpIds) {
+        List<Long> allEmpIds = listOfEmployeeIds.getEmployeeIds();
+        for (Long empId : allEmpIds) {
             if (!employeesWhoCheckedIn.contains(empId)) {
                 String attendanceStatus = null; // Default status
 
@@ -156,35 +163,39 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
                     if (isOnLeave) {
                         attendanceStatus = AttendanceStatusEnum.ON_LEAVE.toString();
                     }
-                } catch (FeignException fe) {
-                    log.error("Leave service call failed for employee: {}", empId, fe);
+                } catch (FeignException e) {
+                    log.error("Leave service call failed for employee: {}", empId, e);
                     // Defaulting to ABSENT if the service fails or throws exception
-                    String rawErrorJson = fe.contentUTF8();
-                    String cleanErrorMessage = "Microservices call failed";
+                    String rawErrorJson = e.contentUTF8();
+                    String cleanErrorMessage = "Microservice call failed";
+                    int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
                     try {
                         JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                        if (errorNode.has("message")) {
-                            cleanErrorMessage = errorNode.get("message").toString();
-                        } else {
-                            cleanErrorMessage = rawErrorJson;
+
+                        // Navigate inside the nested "response" block
+                        if (errorNode.has("response")) {
+                            JsonNode responseNode = errorNode.get("response");
+                            if (responseNode.has("message")) {
+                                cleanErrorMessage = responseNode.get("message").asText();
+                            }
+                            if (responseNode.has("code")) {
+                                extractedErrorCode = responseNode.get("code").asInt();
+                            }
+                        } else if (errorNode.has("message")) {
+                            cleanErrorMessage = errorNode.get("message").asText();
                         }
                     } catch (Exception parseException) {
                         cleanErrorMessage = rawErrorJson;
                     }
 
-                    HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                    if (fe.status() > 0) {
-                        try {
-                            responseStatus = HttpStatus.valueOf(fe.status());
-                        } catch (IllegalArgumentException ex) {
-                            responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                        }
-                    } else {
-                        cleanErrorMessage = "Service is unreachable. Please try again later.";
-                        responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-                    }
-                    throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE ,responseStatus.value());
+                    int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+                    // Map the integer code to the correct Enum instance safely
+                    CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+                    // Pass the clean extracted message to CustomException
+                    throw new CustomException(cleanErrorMessage, status, httpStatusValue);
                 }
                 responseList.add(new EmployeeAttendanceResponse(
                         empId,
@@ -203,19 +214,22 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
 
 // responseList now contains sorted present employees first, and absent employees last!
 
-        return new ApiResponse<>(true, "Attendance Records", responseList,LocalDateTime.now(), 200);
+        return new SingleResponse<>(
+                responseList,
+                CustomStatus.SUCCESS
+        );
     }
 
     @Override
-    public ApiResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request) {
+    public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request) {
 
         LocalDate fromDate = request.getFromDate();
         LocalDate toDate = request.getToDate();
-        String employeeId = request.getEmployeeId();;
+        Long employeeId = request.getEmployeeId();;
 
         // 1. Basic validation check
         if (toDate.isBefore(fromDate)) {
-            throw new CustomException("To-Date cannot be before From-Date", HttpStatus.BAD_REQUEST);
+            throw new CustomException(null, CustomStatus.INVALID_DATE_RANGE, 409);
         }
 
         // 2. Fetch records from the database
@@ -230,7 +244,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         }
 
         Set<LocalDate> processedDates = new HashSet<>();
-        ApiResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, fromDate, toDate);
+        SingleResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, fromDate, toDate);
         Set<LocalDate> leaveDates = apiResponse != null && apiResponse.getData() != null ?apiResponse.getData() : Collections.emptySet();
 
         // 3. Map the entities to your response DTOs using Java Streams
@@ -279,17 +293,14 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
             log.info("Dynamically generated {} missing leave placeholder log(s) for employeeId: {}", missingLeaveCount, employeeId);
         }
 
-        return new ApiResponse<>(
-                true,
-                "Attendance history retrieved successfully",
+        return new SingleResponse<>(
                 historyResponse,
-                LocalDateTime.now(),
-                200
+               CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId){
+    public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(Long employeeId){
         LocalDate today = LocalDate.now();
         LocalDate mondayDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         log.info("Processing weekly attendance logs request. EmployeeId: {}, Target Week Start (Monday): {}", employeeId, mondayDate);
@@ -299,7 +310,7 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         List<Attendance> weeklyLogs = attendanceRepository.findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeDesc(employeeId, startOfWeek);
         log.info("Fetched {} database attendance record(s) for employeeId: {} since {}", weeklyLogs.size(), employeeId, startOfWeek);
 
-        ApiResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, mondayDate, LocalDate.now());
+        SingleResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, mondayDate, LocalDate.now());
         Set<LocalDate> leaveDates = apiResponse != null && apiResponse.getData() != null ?apiResponse.getData() : Collections.emptySet();
         log.info("Fetched {} active leave date(s) from Leave Microservice for employeeId: {}. Leave Dates: {}", leaveDates.size(), employeeId, leaveDates);
 
@@ -388,8 +399,13 @@ public class AttendanceInternalServiceImpl implements AttendanceInternalService 
         );
     }
 
+    // HELPER method
+    private boolean isEmployeeOnLeaveInMicroservice(Long employeeId, LocalDate date) {
+        return leaveClient.isEmployeeOnLeave(employeeId, date);
+    }
+
     //Helper
-    public Long getWorkingDetailsOfEmployee(String employeeId){
+    public Long getWorkingDetailsOfEmployee(Long employeeId){
         LocalDateTime fromDate = LocalDateTime.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                 .with(LocalTime.MIN);
         LocalDateTime toDate = LocalDateTime.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))

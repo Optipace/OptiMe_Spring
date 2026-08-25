@@ -24,6 +24,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,8 +51,10 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
 
     private final CommunicationClient communicationClient;
 
+    private final ObjectMapper objectMapper;
+
     @Override
-    public ApiResponse<?> getAllAppliedLeaves() {
+    public SingleResponse<List<ListOfLeaveResponse>> getAllAppliedLeaves() {
 
         List<Leave> leaves = leaveRepository.findByFromDateGreaterThanEqual(LocalDate.now());
         log.info("Fetching the applied leaves list from today onwards");
@@ -61,9 +65,11 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
                 .map(l -> {
                     if(l.getApprovedBy() == null){
                          l.setApprovedBy(null);
+                         String employeeName = getEmployeeNameByEmpId(l.getApplicantEmployeeId());
                         String approverName = getEmployeeNameByEmpId(l.getApproverEmpId());
                         String approvedByName = getEmployeeNameByEmpId(l.getApprovedBy());
                         ListOfLeaveResponse leaveResponse = modelMapper.map(l, ListOfLeaveResponse.class);
+                        leaveResponse.setEmployeeName(employeeName);
                         leaveResponse.setLeaveId(l.getId());
                         leaveResponse.setNumberOfLeavesApplied(l.getWantedLeaves());
                         leaveResponse.setApproverName(approverName);
@@ -96,44 +102,43 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
                 })
                 .toList();
         log.info("Loading list of leaves to the payload for internal server communication");
-        return new ApiResponse<>(
-                true,
-                "List of Leaves",
+        return new SingleResponse<>(
                 leaveResponses,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<List<LeaveTypeResponse>> getLeaveTypeList() {
+    public SingleResponse<List<LeaveTypeResponse>> getLeaveTypeList() {
         List<LeaveType> leaveTypeList = leaveTypeRepository.findAll();
 
         List<LeaveTypeResponse> leaveTypeResponseList = leaveTypeList.stream()
                 .sorted(Comparator.comparing(LeaveType::getLeaveType, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(leaveType -> modelMapper.map(leaveType, LeaveTypeResponse.class))
                 .toList();
-        return new ApiResponse<>(
-                true,
-                "List of Leave types",
+        return new SingleResponse<>(
                 leaveTypeResponseList,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public boolean isEmployeeOnLeave(String employeeId, LocalDate today) {
+    public boolean isEmployeeOnLeave(Long employeeId, LocalDate today) {
         return leaveRepository.isEmployeeOnLeaveOnDate(employeeId, today);
     }
 
     @Override
-    public ApiResponse<?> approveLeave(ApproveLeaveRequest request, String authorityEmployeeId) {
+    public SingleResponse<?> approveLeave(ApproveLeaveRequest request, String approverId) {
+
+//        Long approverEmpId = Long.parseLong(approverId);
+
         Leave leave = leaveRepository.findById(request.getLeaveId())
                 .orElseThrow(() -> new CustomException(null, CustomStatus.LEAVE_ID_NOT_FOUND,404));
 
         AvailableLeaves availableLeaves = availableLeavesRepository.findByEmployeeId(leave.getApplicantEmployeeId())
                 .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_LEAVE_BALANCE_RECORD_NOT_FOUND, 200));
+
+        Long authorityEmployeeId = Long.parseLong(approverId);
 
         if(leave.getApplicantEmployeeId().equals(authorityEmployeeId)){
             throw new CustomException(null, CustomStatus.UNAUTHORIZED_LEAVE_APPROVER, 200);
@@ -143,28 +148,44 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
             throw new CustomException(null, CustomStatus.LEAVE_ALREADY_PROCESSED, 200);
         }
 
-        ApiResponse<EmployeeResponse> empResponse;
+        SingleResponse<EmployeeResponse> empResponse;
         try{
 
             log.info("Calling Employee Profile Service for {} details", authorityEmployeeId);
             empResponse = employeeClient.getEmployeeByEmployeeId(authorityEmployeeId);
             log.info("Employee {} details got", authorityEmployeeId);
 
-        }catch (FeignException feignException) {
-            String cleanErrorMessage = "Microservice called failed";
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (feignException.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(feignException.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+        }catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE;
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
             }
-            log.error("Employee Service unreachable");
-            throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE ,responseStatus.value());
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
 
 //        if(){
@@ -174,8 +195,8 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
             throw new CustomException(null, CustomStatus.UNAUTHORIZED_LEAVE_APPROVER, 200);
         }
 
-        if(leave.getApprovedBy() == null || leave.getApprovedBy().isEmpty()){
-            leave.setApprovedBy(empResponse.getData().getEmployeeId());
+        if(leave.getApprovedBy() == null){
+            leave.setApprovedBy(empResponse.getData().getId());
             leave.setLeaveStatus(LeaveStatusEnum.APPROVED);
             if(StringUtils.hasText(request.getRemarks()) ){
                 leave.setRemarks(request.getRemarks().trim());
@@ -197,17 +218,15 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
 
 
 
-        return new ApiResponse<>(
-                true,
-                "Leave Approved",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 
     @Override
-    public ApiResponse<?> rejectLeave(RejectLeaveRequest request, String authorityEmployeeId) {
+    public SingleResponse<?> rejectLeave(RejectLeaveRequest request, String authorityId) {
+        Long authorityEmployeeId = Long.parseLong(authorityId);
         Leave leave = leaveRepository.findById(request.getLeaveId())
                 .orElseThrow(() -> new CustomException(null, CustomStatus.LEAVE_ID_NOT_FOUND, 404));
 
@@ -219,28 +238,44 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
             throw new CustomException(null, CustomStatus.LEAVE_ALREADY_PROCESSED, 200);
         }
 
-        ApiResponse<EmployeeResponse> empResponse;
+        SingleResponse<EmployeeResponse> empResponse;
         try{
 
             log.info("Calling Employee Profile Service for {} details", authorityEmployeeId);
             empResponse = employeeClient.getEmployeeByEmployeeId(authorityEmployeeId);
             log.info("Employee {} details got", authorityEmployeeId);
 
-        }catch (FeignException feignException) {
-            String cleanErrorMessage = "Microservice called failed";
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (feignException.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(feignException.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+        }catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE;
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
             }
-            log.error("Employee Service unreachable");
-            throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE ,responseStatus.value());
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
 
 //        if(){
@@ -250,8 +285,8 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
             throw new CustomException(null, CustomStatus.UNAUTHORIZED_LEAVE_APPROVER, 200);
         }
 
-        if(leave.getApprovedBy() == null || leave.getApprovedBy().isEmpty()){
-            leave.setApprovedBy(empResponse.getData().getEmployeeId());
+        if(leave.getApprovedBy() == null){
+            leave.setApprovedBy(empResponse.getData().getId());
             leave.setLeaveStatus(LeaveStatusEnum.DENIED);
             if(StringUtils.hasText(request.getRejectionReason())){
                 leave.setRemarks(request.getRejectionReason().trim());
@@ -268,12 +303,9 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
         );
         communicationClient.sendPrivateNotification(applicantPayload);
 
-        return new ApiResponse<>(
-                true,
-                "Leave Rejected",
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+               CustomStatus.SUCCESS
         );
     }
 
@@ -328,11 +360,11 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
 //    }
 
     @Override
-    public ApiResponse<Set<LocalDate>> getEmployeeLeaveDatesInRange(String employeeId, LocalDate startDate, LocalDate endDate) {
-        log.info("Request received to extract leaves for employeeId: {} between {} and {}", employeeId, startDate, endDate);
+    public SingleResponse<Set<LocalDate>> getEmployeeLeaveDatesInRange(Long empId, LocalDate startDate, LocalDate endDate) {
+        log.info("Request received to extract leaves for employeeId: {} between {} and {}", empId, startDate, endDate);
 
-        List<Leave> leaves = leaveRepository.findApprovedLeavesInDateRange(employeeId, startDate, endDate);
-        log.info("Found {} approved leave record(s) in DB for employeeId: {}", leaves.size(), employeeId);
+        List<Leave> leaves = leaveRepository.findApprovedLeavesInDateRange(empId, startDate, endDate);
+        log.info("Found {} approved leave record(s) in DB for employeeId: {}", leaves.size(), empId);
         // Expand date ranges into a Set of individual dates
         Set<LocalDate> leaveDates = leaves.stream()
                 .flatMap(leave -> {
@@ -347,53 +379,66 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
                     return actualStart.datesUntil(actualEnd.plusDays(1));
                 })
                 .collect(Collectors.toSet());
-        log.info("Successfully expanded leave records into {} individual leave date(s) for employeeId: {}. Dates: {}",leaveDates.size(), employeeId, leaveDates);
-    return new ApiResponse<>(
-                true,
-                "List of leave Dates",
+        log.info("Successfully expanded leave records into {} individual leave date(s) for employeeId: {}. Dates: {}",leaveDates.size(), empId, leaveDates);
+    return new SingleResponse<>(
                 leaveDates,
-                LocalDateTime.now(),
-                200
+            CustomStatus.SUCCESS
         );
     }
 
     // HELPER Method to get Employee name
-    private String getEmployeeNameByEmpId(String employeeId){
-        ApiResponse<?> employeeResponse = null;
+    private String getEmployeeNameByEmpId(Long employeeId){
+        SingleResponse<?> employeeApiResponse = null;
         try{
 
             if (employeeId != null) {
                 log.info("Calling Employee Profile Service for {} details", employeeId);
-                employeeResponse = employeeClient.getEmployeeName(employeeId);
+                employeeApiResponse = employeeClient.getEmployeeName(employeeId);
                 log.info("Employee {} details got", employeeId);
             }
 
 
-        }catch (FeignException feignException) {
-            String cleanErrorMessage = "Microservice called failed";
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (feignException.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(feignException.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+        }catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
+
+            try {
+                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE;
+            } catch (Exception parseException) {
+                cleanErrorMessage = rawErrorJson;
             }
-            log.error("Employee Service unreachable");
-            throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE ,responseStatus.value());
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
 
-        if(employeeResponse != null && employeeResponse.getData() != null){
-            return employeeResponse.getData().toString();
+        if(employeeApiResponse != null && employeeApiResponse.getData() != null){
+            return employeeApiResponse.getData().toString();
         }
         return null;
     }
 
     // HELPER Method to get remaining leaves of the employee
-    private Integer getRemainingLeavesByEmployeeId(String employeeId){
+    private Integer getRemainingLeavesByEmployeeId(Long employeeId){
         AvailableLeaves availableLeaves = availableLeavesRepository.findByEmployeeId(employeeId)
                 .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 200));
 

@@ -12,4 +12,5 @@ public class EmployeeProfilePayload {
     private String currentAddress;
     private String emergencyContact;
     private String bloodGroup;
+    private Long userId;
 }

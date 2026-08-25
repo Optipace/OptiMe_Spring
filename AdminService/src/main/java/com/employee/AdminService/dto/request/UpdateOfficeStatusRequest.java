@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateOfficeStatusRequest {
-    private String officeId;
+    private Long officeId;
     private String status;
 }

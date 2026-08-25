@@ -98,7 +98,7 @@ public class UserServiceImpl implements UserService {
         String message = "Otp sent successfully";
         try {
             log.info("Calling Email Service to send new otp");
-            ApiResponse<String> apiResponse = communicationClient.sendNewOtpToEmail(userOtp.getEmailId(), userOtp.getEmailOtp(), OTP_EXPIRY_MINUTES);
+            SingleResponse<String> apiResponse = communicationClient.sendNewOtpToEmail(userOtp.getEmailId(), userOtp.getEmailOtp(), OTP_EXPIRY_MINUTES);
             log.info("Email service called");
 
             if(apiResponse != null && apiResponse.getStatusCode() == 200) {
@@ -116,6 +116,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public SingleResponse<ValidationResponse> validateOtp(ValidationRequest request) {
         UserOtp userOtp = userOtpRepository.findByEmailIdAndContact(request.getEmail(), request.getContact())
                 .orElseThrow(() -> new CustomException(null, CustomStatus.OTP_NOT_FOUND, 409));
@@ -168,8 +169,7 @@ public class UserServiceImpl implements UserService {
         EmployeeResponse response = null;
 
         try {
-
-            ApiResponse<EmployeeResponse> apiResponse = employeeClient.getProfile(user.getEmployeeId());
+            SingleResponse<EmployeeResponse> apiResponse = employeeClient.getProfile(user.getEmployeeId());
             log.info("Employee Client called");
 
             if (apiResponse != null && apiResponse.getData() != null) {
@@ -179,30 +179,34 @@ public class UserServiceImpl implements UserService {
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").asString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
-            // Resolve status code safely.
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (e.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(e.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
         ValidationResponse validationResponse = new ValidationResponse(response, userOtp.getValidationToken());
         return new SingleResponse<>(
@@ -259,7 +263,8 @@ public class UserServiceImpl implements UserService {
                 request.getEmployeeId(),
                 request.getCurrentAddress(),
                 request.getEmergencyContact(),
-                request.getBloodGroup()
+                request.getBloodGroup(),
+                user.getId()
         );
 
         try {
@@ -268,24 +273,40 @@ public class UserServiceImpl implements UserService {
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").asString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
-            throw new CustomException(cleanErrorMessage, HttpStatus.valueOf(e.status()));
+
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
 //        userOtpRepository.delete(userOtp);
         String message = "Email sent";
         try{
             log.info("Calling email service");
-            ApiResponse<String> apiResponse = communicationClient.sendCompleteRegisteredEmail(user.getEmailId());
+            SingleResponse<String> apiResponse = communicationClient.sendCompleteRegisteredEmail(user.getEmailId());
             log.info("Email service called to send completed registration email");
 
             if(apiResponse != null && apiResponse.getStatusCode() == 200){
@@ -324,8 +345,11 @@ public class UserServiceImpl implements UserService {
             throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 409);
         }
 
-        String accessToken = jwtUtil.generateToken(user.getUserName(), user.getContact(), user.getEmailId(), user.getEmployeeId(), String.valueOf(user.getRole()));
-        String refreshToken = refreshTokenService.create(user);
+        SingleResponse<Long> response = employeeClient.getEmployeeByUserId(user.getId());
+
+        System.out.println("The employee primary id :"+response.getData());
+        String accessToken = jwtUtil.generateToken(user.getUserName(), user.getId().toString(), user.getEmailId(), user.getEmployeeId(), String.valueOf(user.getRole()), String.valueOf(response.getData()));
+        String refreshToken = refreshTokenService.create(user, response.getData());
 
         if (user.getUserStatus() == null || user.getUserStatus() == UserStatusEnum.INACTIVE) {
             user.setUserStatus(UserStatusEnum.ACTIVE);
@@ -343,9 +367,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public SingleResponse<MasterResponse> getMasterDetails() {
 
-        ApiResponse<List<OfficeResponse>> officeResponse = adminClient.getOfficeList();
-        ApiResponse<MasterEmployeeResponse> empResponse = employeeClient.getMasterDetails();
-        ApiResponse<List<LeaveTypeResponse>> leaveResponse = leaveClient.getLeaveTypeList();
+        SingleResponse<List<OfficeResponse>> officeResponse = adminClient.getOfficeList();
+        SingleResponse<MasterEmployeeResponse> empResponse = employeeClient.getMasterDetails();
+        SingleResponse<List<LeaveTypeResponse>> leaveResponse = leaveClient.getLeaveTypeList();
 
         List<EmployeeDesignationResponse> employeeDesignationResponseList = new ArrayList<>();
         List<RoleEnum> roleEnumList = new ArrayList<>();
@@ -443,8 +467,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public SingleResponse<?> updatePassword(UpdatePasswordRequest request, String employeeId) {
-        User user = userRepository.findByEmployeeId(employeeId)
+    public SingleResponse<?> updatePassword(UpdatePasswordRequest request, String userId) {
+        User user = userRepository.findById(Long.parseLong(userId))
                 .orElseThrow(() -> new CustomException(null, CustomStatus.USER_NOT_FOUND, 409));
 
         String oldPassword = request.getOldPassword();

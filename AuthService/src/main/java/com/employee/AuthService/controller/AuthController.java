@@ -17,7 +17,7 @@ public class AuthController {
     private final UserService userService;
     private final RefreshTokenService refreshTokenService;
 
-    @PostMapping("/getOtp")
+    @PostMapping("/getOtp") // TODO : SEPARATE APIs for generate first time registration and the forgot password
     public ResponseEntity<SingleResponse<?>> generateOtp(@Valid @RequestBody OtpRequest request){
         SingleResponse<?> response = userService.generateOtp(request);
         return ResponseEntity.status(200).body(response);
@@ -60,8 +60,8 @@ public class AuthController {
     }
 
     @PutMapping("/updatePassword")
-    public ResponseEntity<SingleResponse<?>> updatePassword(@Valid @RequestBody UpdatePasswordRequest request, @RequestHeader ("X-Employee-Id") String employeeId){
-        SingleResponse<?> response = userService.updatePassword(request,employeeId);
+    public ResponseEntity<SingleResponse<?>> updatePassword(@Valid @RequestBody UpdatePasswordRequest request, @RequestHeader ("X-User-Id") String userId){
+        SingleResponse<?> response = userService.updatePassword(request,userId);
         return ResponseEntity.status(200).body(response);
     }
 }

@@ -11,6 +11,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateEmployeeStatusPayload {
-    private String employeeId;
+    private Long employeeId;
     private EmployeeAccountStatus employeeAccountStatus;
 }

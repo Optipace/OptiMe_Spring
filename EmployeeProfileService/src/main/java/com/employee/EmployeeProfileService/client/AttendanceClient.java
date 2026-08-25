@@ -1,6 +1,7 @@
 package com.employee.EmployeeProfileService.client;
 
 import com.employee.EmployeeProfileService.dto.response.ApiResponse;
+import com.employee.EmployeeProfileService.dto.response.SingleResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -10,5 +11,5 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface AttendanceClient {
 
     @GetMapping("/api/attendance/internal/getAttendanceStatus")
-    public ApiResponse<String> getAttendanceStatus(@RequestParam("employeeId") String employeeId);
+    public SingleResponse<String> getAttendanceStatus(@RequestParam("employeeId") Long employeeId);
 }

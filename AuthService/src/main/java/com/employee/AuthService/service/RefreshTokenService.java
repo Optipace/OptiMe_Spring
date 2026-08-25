@@ -6,7 +6,7 @@ import com.employee.AuthService.dto.response.SingleResponse;
 import com.employee.AuthService.model.User;
 
 public interface RefreshTokenService {
-    public String create(User user);
+    public String create(User user, Long employeeId );
 
     public SingleResponse<?> getNewAccessToken(RefreshTokenRequest request);
 }

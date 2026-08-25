@@ -1,9 +1,6 @@
 package com.employee.EmployeeProfileService.controller;
 
-import com.employee.EmployeeProfileService.dto.request.CompleteProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.EmployeeProfileRequest;
-import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
-import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeStatusRequest;
+import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
 import jakarta.validation.Valid;
@@ -24,62 +21,60 @@ public class EmployeeInternalController {
     private final EmployeeInternalService empInternalService;
 
     @PostMapping("/createProfile")
-    public ResponseEntity<ApiResponse<?>> createProfile(@Valid @RequestBody EmployeeProfileRequest request){
-        ApiResponse<?> response = empInternalService.createProfile(request);
-        return ResponseEntity.status(200).body(response);
+    public SingleResponse<?> createProfile(@Valid @RequestBody EmployeeProfileRequest request){
+        return empInternalService.createProfile(request);
     }
 
     @GetMapping("/getProfile")
-    public ResponseEntity<ApiResponse<EmployeeProfileResponse>> getProfile(@RequestParam String employeeId){
-        ApiResponse<EmployeeProfileResponse> response = empInternalService.getProfile(employeeId);
-        return ResponseEntity.status(200).body(response);
+    public SingleResponse<EmployeeGetProfileResponse> getProfile(@RequestParam String employeeId){
+        return empInternalService.getProfile(employeeId);
     }
 
     @PostMapping("/completeProfile")
-    public ResponseEntity<ApiResponse<?>> completeProfile(@RequestBody CompleteProfileRequest request){
-        ApiResponse<?> response = empInternalService.completeProfile(request);
+    public ResponseEntity<SingleResponse<?>> completeProfile(@RequestBody CompleteProfileRequest request){
+        SingleResponse<?> response = empInternalService.completeProfile(request);
         return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/getEmployeeByUserId")
+    SingleResponse<Long> getEmployeeByUserId(@RequestParam Long userId){
+        return empInternalService.getEmployeeByUserId(userId);
     }
 
     @GetMapping("/getMasterDetails")
-    public ResponseEntity<ApiResponse<?>> getMasterDetails(){
-        ApiResponse<?> response = empInternalService.getMasterDetails();
-        return ResponseEntity.status(200).body(response);
+    public SingleResponse<?> getMasterDetails(){
+        return empInternalService.getMasterDetails();
     }
 
     @GetMapping("/checkEmployeeByEmployeeId")
-    public boolean checkEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId){
+    public boolean checkEmployeeByEmployeeId(@RequestParam("employeeId") Long employeeId){
         return empInternalService.checkEmployeeByEmployeeId(employeeId);
     }
 
     @PostMapping("/updateEmployeeStatus")
-    public ResponseEntity<ApiResponse<?>> updateEmployeeStatus(@RequestBody UpdateEmployeeStatusRequest request) {
-        ApiResponse<?> response = empInternalService.updateEmployeeStatus(request);
+    public ResponseEntity<SingleResponse<?>> updateEmployeeStatus(@RequestBody UpdateEmployeeStatusRequest request) {
+        SingleResponse<?> response = empInternalService.updateEmployeeStatus(request);
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/getEmployeeByEmployeeId")
-    public ResponseEntity<ApiResponse<EmployeeInternalResponse>> getEmployeeByEmployeeId(@RequestParam("employeeId")String employeeId){
-        ApiResponse<EmployeeInternalResponse> response = empInternalService.getEmployeeByEmployeeId(employeeId);
-        return ResponseEntity.ok(response);
+    @GetMapping("/getEmployeeById")
+    public SingleResponse<EmployeeInternalResponse> getEmployeeById(@RequestParam("employeeId")Long employeeId){
+        return empInternalService.getEmployeeById(employeeId);
     }
 
     @DeleteMapping("/deleteIdentity")
-    public ResponseEntity<ApiResponse<?>> deleteIdentity(@RequestParam("employeeId") String employeeId){
-        ApiResponse<?> response = empInternalService.deleteIdentity(employeeId);
-        return ResponseEntity.status(200).body(response);
+    public SingleResponse<?> deleteIdentity(@RequestParam("employeeId") String employeeId){
+        return empInternalService.deleteIdentity(employeeId);
     }
 
     @GetMapping("/getFeedback")
-    public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getFeedback(){
-        ApiResponse<List<FeedbackResponse>> response = empInternalService.getFeedback();
-        return ResponseEntity.status(200).body(response);
+    public SingleResponse<List<FeedbackResponse>> getFeedback(){
+        return empInternalService.getFeedback();
     }
 
     @PutMapping("/updateFeedback")
-    public ResponseEntity<ApiResponse<?>> updateFeedback(@RequestBody FeedbackUpdateRequest request){
-        ApiResponse<?> response = empInternalService.updateFeedback(request);
-        return ResponseEntity.status(200).body(response);
+    public SingleResponse<?> updateFeedback(@RequestBody FeedbackUpdateRequest request){
+        return empInternalService.updateFeedback(request);
     }
 
     @GetMapping("/checkWorkTypeById")
@@ -88,32 +83,35 @@ public class EmployeeInternalController {
     }
 
     @GetMapping("/getAllEmployee")
-    public ResponseEntity<ApiResponse<PageResponse<EmployeeResponse>>> getAllEmployee(Pageable pageable){
-        ApiResponse<PageResponse<EmployeeResponse>> response = empInternalService.getAllEmployee(pageable);
-        return ResponseEntity.status(200).body(response);
+    public SingleResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable){
+        SingleResponse<PageResponse<EmployeeResponse>> response = empInternalService.getAllEmployee(pageable);
+        return response;
 
     }
 
     @GetMapping("/getAllEmployeeId")
-    public ResponseEntity<ApiResponse<ListOfEmployeeIdResponse>> getAllEmployeeId(){
-        ApiResponse<ListOfEmployeeIdResponse> response = empInternalService.getAllEmployeeId();
-        return ResponseEntity.status(200).body(response);
+    public SingleResponse<ListOfEmployeeIdResponse> getAllEmployeeId(){
+        return empInternalService.getAllEmployeeId();
     }
 
     @GetMapping("/isHrEmpId")
-    public boolean isHrEmployeeId(@RequestParam("employeeId") String hrEmpId){
+    public boolean isHrEmployeeId(@RequestParam("employeeId") Long hrEmpId){
         return empInternalService.isHrEmployeeId(hrEmpId);
     }
 
     @GetMapping("/getAllAdmin")
-    public ResponseEntity<ApiResponse<PageResponse<ListOfAdminResponse>>> getAllAdminDetails(Pageable pageable){
-        ApiResponse<PageResponse<ListOfAdminResponse>> response = empInternalService.getAllAdminDetails(pageable);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+    public SingleResponse<PageResponse<ListOfAdminInternalResponse>> getAllAdminDetails(Pageable pageable){
+        return empInternalService.getAllAdminDetails(pageable);
     }
 
     @GetMapping("/getEmployeeName")
-    public ResponseEntity<ApiResponse<?>> getEmployeeName(@RequestParam String employeeId){
-        ApiResponse<?> response = empInternalService.getEmployeeName(employeeId);
+    public SingleResponse<?> getEmployeeName(@RequestParam Long employeeId){
+       return empInternalService.getEmployeeName(employeeId);
+    }
+
+    @PutMapping("/updateProfile")
+    public ResponseEntity<SingleResponse<?>> updateProfile(@RequestBody AdminUpdateEmployeeRequest request){
+        SingleResponse<?> response = empInternalService.updateProfile(request);
         return ResponseEntity.status(200).body(response);
     }
 }

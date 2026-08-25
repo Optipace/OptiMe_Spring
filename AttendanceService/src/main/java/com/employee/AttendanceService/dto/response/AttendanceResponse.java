@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AttendanceResponse {
+    private Long attendanceId;
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
     private Long workMin;

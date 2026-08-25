@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class EmployeeAttendanceHistoryResponse {
     private Long id;
 
-    private String employeeId;
+    private Long employeeId;
 
     private LocalDateTime checkInTime;
 

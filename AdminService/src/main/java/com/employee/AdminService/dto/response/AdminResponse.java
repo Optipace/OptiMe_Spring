@@ -10,7 +10,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AdminResponse {
-    private String employeeId;
+    private Long employeeId;
     private String employeeName;
     private String contact;
     private String emailId;

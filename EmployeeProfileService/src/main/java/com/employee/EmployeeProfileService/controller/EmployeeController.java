@@ -3,8 +3,10 @@ package com.employee.EmployeeProfileService.controller;
 
 import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
+import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeRequest;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.service.EmployeeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,31 +30,31 @@ public class EmployeeController {
     }
 
     @GetMapping("/getEmployeeDetails")
-    public ResponseEntity<SingleResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader ("X-Employee-Id") String employeeId){
+    public ResponseEntity<SingleResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader ("X-Id") String employeeId){
         SingleResponse<EmployeeResponse> response = empService.getEmployeeDetails(employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @GetMapping("/getEmployeeByID")
+    @GetMapping("/getEmployeeByEmployeeId")
     public ResponseEntity<SingleResponse<EmployeeResponse>> getEmployeeByEmployeeId(@RequestParam("employeeId")String employeeId){
         SingleResponse<EmployeeResponse> response = empService.getEmployeeByEmployeeId(employeeId);
         return ResponseEntity.status((HttpStatus.OK)).body(response);
     }
 
     @GetMapping("/officeNames")
-    public ResponseEntity<ListResponse<?>> getOfficeNames(){
-        ListResponse<?> response = empService.getOfficeNames();
+    public ResponseEntity<SingleResponse<?>> getOfficeNames(){
+        SingleResponse<?> response = empService.getOfficeNames();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PostMapping(value = "/upload/EmployeeProfile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<SingleResponse<?>> uploadEmployeeImage(@RequestParam("image") MultipartFile file, @RequestHeader ("X-Employee-Id") String employeeId ){
+    public ResponseEntity<SingleResponse<?>> uploadEmployeeImage(@RequestParam("image") MultipartFile file, @RequestHeader ("X-Id") String employeeId ){
         SingleResponse<?> response = empService.uploadEmployeeProfile(file,employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PostMapping("/saveFeedback")
-    public ResponseEntity<SingleResponse<?>> saveFeedback(@RequestBody FeedbackRequest request, @RequestHeader ("X-Employee-Id") String employeeId){
+    public ResponseEntity<SingleResponse<?>> saveFeedback(@RequestBody FeedbackRequest request, @RequestHeader ("X-Id") String employeeId){
         SingleResponse<?> response = empService.saveFeedback(request,employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
@@ -82,6 +84,12 @@ public class EmployeeController {
     @PostMapping(value="/uploadDocument",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SingleResponse<?>> uploadDocument(@RequestParam("file") MultipartFile file,@RequestParam("employeeId") String employeeId,@RequestParam("documentType") String documentType,@RequestParam("documentNo") String documentNo){
         SingleResponse<?> response = empService.uploadDocument(file,employeeId,documentNo,documentType);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PutMapping("/updateEmployee")
+    public ResponseEntity<SingleResponse<?>> updateEmployee(@Valid @RequestBody UpdateEmployeeRequest request){
+        SingleResponse<?> response = empService.updateEmployee(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

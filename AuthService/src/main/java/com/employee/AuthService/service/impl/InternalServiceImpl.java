@@ -1,7 +1,14 @@
 package com.employee.AuthService.service.impl;
 
+import com.employee.AuthService.client.EmployeeClient;
 import com.employee.AuthService.dto.request.AuthIdentityRequest;
+import com.employee.AuthService.dto.request.UpdateIdentityRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
+import com.employee.AuthService.dto.response.EmployeeResponse;
+import com.employee.AuthService.dto.response.NewUserResponse;
+import com.employee.AuthService.dto.response.SingleResponse;
+import com.employee.AuthService.enums.CustomStatus;
+import com.employee.AuthService.enums.RoleEnum;
 import com.employee.AuthService.enums.UserStatusEnum;
 import com.employee.AuthService.exception.CustomException;
 import com.employee.AuthService.model.User;
@@ -22,16 +29,35 @@ public class InternalServiceImpl implements InternalService {
 
     private final UserRepository userRepository;
 
+    private final EmployeeClient employeeClient;
+
     @Override
-    public ApiResponse<?> createIdentity(AuthIdentityRequest request) {
+    public SingleResponse<NewUserResponse> createIdentity(AuthIdentityRequest request) {
 
-        User user = userRepository.findByEmployeeId(request.getCreatedBy())
-                .orElseThrow(() -> new CustomException("Admin ID not found", HttpStatus.NOT_FOUND));
+        log.info("The creater Id is {}", request.getCreatedBy());
 
+//        User user = userRepository.findByEmployeeId(request.getCreatedBy())
+//                .orElseThrow(() -> new CustomException("Admin ID not found", HttpStatus.NOT_FOUND));
+        User user = userRepository.findById(request.getCreatedBy())
+                .orElseThrow(() -> new CustomException(null, CustomStatus.ADMIN_NOT_FOUND, 404));
 
-        if(userRepository.findByEmployeeId(request.getEmployeeId()).isPresent()){
-            throw new CustomException("Employee ID already exists", HttpStatus.BAD_REQUEST);
+        if (!user.getRole().equals(RoleEnum.ADMIN)) {
+            throw new CustomException(null, CustomStatus.UNAUTHORISED_ACCESS, 401);
         }
+        if (userRepository.findByEmployeeId(request.getEmployeeId()).isPresent()) {
+            throw new CustomException(null, CustomStatus.EMPLOYEE_ID_ALREADY_EXISTS, 409);
+        }
+
+        if (userRepository.findByEmailId(request.getEmailId()).isPresent()) {
+            throw new CustomException(null, CustomStatus.EMAIL_ID_EXISTS, 409);
+        }
+
+        if (request.getRole() != RoleEnum.ADMIN) {
+            if (userRepository.findByContact(request.getContact()).isPresent()) {
+                throw new CustomException(null, CustomStatus.CONTACT_EXISTS, 409);
+            }
+        }
+
 
         User newUser = new User();
         newUser.setUserName(request.getEmployeeName());
@@ -43,14 +69,41 @@ public class InternalServiceImpl implements InternalService {
         newUser.setCreatedOn(LocalDateTime.now());
         newUser.setCreatedBy(request.getCreatedBy());
         newUser.setUserStatus(UserStatusEnum.INACTIVE);
-        userRepository.save(newUser);
+        newUser = userRepository.save(newUser);
 
-        return new ApiResponse<>(
-                true,
-                "Identity created successfully",
+        NewUserResponse newUserResponse = new NewUserResponse(newUser.getId());
+
+        return new SingleResponse<>(
+                newUserResponse,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<?> updateIdentity(UpdateIdentityRequest request) {
+        User user = userRepository.findByEmployeeId(request.getEmployeeId())
+                .orElseThrow(() ->
+                        new CustomException(
+                                null,
+                                CustomStatus.EMPLOYEE_ID_NOT_FOUND,
+                                404
+                        ));
+        if (request.getUserName() != null) {
+            user.setUserName(request.getUserName());
+        }
+        if (request.getEmailId() != null) {
+            user.setEmailId(request.getEmailId());
+        }
+        if (request.getContact() != null) {
+            user.setContact(request.getContact());
+        }
+        if (request.getRole() != null) {
+            user.setRole(request.getRole());
+        }
+        userRepository.save(user);
+        return new SingleResponse<>(
                 null,
-                LocalDateTime.now(),
-                200
+                CustomStatus.SUCCESS
         );
     }
 

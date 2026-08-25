@@ -6,11 +6,12 @@ import lombok.Setter;
 @Getter
 @Setter
 public class EmployeeResponse {
+    private Long id;
     private String employeeName;
     private String employeeId;
     private String contact;
     private String emailId;
-    private String employeeDesignation; // TODO : value
+    private String employeeDesignation;
     private String dailyStatus;
     private String role;
     private String gender;

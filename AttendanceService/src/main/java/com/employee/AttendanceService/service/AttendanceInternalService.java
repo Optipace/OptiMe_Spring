@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.util.List;
 
 public interface AttendanceInternalService {
-    public ApiResponse<?> getAttendanceStatus(String employeeId);
+    public SingleResponse<?> getAttendanceStatus(Long employeeId);
 
-    public ApiResponse<?> getTodayAttendanceRecords();
+    public SingleResponse<?> getTodayAttendanceRecords();
 
-    public ApiResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request);
+    public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request);
 
-    public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId);
+    public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(Long employeeId);
 
     ApiResponse<?> updateCheckoutRecordsByEmpId(UpdateCheckOutRecordsRequest request);
 }

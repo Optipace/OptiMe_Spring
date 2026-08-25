@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 public class AddEmpAttendanceRequest {
-    @NotBlank(message = "Provide employee ID")
-    private String employeeId;
+    @NotNull(message = "Provide employee ID")
+    private Long employeeId;
 
     @NotNull(message = "Check in time cannot be null")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

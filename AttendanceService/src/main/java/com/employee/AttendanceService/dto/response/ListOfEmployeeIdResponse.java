@@ -12,5 +12,5 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ListOfEmployeeIdResponse {
-    private List<String> employeeIds;
+    private List<Long> employeeIds;
 }

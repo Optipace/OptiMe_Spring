@@ -8,6 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface AvailableLeavesRepository extends JpaRepository<AvailableLeaves, Long> {
-    Optional<AvailableLeaves> findByEmployeeId(String employeeId);
+    Optional<AvailableLeaves> findByEmployeeId(Long employeeId);
 
 }

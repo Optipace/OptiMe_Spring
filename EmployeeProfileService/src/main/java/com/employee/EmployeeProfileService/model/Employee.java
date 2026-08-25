@@ -101,6 +101,12 @@ public class Employee {
     @JoinColumn(name = "employee_status_id", nullable = false)
     private EmployeeStatus status;
 
-    @NotBlank(message = "Office Id is not provided")
-    private String officeId;
+//    @NotBlank(message = "Office Id is not provided")
+//    private String officeId;
+
+    @NotNull(message = "Office Id is not provided")
+    private Long officeId;
+
+    @Column(nullable = false,unique = true)
+    private Long userId;
 }

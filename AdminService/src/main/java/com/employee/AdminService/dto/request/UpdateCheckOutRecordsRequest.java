@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class UpdateCheckOutRecordsRequest {
     @NotBlank(message = "Provide employee Id")
-    String employeeId;
+    Long employeeId;
 
     @NotNull(message = "Attendance Id cannot be null")
     private Long id;

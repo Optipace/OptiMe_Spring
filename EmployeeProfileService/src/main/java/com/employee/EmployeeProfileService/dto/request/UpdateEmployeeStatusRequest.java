@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateEmployeeStatusRequest {
-    private String employeeId;
+    private Long employeeId;
     private AccountStatus accountStatus;
 }

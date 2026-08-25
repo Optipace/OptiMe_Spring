@@ -2,6 +2,7 @@ package com.employee.AdminService.controller;
 
 import com.employee.AdminService.dto.response.ApiResponse;
 import com.employee.AdminService.dto.response.OfficeResponse;
+import com.employee.AdminService.dto.response.SingleResponse;
 import com.employee.AdminService.service.InternalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,20 +21,20 @@ public class InternalController {
     private final InternalService internalService;
 
     @GetMapping("/getOfficeList")
-    public ResponseEntity<ApiResponse<List<OfficeResponse>>> getOfficeList(){
-        ApiResponse<List<OfficeResponse>> response = internalService.getOfficeList();
+    public ResponseEntity<SingleResponse<List<OfficeResponse>>> getOfficeList(){
+        SingleResponse<List<OfficeResponse>> response = internalService.getOfficeList();
         return ResponseEntity.status(200).body(response);
     }
 
     @GetMapping("/getOfficeByOfficeId")
-    public ResponseEntity<ApiResponse<OfficeResponse>> getOfficeDetailsByOfficeId(@RequestParam("officeId") String officeId){
-        ApiResponse<OfficeResponse> response = internalService.getOfficeDetailsByOfficeId(officeId);
+    public ResponseEntity<SingleResponse<OfficeResponse>> getOfficeDetailsByOfficeId(@RequestParam("officeId") Long officeId){
+        SingleResponse<OfficeResponse> response = internalService.getOfficeDetailsByOfficeId(officeId);
         return ResponseEntity.status(200).body(response);
     }
 
     @GetMapping("/getOfficeNames")
-    public ResponseEntity<ApiResponse<?>> getOfficeNames(){
-        ApiResponse<?> response = internalService.getOfficeNames();
+    public ResponseEntity<SingleResponse<?>> getOfficeNames(){
+        SingleResponse<?> response = internalService.getOfficeNames();
         return ResponseEntity.status(200).body(response);
     }
 }

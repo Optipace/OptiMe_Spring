@@ -19,12 +19,12 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
     @Query("SELECT COUNT(l) > 0 FROM Leave l WHERE l.applicantEmployeeId = :employeeId " +
             "AND :today BETWEEN l.fromDate AND l.toDate " +
             "AND l.leaveStatus = 'APPROVED'")
-    boolean isEmployeeOnLeaveOnDate(@Param("employeeId") String employeeId, @Param("today") LocalDate today);
+    boolean isEmployeeOnLeaveOnDate(@Param("employeeId") Long employeeId, @Param("today") LocalDate today);
 
     // Query to find if any existing leave overlaps with the new request dates
     @Query("SELECT COUNT(l) > 0 FROM Leave l WHERE l.applicantEmployeeId = :empId " +
             "AND l.fromDate <= :toDate AND l.toDate >= :fromDate")
-    boolean existsOverlappingLeave(@Param("empId") String employeeId,
+    boolean existsOverlappingLeave(@Param("empId") Long employeeId,
                                    @Param("fromDate") LocalDate fromDate,
                                    @Param("toDate") LocalDate toDate);
 
@@ -35,7 +35,7 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
             "OR (l.toDate BETWEEN :startDate AND :endDate) " +
             "OR (:startDate BETWEEN l.fromDate AND l.toDate))")
     List<Leave> findApprovedLeavesInDateRange(
-            @Param("employeeId") String employeeId,
+            @Param("employeeId") Long employeeId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
@@ -43,12 +43,12 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
     @Query("SELECT l FROM Leave l WHERE l.applicantEmployeeId = :employeeId " +
             "AND l.fromDate >= :startOfYear AND l.toDate <= :endOfYear")
     Optional<List<Leave>> findByApplicantEmployeeIdAndDateRange(
-            @Param("employeeId") String employeeId,
+            @Param("employeeId") Long employeeId,
             @Param("startOfYear") LocalDate startOfYear,
             @Param("endOfYear") LocalDate endOfYear
     );
 
-    Optional<List<Leave>> findByApproverEmpId(String employeeId);
+    Optional<List<Leave>> findByApproverEmpId(Long employeeId);
 
     Optional<List<Leave>> findByLeaveStatus(LeaveStatusEnum status);
 

@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum CustomStatus {
     UNKNOWN(-999,"Something went wrong"),
-// Highest -87
+// Highest -92
     // 200 Business Logic Failures
     INVALID_REQUEST_FORMAT(-105, "Invalid request format or Invalid body"),
     APPLICATION_DETAILS_NOT_FOUND(-84, "No application records found"),
@@ -35,6 +35,8 @@ public enum CustomStatus {
     EMPLOYEE_ID_NOT_FOUND(-26, "Employee ID not found."),
     EMPLOYEE_ID_ALREADY_REGISTERED(-29, "Employee is already fully registered."),
     PERSONAL_EMAIL_ALREADY_EXISTS(-30, "Personal email already exists."),
+    EMAIL_ID_EXISTS(-91, "Provided email id already exists"),
+    CONTACT_EXISTS(-92, "Provided contact number already exists"),
     USER_NOT_FOUND(-31, "User not found."),
     EMPLOYEE_ID_ALREADY_EXISTS(-33, "Employee ID already exists."),
     PROFILE_COMPLETION_REQUIRED(-35, "Profile completion is required."),
@@ -42,6 +44,7 @@ public enum CustomStatus {
     EMPLOYEE_PROFILE_ALREADY_EXISTS(-37, "Employee profile already exists."),
     EMPLOYEE_PROFILE_NOT_FOUND(-40, "Employee profile not found."),
     PROFILE_ALREADY_COMPLETED(-44, "Profile is already completed."),
+    DESIGNATION_NOT_FOUND(-90, "Provide designation not found in the database"),
 
     // 203: Leave Management Failures
     DUPLICATE_LEAVE_APPLICATION(-80, "You have already applied for leave during this date range."),
@@ -69,6 +72,8 @@ public enum CustomStatus {
     ATTENDANCE_STATUS_NOT_FOUND(-16, "Attendance status not found."),
     INVALID_WORK_TYPE(-17, "Invalid work type."),
     ACTIVE_OFFICE_NOT_FOUND(-41, "No active office found."),
+    ATTENDANCE_RECORDS_FOUND(-88,"Attendance Records found"),
+    ATTENDANCE_RECORDS_EXISTS(-89, "Existing attendance records found"),
 
     // 207: Communications & Feedback Failures
     FEEDBACK_NOT_FOUND(-7, "Feedback not found."),
@@ -123,4 +128,14 @@ public enum CustomStatus {
 
     private final int code;
     private final String message;
+
+    public static CustomStatus fromCode(int code) {
+        for (CustomStatus status : CustomStatus.values()) {
+            if (status.getCode() == code) {
+                return status;
+            }
+        }
+        // Fallback if the downstream code isn't explicitly defined in this gateway service enum
+        return CustomStatus.MICROSERVICE_CALL_FAILED;
+    }
 }

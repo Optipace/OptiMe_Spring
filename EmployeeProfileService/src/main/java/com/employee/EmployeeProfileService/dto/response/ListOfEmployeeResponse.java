@@ -11,6 +11,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ListOfEmployeeResponse {
+    private Long id;
     private String employeeId;
     private String employeeName;
     private String contact;

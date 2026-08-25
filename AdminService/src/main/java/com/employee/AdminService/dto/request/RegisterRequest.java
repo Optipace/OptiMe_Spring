@@ -50,8 +50,8 @@ public class RegisterRequest {
     @NotNull(message = "Gender is mandatory")
     private GenderEnum gender;
 
-    @NotBlank(message = "Office ID is required")
-    private String officeId;
+    @NotNull(message = "Office ID is required")
+    private Long officeId; // Changed to long from string
 
     @NotNull(message = "Work type is required")
     private Long workTypeId;

@@ -2,6 +2,7 @@ package com.employee.EmployeeProfileService.service;
 
 import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
+import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeRequest;
 import com.employee.EmployeeProfileService.dto.response.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,7 +15,7 @@ public interface EmployeeService {
 
     public SingleResponse<EmployeeResponse> getEmployeeByEmployeeId(String employeeId);
 
-    public ListResponse<?> getOfficeNames();
+    public SingleResponse<?> getOfficeNames();
 
     public SingleResponse<?> uploadEmployeeProfile(MultipartFile file, String employeeId);
 
@@ -27,6 +28,8 @@ public interface EmployeeService {
     public SingleResponse<List<ListOfAdminResponse>> getAllAdminDetails();
 
     public SingleResponse<?> uploadDocument(MultipartFile file, String employeeId, String documentNo, String documentType);
+
+    public SingleResponse<?> updateEmployee(UpdateEmployeeRequest request);
 
 //    public ResponseEntity<Resource> getEmployeeProfile(String authHeader);
 }

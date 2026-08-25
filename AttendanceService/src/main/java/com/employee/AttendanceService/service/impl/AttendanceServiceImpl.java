@@ -55,11 +55,12 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional
-    public SingleResponse<?> employeeCheckIn(String employeeId, MultipartFile file,
+    public SingleResponse<?> employeeCheckIn(String empId, MultipartFile file,
                                              String latitude, String longitude, Long attendanceTypeId) {
 
 //        boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNull(employeeId);
         LocalDateTime checkInTime = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+        Long employeeId = Long.parseLong(empId);
         boolean isAlreadyCheckedIn = attendanceRepository.existsByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(employeeId, checkInTime);
 
         if (isAlreadyCheckedIn)
@@ -99,7 +100,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendance.setFilePath(filePath);
         } else {
             log.info("Employee {} checked in without a photo", employeeId);
-            attendance.setFilePath("NULL");
+            attendance.setFilePath(null);
         }
 
         attendance = attendanceRepository.save(attendance);
@@ -162,10 +163,11 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional
-    public SingleResponse<?> employeeCheckOut(String employeeId) {
+    public SingleResponse<?> employeeCheckOut(String empId) {
 //        Attendance attendance = attendanceRepository.findByEmployeeIdAndCheckOutTimeIsNull(employeeId)
 //                .orElseThrow(() -> new CustomException("No active check-in record found for this employee", HttpStatus.NOT_FOUND));
 
+        Long employeeId = Long.parseLong(empId);
         LocalDateTime checkInTime = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
         Attendance attendance = attendanceRepository.findByEmployeeIdAndCheckOutTimeIsNullAndCheckInTimeAfter(employeeId, checkInTime)
                 .orElseThrow(() -> new CustomException(null, CustomStatus.CHECK_IN_RECORD_NOT_FOUND, 409));
@@ -261,7 +263,10 @@ public class AttendanceServiceImpl implements AttendanceService {
 //    }
 
     @Override
-    public SingleResponse<WorkingDetailsResponse> getWorkingDetails(String employeeId) {
+    public SingleResponse<WorkingDetailsResponse> getWorkingDetails(String empId) {
+
+        Long employeeId = Long.parseLong(empId);
+
         LocalDateTime fromDate = LocalDateTime.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                 .with(LocalTime.MIN);
         LocalDateTime toDate = LocalDateTime.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
@@ -289,7 +294,8 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
-    public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String employeeId) {
+    public SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> getWeeklyAttendanceLogs(String empId) {
+        Long employeeId = Long.parseLong(empId);
         LocalDate today = LocalDate.now();
         LocalDate mondayDate = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         log.info("Processing weekly attendance logs request. EmployeeId: {}, Target Week Start (Monday): {}", employeeId, mondayDate);
@@ -299,7 +305,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         List<Attendance> weeklyLogs = attendanceRepository.findByEmployeeIdAndCheckInTimeAfterOrderByCheckInTimeDesc(employeeId, startOfWeek);
         log.info("Fetched {} database attendance record(s) for employeeId: {} since {}", weeklyLogs.size(), employeeId, startOfWeek);
 
-        ApiResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, mondayDate, LocalDate.now());
+        SingleResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, mondayDate, LocalDate.now());
         Set<LocalDate> leaveDates = apiResponse != null && apiResponse.getData() != null ? apiResponse.getData() : Collections.emptySet();
         log.info("Fetched {} active leave date(s) from Leave Microservice for employeeId: {}. Leave Dates: {}", leaveDates.size(), employeeId, leaveDates);
 
@@ -366,35 +372,39 @@ public class AttendanceServiceImpl implements AttendanceService {
     public SingleResponse<?> getTodayAttendanceRecords() {
         ListOfEmployeeIdResponse listOfEmployeeIds;
         try {
-            ApiResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
+            SingleResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
             listOfEmployeeIds = apiResponse.getData();
-        } catch (FeignException fe) {
-            String rawErrorJson = fe.contentUTF8();
-            String cleanErrorMessage = "Microservices call failed";
+        } catch (FeignException e) {
+            String rawErrorJson = e.contentUTF8();
+            String cleanErrorMessage = "Microservice call failed";
+            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
             try {
                 JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-                if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").toString();
-                } else {
-                    cleanErrorMessage = rawErrorJson;
+
+                // Navigate inside the nested "response" block
+                if (errorNode.has("response")) {
+                    JsonNode responseNode = errorNode.get("response");
+                    if (responseNode.has("message")) {
+                        cleanErrorMessage = responseNode.get("message").asText();
+                    }
+                    if (responseNode.has("code")) {
+                        extractedErrorCode = responseNode.get("code").asInt();
+                    }
+                } else if (errorNode.has("message")) {
+                    cleanErrorMessage = errorNode.get("message").asText();
                 }
             } catch (Exception parseException) {
                 cleanErrorMessage = rawErrorJson;
             }
 
-            HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-            if (fe.status() > 0) {
-                try {
-                    responseStatus = HttpStatus.valueOf(fe.status());
-                } catch (IllegalArgumentException ex) {
-                    responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-            } else {
-                cleanErrorMessage = "Service is unreachable. Please try again later.";
-                responseStatus = HttpStatus.SERVICE_UNAVAILABLE; // 503 Status
-            }
-            throw new CustomException(cleanErrorMessage, responseStatus);
+            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+            // Map the integer code to the correct Enum instance safely
+            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+            // Pass the clean extracted message to CustomException
+            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
 
         LocalDate today = LocalDate.now();
@@ -408,7 +418,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         // 2. Initialize the final response list and a basic set to track who checked in at least once
         List<EmployeeAttendanceResponse> responseList = new ArrayList<>();
-        Set<String> employeesWhoCheckedIn = new HashSet<>();
+        Set<Long> employeesWhoCheckedIn = new HashSet<>();
 
         // 3. Step 1: Add EVERY attendance record found in the DB (Allowing multiple entries per employee)
         for (Attendance attendance : attendanceList) {
@@ -427,8 +437,8 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
 
         // 4. Step 2: Look at all company IDs and append employees who have ZERO records today to the bottom
-        List<String> allEmpIds = listOfEmployeeIds.getEmployeeIds();
-        for (String empId : allEmpIds) {
+        List<Long> allEmpIds = listOfEmployeeIds.getEmployeeIds();
+        for (Long empId : allEmpIds) {
             if (!employeesWhoCheckedIn.contains(empId)) {
                 String attendanceStatus = null; // Default status
 
@@ -445,6 +455,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 } catch (FeignException fe) {
                     log.error("Leave service call failed for employee: {}", empId, fe);
                     // Defaulting to ABSENT if the service fails or throws exception
+
                 }
                 responseList.add(new EmployeeAttendanceResponse(
                         empId,
@@ -466,7 +477,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     public SingleResponse<List<EmployeeAttendanceHistoryResponse>> getDateWiseAttendanceRecords(DateWiseAttendanceRequest request) {
         LocalDate fromDate = request.getFromDate();
         LocalDate toDate = request.getToDate();
-        String employeeId = request.getEmployeeId();
+        Long employeeId = request.getEmployeeId();
 
         if (toDate.isBefore(fromDate)) {
             throw new CustomException(null, CustomStatus.INVALID_DATE_RANGE, 409);
@@ -474,7 +485,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         List<Attendance> attendanceRecords = attendanceRepository.findAttendanceByEmployeeAndDateRange(employeeId, fromDate, toDate);
 
-        ApiResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, fromDate, toDate);
+        SingleResponse<Set<LocalDate>> apiResponse = leaveClient.getEmployeeLeaveDatesInRange(employeeId, fromDate, toDate);
         Set<LocalDate> leaveDates = apiResponse != null && apiResponse.getData() != null ? apiResponse.getData() : Collections.emptySet();
         log.info("Fetched {} active leave date(s) for employeeId: {} in date wise range", leaveDates.size(), employeeId);
 
@@ -545,7 +556,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             log.warn("Access denied: User with role '{}' attempted to access admin-only attendance creation/update.", role);
             throw new CustomException(null, CustomStatus.ADMIN_ACCESS_REQUIRED, 401);
         }
-        boolean isEmployeeIdEmpty = request.getEmployeeId() == null || request.getEmployeeId().isBlank();
+        boolean isEmployeeIdEmpty = request.getEmployeeId() == null;
 
         if (isEmployeeIdEmpty &&
                 request.getAttendanceTypeId() == null &&
@@ -558,7 +569,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
         if (request.getId() == null) {
             log.info("Processing branch: Attendance Creation triggered for Employee ID: {}", request.getEmployeeId());
-            isEmployeeIdEmpty = request.getEmployeeId() == null || request.getEmployeeId().isBlank();
+            isEmployeeIdEmpty = request.getEmployeeId() == null;
 
             if (isEmployeeIdEmpty ||
                     request.getAttendanceTypeId() == null ||
@@ -590,29 +601,44 @@ public class AttendanceServiceImpl implements AttendanceService {
                 throw new CustomException("Employee already checked in today. Please update the existing record.", CustomStatus.ATTENDANCE_RECORDS_EXISTS, 400);
             }
 
-            ApiResponse<?> employeeResponse = null;
+            SingleResponse<?> employeeResponse = null;
             try {
                 log.info("External Call: Requesting profile confirmation from Employee Profile Service for ID: {}", request.getEmployeeId());
                 employeeResponse = employeeClient.getEmployeeName(request.getEmployeeId());
                 log.info("External Call Success: Retrieved employee profile details for ID: {}", request.getEmployeeId());
 
 
-            } catch (FeignException feignException) {
-                String cleanErrorMessage = "Microservice called failed";
-                HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                if (feignException.status() > 0) {
-                    try {
-                        responseStatus = HttpStatus.valueOf(feignException.status());
-                    } catch (IllegalArgumentException ex) {
-                        responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            } catch (FeignException e) {
+                String rawErrorJson = e.contentUTF8();
+                String cleanErrorMessage = "Microservice call failed";
+                int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
+
+                try {
+                    JsonNode errorNode = objectMapper.readTree(rawErrorJson);
+
+                    // Navigate inside the nested "response" block
+                    if (errorNode.has("response")) {
+                        JsonNode responseNode = errorNode.get("response");
+                        if (responseNode.has("message")) {
+                            cleanErrorMessage = responseNode.get("message").asText();
+                        }
+                        if (responseNode.has("code")) {
+                            extractedErrorCode = responseNode.get("code").asInt();
+                        }
+                    } else if (errorNode.has("message")) {
+                        cleanErrorMessage = errorNode.get("message").asText();
                     }
-                } else {
-                    cleanErrorMessage = "Service is unreachable. Please try again later.";
-                    responseStatus = HttpStatus.SERVICE_UNAVAILABLE;
+                } catch (Exception parseException) {
+                    cleanErrorMessage = rawErrorJson;
                 }
-                log.error("External Call Failure: Employee Profile Service unreachable or returned error status [{}]. Exception message: {}",
-                        responseStatus, feignException.getMessage(), feignException);
-                throw new CustomException(cleanErrorMessage, CustomStatus.SERVICE_UNAVAILABLE, responseStatus.value());
+
+                int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
+
+                // Map the integer code to the correct Enum instance safely
+                CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+
+                // Pass the clean extracted message to CustomException
+                throw new CustomException(cleanErrorMessage, status, httpStatusValue);
             }
 
             Attendance attendance = new Attendance();
@@ -622,7 +648,12 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendance.setLatitude("00.0000");
             attendance.setLongitude("00.0000");
             attendance.setCheckInTime(request.getCheckInTime());
-            attendance.setCheckOutTime(request.getCheckOutTime());
+            if (request.getCheckOutTime() != null ||
+                    (!(request.getCheckOutTime().toString().equalsIgnoreCase("null")))) {
+                attendance.setCheckOutTime(request.getCheckOutTime());
+            } else {
+                attendance.setCheckOutTime(null);
+            }
             attendance.setFilePath(null);
             attendance.setAdminModified(true);
             attendance.setAdminRemarks(request.getRemarks().isBlank() ? null : request.getRemarks());
@@ -636,6 +667,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendanceRepository.save(attendance);
             log.info("Successfully created and saved attendance record for Employee ID: {}", request.getEmployeeId());
         } else {
+            //updating exising record
             log.info("Processing branch: Attendance Update triggered for Attendance Record ID: {}", request.getId());
             Attendance attendance = attendanceRepository.findById(request.getId())
                     .orElseThrow(() -> new CustomException(null, CustomStatus.ATTENDANCE_RECORDS_NOT_FOUND, 200));
@@ -661,24 +693,42 @@ public class AttendanceServiceImpl implements AttendanceService {
             if (request.getCheckInTime() != null && request.getCheckOutTime() != null) {
                 log.debug("Updating both Check-In and Check-Out times for Record ID: {}", request.getId());
                 attendance.setCheckInTime(request.getCheckInTime());
-                attendance.setCheckOutTime(request.getCheckOutTime());
-                attendance.setTotalWorkMin(Duration.between(request.getCheckInTime(), request.getCheckOutTime()).toMinutes());
+                if (!request.getCheckOutTime().toString().equalsIgnoreCase("NULL")) {
+                    attendance.setCheckOutTime(request.getCheckOutTime());
+                    attendance.setTotalWorkMin(Duration.between(request.getCheckInTime(), request.getCheckOutTime()).toMinutes());
+
+                } else {
+
+                    attendance.setCheckOutTime(null);
+                    attendance.setTotalWorkMin(0L);
+
+                }
 
             } else if (request.getCheckOutTime() == null && request.getCheckInTime() != null) {
                 log.debug("Updating Check-In time only for Record ID: {}", request.getId());
                 attendance.setCheckInTime(request.getCheckInTime());
+                attendance.setCheckOutTime(null);
                 if (attendance.getCheckOutTime() != null) {
-                    attendance.setTotalWorkMin(Duration.between(request.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
+                    attendance.setTotalWorkMin(0L);
                 } else {
                     log.warn("Calculated TotalWorkMin skipped for Record ID: {}. Database CheckOutTime is currently null.", request.getId());
                 }
 
             } else if (request.getCheckOutTime() != null) {
                 log.info("Check out time is not null so updating checkout time {} for record {}", request.getCheckOutTime(), request.getId());
-                if (attendance.getCheckInTime() != null) {
-                    attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), request.getCheckOutTime()).toMinutes());
+                if (!request.getCheckOutTime().toString().equalsIgnoreCase("NULL")) {
+                    attendance.setCheckOutTime(request.getCheckOutTime());
+
+                    if (attendance.getCheckInTime() != null) {
+                        attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), request.getCheckOutTime()).toMinutes());
+                    } else {
+                        throw new CustomException(null, CustomStatus.CHECK_IN_RECORD_NOT_FOUND, 409);
+                    }
+                } else {
+                    attendance.setCheckOutTime(null);
+                    attendance.setTotalWorkMin(0L);
                 }
-                attendance.setCheckOutTime(request.getCheckOutTime());
+
             }
 
             log.info("Persisting modifications to database for Attendance Record ID: {}. Updated calculated minutes: {}",
@@ -693,6 +743,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         );
 
     }
+
 
     @Override
     public SingleResponse<?> addEmployeeAttendance(AddEmpAttendanceRequest request) {
@@ -737,16 +788,14 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     //Helper
-    public Long getWorkingDetailsOfEmployee(String employeeId) {
+    public Long getWorkingDetailsOfEmployee(Long employeeId) {
         LocalDateTime fromDate = LocalDateTime.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                 .with(LocalTime.MIN);
         LocalDateTime toDate = LocalDateTime.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
                 .with(LocalTime.MAX);
 
-        Long totalWorkMin = attendanceRepository.getTotalWorkMin(employeeId, fromDate, toDate)
+        return attendanceRepository.getTotalWorkMin(employeeId, fromDate, toDate)
                 .orElse(0L);
-
-        return totalWorkMin;
     }
 
     @Scheduled(cron = "0 0 6 * * ?", zone = "Asia/Kolkata") // Everyday 6 AM
@@ -766,7 +815,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 attendance.setTotalWorkMin(totalWorkMin); // will be set to check in time + 4 hours
                 attendance.setAttendanceStatus(AttendanceStatusEnum.OFFLINE);
                 attendance.setAdminModified(false);
-                attendance.setAdminRemarks("");
+                attendance.setAdminRemarks("Checked out by auto Scheduler");
                 attendanceRepository.save(attendance);
 
                 LocalDate whichDay = attendance.getCheckInTime().toLocalDate();
@@ -800,14 +849,14 @@ public class AttendanceServiceImpl implements AttendanceService {
         LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59, 999999999);
 
         try {
-            ApiResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
+            SingleResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
 
             if (apiResponse.getData() == null || apiResponse.getData().getEmployeeIds().isEmpty()) {
                 log.warn("No active employees fetched from Employee Profile Service.");
                 return;
             }
 
-            for (String employeeId : apiResponse.getData().getEmployeeIds()) {
+            for (Long employeeId : apiResponse.getData().getEmployeeIds()) {
 
 
                 boolean hasAttendanceRecord = attendanceRepository.existsByEmployeeIdAndCheckInTimeBetween(
@@ -839,7 +888,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
     }
 
-    private boolean checkLeaveStatusFromService(String employeeId, LocalDate date) {
+    private boolean checkLeaveStatusFromService(Long employeeId, LocalDate date) {
         try {
             return leaveClient.isEmployeeOnLeave(employeeId, date);
         } catch (Exception e) {

@@ -23,7 +23,7 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
 
     @PostMapping("/checkIn")
-    public ResponseEntity<SingleResponse<?>> employeeCheckIn(@RequestHeader("X-Employee-Id") String employeeId,
+    public ResponseEntity<SingleResponse<?>> employeeCheckIn(@RequestHeader("X-Id") String employeeId,
                                                           @RequestParam(value = "image", required = false) MultipartFile file,
                                                           @RequestParam("latitude") String latitude,
                                                           @RequestParam("longitude") String longitude,
@@ -33,18 +33,18 @@ public class AttendanceController {
     }
 
     @PostMapping("/checkOut")
-    public ResponseEntity<SingleResponse<?>> employeeCheckOut(@RequestHeader("X-Employee-Id") String employeeId){
+    public ResponseEntity<SingleResponse<?>> employeeCheckOut(@RequestHeader("X-Id") String employeeId){
         SingleResponse<?> response = attendanceService.employeeCheckOut(employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @GetMapping("/getWorkingDetails")
-    public SingleResponse<WorkingDetailsResponse> getWorkingDetails(@RequestHeader("X-Employee-Id") String employeeId){
+    public SingleResponse<WorkingDetailsResponse> getWorkingDetails(@RequestHeader("X-Id") String employeeId){
         return attendanceService.getWorkingDetails(employeeId);
     }
 
     @GetMapping("/getWeeklyAttendanceLogs")
-    public ResponseEntity<SingleResponse<WeeklyAttendanceLogsOfEmployeeRes>> getWeeklyAttendanceLogs(@RequestHeader("X-Employee-Id") String employeeId){
+    public ResponseEntity<SingleResponse<WeeklyAttendanceLogsOfEmployeeRes>> getWeeklyAttendanceLogs(@RequestHeader("X-Id") String employeeId){
         SingleResponse<WeeklyAttendanceLogsOfEmployeeRes> response = attendanceService.getWeeklyAttendanceLogs(employeeId);
         return ResponseEntity.status(200).body(response);
     }

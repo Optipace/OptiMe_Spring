@@ -3,6 +3,7 @@ package com.employee.AdminService.model;
 import com.employee.AdminService.enums.OfficeStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,8 +17,11 @@ import lombok.NoArgsConstructor;
 public class Office {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @Column(unique = true, nullable = false)
-    private String id;
+    private String officeId;
 
     @NotBlank(message = "Please provide office name")
     @Column(nullable = false, unique = true)
@@ -31,9 +35,9 @@ public class Office {
     @Column(nullable = false, length = 14)
     private String longitude;
 
-    @NotBlank(message = "HR Employee ID cannot be blank")
+    @NotNull(message = "HR Employee ID cannot be blank")
     @Column(nullable = false, length = 12)
-    private String hrEmpId;
+    private Long hrEmpId;
 
     @NotBlank(message = "Please provide the office address")
     @Column(nullable = false)
@@ -46,6 +50,9 @@ public class Office {
     @NotBlank(message = "Please provide the office google map location")
     @Column(nullable = false)
     private String googleMap;
+
+    @Column(length = 200)
+    private String groupLink;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "office_status", length = 50)

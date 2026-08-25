@@ -20,12 +20,13 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    public String generateToken(String username, String contact,String EmailId, String EmployeeId, String role){
+    public String generateToken(String username, String userId,String EmailId, String EmployeeId, String role, String Id){
         Map<String, Object> claims = new HashMap<>();
-        claims.put("contact", contact);
+        claims.put("userId", userId);
         claims.put("emailId", EmailId);
         claims.put("employeeId", EmployeeId);
         claims.put("role",role);
+        claims.put("id",Id);
         return Jwts.builder()
                 .claims(claims)
                 .subject(username)
@@ -50,8 +51,8 @@ public class JwtUtil {
         return extractClaims(token).getSubject();
     }
 
-    public String extractContact(String token){
-        return extractClaims(token).get("contact", String.class);
+    public String extractUserId(String token){
+        return extractClaims(token).get("userId", String.class);
     }
 
     public String extractEmailId(String token){

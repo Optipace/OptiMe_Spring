@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EmployeeAttendanceResponse {
-    private String employeeId;
+    private Long employeeId;
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
     private String latitude;

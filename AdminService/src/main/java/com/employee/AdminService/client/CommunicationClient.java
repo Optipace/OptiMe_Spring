@@ -15,8 +15,11 @@ public interface CommunicationClient {
     void sendBroadCastNotification(@RequestBody NotificationPayload payload);
 
     @PostMapping("/api/communication/email/sendWelcomeEmail")
-    void sendAccountCreatedEmail(@RequestParam("emailId") String emailId);
+    void sendAccountCreatedEmail(@RequestParam("emailId") String emailId, @RequestParam("contact") String contact);
 
     @PostMapping("/api/communication/email/interviewEmail")
     void sendInterviewEmail(@RequestBody InterviewPayload payload);
+
+    @PostMapping("/api/notifications/internal/send")
+    void sendPrivateNotification(@RequestBody NotificationPayload payload);
 }

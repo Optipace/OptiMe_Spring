@@ -1,7 +1,8 @@
 package com.employee.CommunicationService.service;
 
 import com.employee.CommunicationService.dto.response.ApiResponse;
+import com.employee.CommunicationService.dto.response.SingleResponse;
 
 public interface EmailService {
-    ApiResponse<String> sendHtmlEmail(String to, String subject, String body);
+    SingleResponse<String> sendHtmlEmail(String to, String subject, String body);
 }

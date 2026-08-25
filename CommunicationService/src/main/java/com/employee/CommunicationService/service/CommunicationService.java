@@ -2,17 +2,18 @@ package com.employee.CommunicationService.service;
 
 import com.employee.CommunicationService.dto.request.*;
 import com.employee.CommunicationService.dto.response.ApiResponse;
+import com.employee.CommunicationService.dto.response.SingleResponse;
 import org.springframework.web.bind.annotation.RequestBody;
 
 public interface CommunicationService {
 
-    void sendAccountCreatedEmail(String emailId);
+    void sendAccountCreatedEmail(String emailId, String contact);
 
-    ApiResponse<String> sendNewOtpToEmail(String emailId, String otp, Long otpExpiryMinutes);
+    SingleResponse<String> sendNewOtpToEmail(String emailId, String otp, Long otpExpiryMinutes);
 
-    ApiResponse<String> sendCompletedRegistrationEmail(String emailId);
+    SingleResponse<String> sendCompletedRegistrationEmail(String emailId);
 
-    ApiResponse<String> sendLeaveEmail(LeaveEmailRequest request);
+    SingleResponse<String> sendLeaveEmail(LeaveEmailRequest request);
 
     void sendConfirmationLeaveEmail(LeaveConfirmationRequest request);
 
