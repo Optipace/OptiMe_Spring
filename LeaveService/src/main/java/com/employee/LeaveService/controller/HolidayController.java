@@ -1,5 +1,6 @@
 package com.employee.LeaveService.controller;
 
+import com.employee.LeaveService.dto.request.PutHolidayRequest;
 import com.employee.LeaveService.dto.request.SaveHolidaysRequest;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.SingleResponse;
@@ -28,7 +29,8 @@ public class HolidayController {
         return holidaysService.getHolidaysOnYears(yearFrom,yearTo);
     }
     @PutMapping("")
-    public SingleResponse<?> updateHoliday(@RequestParam Long id,@RequestBody SaveHolidaysRequest request){
+    public SingleResponse<?> updateHoliday(@RequestParam Long id,
+                                           @RequestBody PutHolidayRequest request){
         return holidaysService.updateHolidayById(id,request);
     }
     @DeleteMapping("/{id}")

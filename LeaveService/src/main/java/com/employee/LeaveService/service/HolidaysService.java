@@ -1,5 +1,6 @@
 package com.employee.LeaveService.service;
 
+import com.employee.LeaveService.dto.request.PutHolidayRequest;
 import com.employee.LeaveService.dto.request.SaveHolidaysRequest;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.SingleResponse;
@@ -12,7 +13,7 @@ public interface HolidaysService {
 
     SingleResponse<?> getHolidaysOnYears(Integer yearFrom, Integer yearTo);
 
-    SingleResponse<?> updateHolidayById(Long id,SaveHolidaysRequest request);
+    SingleResponse<?> updateHolidayById(Long id, PutHolidayRequest request);
 
     SingleResponse<?> deleteHolidayById(Long id);
 }

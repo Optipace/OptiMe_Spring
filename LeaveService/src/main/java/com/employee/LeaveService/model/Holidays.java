@@ -28,10 +28,10 @@ public class Holidays {
 
     private String description;
 
-    private LocalDate createdAt;
+    private Date createdOn;
 
     @PrePersist
     protected void onCreate(){
-        createdAt=LocalDate.now();
+        createdOn=new Date();
     }
 }

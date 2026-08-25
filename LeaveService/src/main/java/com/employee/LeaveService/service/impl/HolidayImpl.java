@@ -1,5 +1,6 @@
 package com.employee.LeaveService.service.impl;
 
+import com.employee.LeaveService.dto.request.PutHolidayRequest;
 import com.employee.LeaveService.dto.request.SaveHolidaysRequest;
 import com.employee.LeaveService.dto.response.SingleResponse;
 import com.employee.LeaveService.enums.CustomStatus;
@@ -10,6 +11,7 @@ import com.employee.LeaveService.service.HolidaysService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -63,18 +65,15 @@ public class HolidayImpl implements HolidaysService {
         return new SingleResponse<>(repository.findByYearsFromTo(fromDate,toDate),CustomStatus.SUCCESS);
     }
     @Override
-    public SingleResponse<?> updateHolidayById(Long id,SaveHolidaysRequest requestBody){
+    public SingleResponse<?> updateHolidayById(Long id, PutHolidayRequest requestBody){
        Holidays getHoliday= repository.findById(id).orElseThrow(
                ()->new CustomException(null,CustomStatus.HOLIDAY_NOT_FOUND,404)
        );
-       Holidays updatedHoliday =new Holidays(
-               getHoliday.getId(),
-               getHoliday.getHolidayDate(),
-               requestBody.getHolidayName(),
-               requestBody.getDescription(),
-               getHoliday.getCreatedAt()
-       );
-        return new SingleResponse<>(repository.save(updatedHoliday),CustomStatus.SUCCESS);
+
+       getHoliday.setHolidayName(requestBody.getHolidayName());
+       getHoliday.setDescription(requestBody.getDescription());
+
+        return new SingleResponse<>(repository.save(getHoliday),CustomStatus.SUCCESS);
     }
 
     @Override
