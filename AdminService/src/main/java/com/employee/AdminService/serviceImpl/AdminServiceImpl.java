@@ -1095,6 +1095,7 @@ public class AdminServiceImpl implements AdminService {
             );
         }
         if(request.getOfficeId()!=null) {
+            System.out.println("Office id received: "+request.getOfficeId());
             officeRepository.findById(request.getOfficeId())
                     .orElseThrow(()->new CustomException(
                             "Office not found",
@@ -1130,13 +1131,6 @@ public class AdminServiceImpl implements AdminService {
                         502
                 );
             }
-//            if (apiResponse.getStatus() != 200) {
-//                throw new CustomException(
-//                        apiResponse.getMessage(),
-//                        CustomStatus.MICROSERVICE_CALL_FAILED,
-//                        apiResponse.getStatus()
-//                );
-//            }
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
@@ -1164,34 +1158,16 @@ public class AdminServiceImpl implements AdminService {
             int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
 
             // Map the integer code to the correct Enum instance safely
-            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
+            CustomStatus status;
+            try {
+                status = CustomStatus.fromCode(extractedErrorCode);
+            } catch (Exception exception) {
+                status = CustomStatus.MICROSERVICE_CALL_FAILED;
+            }
 
             // Pass the clean extracted message to CustomException
             throw new CustomException(cleanErrorMessage, status, httpStatusValue);
         }
-//        catch (Exception parseException) {
-//                log.error(
-//                        "Failed to parse error response: {}",
-//                        rawErrorJson,
-//                        parseException
-//                );
-//                cleanErrorMessage = "Microservice call failed";
-//            }
-//            if (statusCode == 404) {
-//                fallbackStatus = CustomStatus.EMPLOYEE_NOT_FOUND;
-//            } else if (statusCode == 405) {
-//                fallbackStatus = CustomStatus.INVALID_REQUEST_FORMAT;
-//            } else if (statusCode == 400) {
-//                fallbackStatus = CustomStatus.INVALID_REQUEST_FORMAT;
-//            } else if (statusCode == 503) {
-//                fallbackStatus = CustomStatus.MICROSERVICE_CALL_FAILED;
-//            }
-//            throw new CustomException(
-//                    cleanErrorMessage,
-//                    fallbackStatus,
-//                    statusCode
-//            );
-//        }
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS

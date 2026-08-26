@@ -82,8 +82,12 @@ public class EmployeeController {
 //    }
 
     @PostMapping(value="/uploadDocument",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<SingleResponse<?>> uploadDocument(@RequestParam("file") MultipartFile file,@RequestParam("employeeId") String employeeId,@RequestParam("documentType") String documentType,@RequestParam("documentNo") String documentNo){
-        SingleResponse<?> response = empService.uploadDocument(file,employeeId,documentNo,documentType);
+    public ResponseEntity<SingleResponse<?>> uploadDocument(@RequestParam("file") MultipartFile file,
+                                                            @RequestParam("employeeId") String employeeId,
+                                                            @RequestParam("documentType") String documentType,
+                                                            @RequestParam("documentNo") String documentNo,
+                                                            @RequestHeader("X-User-Id") Long userId){
+        SingleResponse<?> response = empService.uploadDocument(file,employeeId,documentType,documentNo,userId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

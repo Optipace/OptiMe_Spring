@@ -25,7 +25,7 @@ public class EmployeeResponse {
     private String dateOfBirth;
     private String emergencyContact;
     private Long workTypeId;
-    private String profileStatus;
+    private int profileStatus;
     private String attendanceStatus;
     private Long employeeStatusId;
     private OfficeResponse office;

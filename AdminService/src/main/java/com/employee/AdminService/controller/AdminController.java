@@ -152,7 +152,7 @@ public class AdminController {
     }
 
     @PutMapping("/updateEmployee")
-    public ResponseEntity<SingleResponse<?>> updateEmployee(@RequestBody UpdateEmployeeRequest request){
+    public ResponseEntity<SingleResponse<?>> updateEmployee(@Valid @RequestBody UpdateEmployeeRequest request){
         return ResponseEntity.status(200).body(adminService.updateEmployee(request));
     }
 

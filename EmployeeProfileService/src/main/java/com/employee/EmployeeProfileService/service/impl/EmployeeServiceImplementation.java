@@ -446,7 +446,8 @@ public class EmployeeServiceImplementation implements EmployeeService {
                     }
 
                     ListOfAdminResponse response = new ListOfAdminResponse();
-                    response.setEmployeeId(admin.getId());
+                    response.setId(admin.getId());
+                    response.setEmployeeId(admin.getEmployeeId());
                     response.setContact(admin.getContact());
                     response.setEmployeeName(admin.getEmployeeName());
                     response.setEmailId(admin.getEmailId());
@@ -521,7 +522,21 @@ public class EmployeeServiceImplementation implements EmployeeService {
     }
 
     @Override
-    public SingleResponse<?> uploadDocument(MultipartFile file, String empId, String documentNo, String documentType) {
+    public SingleResponse<?> uploadDocument(MultipartFile file, String empId, String documentType, String documentNo,Long userId) {
+        Employee loggedInEmployee = employeeRepository.findEmployeeByUserId(userId)
+                .orElseThrow(()->
+                        new CustomException(
+                                null,
+                                CustomStatus.EMPLOYEE_NOT_FOUND,
+                                404
+                        ));
+        if(loggedInEmployee.getRole()!=RoleEnum.ADMIN) {
+            throw new CustomException(
+                    null,
+                    CustomStatus.UNAUTHORISED_ACCESS,
+                    401
+            );
+        }
         Long employeeId = Long.parseLong(empId);
         Employee employee = employeeRepository.findById(employeeId).orElseThrow(() ->
                 new CustomException(
