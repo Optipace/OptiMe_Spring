@@ -108,6 +108,10 @@ public class EmployeeInternalController {
     public SingleResponse<?> getEmployeeName(@RequestParam Long employeeId){
        return empInternalService.getEmployeeName(employeeId);
     }
+    @GetMapping("/getEmployeeOfficeId")
+    public SingleResponse<Long> getEmployeeOfficeId(@RequestParam Long employeeId){
+        return empInternalService.getEmployeeOfficeId(employeeId);
+    }
 
     @PutMapping("/updateProfile")
     public ResponseEntity<SingleResponse<?>> updateProfile(@RequestBody AdminUpdateEmployeeRequest request){

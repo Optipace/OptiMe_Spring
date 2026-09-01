@@ -531,4 +531,19 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                CustomStatus.SUCCESS
         );
     }
+
+    @Override
+    public SingleResponse<Long> getEmployeeOfficeId(Long employeeId) {
+        Employee empOfficeId = employeeRepository.findById(employeeId).orElse(null);
+        if(empOfficeId != null){
+            return new SingleResponse<>(
+                    empOfficeId.getOfficeId(),
+                    CustomStatus.SUCCESS
+            );
+        }
+        return new SingleResponse<>(
+                null,
+                CustomStatus.SUCCESS
+        );
+    }
 }

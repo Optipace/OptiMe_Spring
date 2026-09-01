@@ -29,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
         String path=request.getServletPath();
+
         // Don't require JWT for internal endpoints
         if(path.startsWith("/api/employee/internal")){
             filterChain.doFilter(request, response);

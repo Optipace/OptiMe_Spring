@@ -46,4 +46,5 @@ public interface EmployeeInternalService {
 
     public SingleResponse<?> updateProfile(AdminUpdateEmployeeRequest request);
 
+    public SingleResponse<Long> getEmployeeOfficeId(Long employeeId);
 }
