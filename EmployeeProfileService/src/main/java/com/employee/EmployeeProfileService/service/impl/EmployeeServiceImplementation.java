@@ -136,7 +136,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
                     "INFO"
             );
 
-            log.info("Notification service calling");
+            log.info("Notification service calling 1");
             communicationClient.sendPrivateNotification(payload);
             log.info("Notification service called");
 
@@ -166,6 +166,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
+            log.error("{}<----string", e.toString());
             String cleanErrorMessage = "Microservice call failed";
             int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 
@@ -249,7 +250,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
                     "INFO"
             );
 
-            log.info("Notification service calling");
+            log.info("Notification service calling 2");
             communicationClient.sendPrivateNotification(payload);
             log.info("Notification service called");
 
@@ -276,6 +277,7 @@ public class EmployeeServiceImplementation implements EmployeeService {
 
         } catch (FeignException e) {
             String rawErrorJson = e.contentUTF8();
+            log.error(rawErrorJson);
             String cleanErrorMessage = "Microservice call failed";
             int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
 

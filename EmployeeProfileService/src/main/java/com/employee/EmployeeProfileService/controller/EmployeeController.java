@@ -17,7 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/employee")
+@RequestMapping("/api/employee")
 @RequiredArgsConstructor
 public class EmployeeController {
 
@@ -31,6 +31,7 @@ public class EmployeeController {
 
     @GetMapping("/getEmployeeDetails")
     public ResponseEntity<SingleResponse<EmployeeResponse>> getEmployeeDetails(@RequestHeader ("X-Id") String employeeId){
+        System.out.println(employeeId+"<-----id");
         SingleResponse<EmployeeResponse> response = empService.getEmployeeDetails(employeeId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
