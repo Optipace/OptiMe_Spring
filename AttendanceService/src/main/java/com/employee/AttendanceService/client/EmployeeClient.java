@@ -5,6 +5,7 @@ import com.employee.AttendanceService.dto.response.ApiResponse;
 import com.employee.AttendanceService.dto.response.ListOfEmployeeIdResponse;
 import com.employee.AttendanceService.dto.response.SingleResponse;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,4 +26,8 @@ public interface EmployeeClient {
 
     @GetMapping("/api/employee/internal/getEmployeeName")
     SingleResponse<?> getEmployeeName(@RequestParam("employeeId") Long employeeId);
+
+    @GetMapping("/api/employee/internal/getEmployeeOfficeId")
+    public SingleResponse<Long> getEmployeeOfficeId(@RequestParam Long employeeId);
+
 }

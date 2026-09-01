@@ -22,4 +22,10 @@ public interface LeaveClient {
             @RequestParam("startDate") LocalDate startDate,
             @RequestParam("endDate") LocalDate endDate
     );
+
+    @GetMapping("/api/leave/internal/checkHoliday")
+    SingleResponse<Boolean> getHolidayByDateOfficeId(@RequestParam LocalDate holidayDate,@RequestParam Long officeId);
+
+    @GetMapping("/api/leave/internal/checkWorkingSaturday")
+    SingleResponse<Boolean> getWorkingSatByDateOfficeId(@RequestParam LocalDate workingDate,@RequestParam Long officeId);
 }

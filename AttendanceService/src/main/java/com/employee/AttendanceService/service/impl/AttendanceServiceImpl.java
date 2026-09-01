@@ -840,14 +840,15 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     // Runs every day at 9:00 PM Asia/Kolkata time
-    @Scheduled(cron = "0 0 21 * * ?", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 0 21 * * MON-SAT", zone = "Asia/Kolkata")
     @Transactional
     public void autoAttendanceUpdateScheduler() {
         log.info("Starting distributed auto Attendance update scheduler at 9 PM...");
 
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59, 999999999);
-
+        boolean isTodayHoliday = false;
+        boolean isTodayWorkingSaturday = false;
         try {
             SingleResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
 
@@ -858,14 +859,22 @@ public class AttendanceServiceImpl implements AttendanceService {
 
             for (Long employeeId : apiResponse.getData().getEmployeeIds()) {
 
+                Long officeId= employeeClient.getEmployeeOfficeId(employeeId).getData();
 
+                if(officeId!=null){
+                     isTodayHoliday =leaveClient.getHolidayByDateOfficeId(LocalDate.now(),officeId).getData();
+                    int dayOfNum= LocalDate.now().getDayOfWeek().getValue();
+                    if(dayOfNum == 6) {
+                        isTodayWorkingSaturday = leaveClient.getWorkingSatByDateOfficeId(LocalDate.now(), officeId).getData();
+                    }
+                }
                 boolean hasAttendanceRecord = attendanceRepository.existsByEmployeeIdAndCheckInTimeBetween(
                         employeeId, startOfDay, endOfDay
                 );
 
                 boolean hasLeaveRecord = checkLeaveStatusFromService(employeeId, startOfDay.toLocalDate());
 
-                if (!hasAttendanceRecord && !hasLeaveRecord) {
+                if (!hasAttendanceRecord && !hasLeaveRecord && !isTodayHoliday && isTodayWorkingSaturday) {
                     log.info("No record found. Inserting absent entry for Employee ID: {}", employeeId);
 
                     Attendance absentRecord = new Attendance();
