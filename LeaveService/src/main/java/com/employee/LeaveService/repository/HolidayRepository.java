@@ -22,5 +22,4 @@ public interface HolidayRepository extends JpaRepository<Holidays,Long> {
             " AND h.officeId = :officeId"
     )
     Optional<List<Holidays>> findByYearsFromTo(LocalDate fromDate,LocalDate toDate,Long officeId);
-
 }

@@ -106,7 +106,7 @@ public enum CustomStatus {
     HOLIDAY_ALREADY_PRESENT(-93, "Duplicate Holidays are not allowed-"),
     HOLIDAY_NOT_FOUND(-94, "Holiday not found."),
     ERROR_WHILE_DELETE_HOLIDAY(-95, "Error while deleting holiday."),
-
+    DUPLICATE_WORKING_DATES(-96, "Duplicate working date's are not allowed-"),
 
 
     // 500 Series

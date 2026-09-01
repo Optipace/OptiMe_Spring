@@ -29,6 +29,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/leave/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/swagger-ui/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll() // Open all auth endpoints
                         .requestMatchers("/api/leave/holidays/save").hasRole("ADMIN")
+                        .requestMatchers("/api/leave/workingSaturday/save").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         log.info("Leave service security filter chain");
