@@ -2,6 +2,7 @@ package com.employee.LeaveService.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,7 +20,7 @@ public class Holidays {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false)
     private LocalDate holidayDate;
 
     @NotBlank(message = "Holiday name is required")
@@ -27,6 +28,9 @@ public class Holidays {
     private String holidayName;
 
     private String description;
+
+    @NotNull(message = "Office Id is not provided")
+    private Long officeId;
 
     private Date createdOn;
 

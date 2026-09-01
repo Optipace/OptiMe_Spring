@@ -2,6 +2,7 @@ package com.employee.LeaveService.dto.request;
 
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,4 +22,7 @@ public class SaveHolidaysRequest {
     private String holidayName;
 
     private String description;
+
+    @NotNull(message = "Office Id is not provided")
+    private Long officeId;
 }

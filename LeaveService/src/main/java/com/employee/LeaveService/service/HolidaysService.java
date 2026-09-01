@@ -11,7 +11,7 @@ import java.util.List;
 public interface HolidaysService {
     SingleResponse<?> saveHolidays(List<SaveHolidaysRequest> holidays);
 
-    SingleResponse<?> getHolidaysOnYears(Integer yearFrom, Integer yearTo);
+    SingleResponse<?> getHolidaysOnYears(Integer yearFrom, Integer yearTo,Long officeId);
 
     SingleResponse<?> updateHolidayById(Long id, PutHolidayRequest request);
 

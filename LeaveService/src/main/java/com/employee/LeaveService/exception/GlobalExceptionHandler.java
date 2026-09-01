@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -25,7 +26,21 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(response);
     }
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<SingleResponse<?>> handleMissingRequestParameter(
+            MissingServletRequestParameterException ex) {
 
+        String message = "Required request parameter '"
+                + ex.getParameterName()
+                + "' is missing";
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new SingleResponse<>(
+                        HttpStatus.BAD_REQUEST.value(),
+                        message
+                ));
+    }
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<SingleResponse<?>> handleConstraintViolationException(
             ConstraintViolationException ex) {

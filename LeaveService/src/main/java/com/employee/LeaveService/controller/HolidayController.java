@@ -25,8 +25,9 @@ public class HolidayController {
 
     @GetMapping("")
     public SingleResponse<?> getHolidays(@RequestParam Integer yearFrom,
-                                         @RequestParam Integer yearTo){
-        return holidaysService.getHolidaysOnYears(yearFrom,yearTo);
+                                         @RequestParam Integer yearTo,
+                                         @RequestParam Long officeId){
+        return holidaysService.getHolidaysOnYears(yearFrom,yearTo,officeId);
     }
     @PutMapping("")
     public SingleResponse<?> updateHoliday(@RequestParam Long id,

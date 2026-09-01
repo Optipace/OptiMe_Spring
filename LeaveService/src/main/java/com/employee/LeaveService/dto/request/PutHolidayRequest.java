@@ -1,6 +1,7 @@
 package com.employee.LeaveService.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,4 +17,8 @@ public class PutHolidayRequest {
     private String holidayName;
 
     private String description;
+
+    @NotNull(message = "Office Id is not provided")
+    private Long officeId;
+
 }

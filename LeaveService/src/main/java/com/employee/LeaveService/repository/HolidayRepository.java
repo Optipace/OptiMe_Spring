@@ -12,11 +12,15 @@ import java.util.Optional;
 
 @Repository
 public interface HolidayRepository extends JpaRepository<Holidays,Long> {
-    Optional<Holidays> findByHolidayDate(LocalDate holidayDate);
+    @Query("SELECT h from Holidays h where h.holidayDate = :holidayDate"+
+            " AND h.officeId = :officeId"
+    )
+    Optional<Holidays> findByHolidayDateAndOfficeId(LocalDate holidayDate,Long officeId);
 
     @Query("SELECT h from Holidays h where h.holidayDate >= :fromDate"+
-            " AND h.holidayDate <= :toDate"
+            " AND h.holidayDate <= :toDate"+
+            " AND h.officeId = :officeId"
     )
-    Optional<List<Holidays>> findByYearsFromTo(LocalDate fromDate,LocalDate toDate);
+    Optional<List<Holidays>> findByYearsFromTo(LocalDate fromDate,LocalDate toDate,Long officeId);
 
 }
