@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class NotificationRequest {
     private Long employeeId; // Who receives this?
-    private String topic; // ex: "New employee created"
+    private String title; // ex: "New employee created"
     private String message; // ex: "OPTI001 has successfully registered
     private String type; // ex: "INFO" , "ALERT" , "SUCCESS"
     private String timestamp = LocalDateTime.now().toString();
