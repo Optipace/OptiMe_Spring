@@ -79,7 +79,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+			<artifactId>springdoc-openapi-starter-webflux-api</artifactId>
 			<version>3.0.3</version>
 			<scope>compile</scope>
 		</dependency>

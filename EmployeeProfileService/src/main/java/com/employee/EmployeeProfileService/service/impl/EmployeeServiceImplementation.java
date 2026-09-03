@@ -4,16 +4,15 @@ import com.employee.EmployeeProfileService.client.AdminClient;
 import com.employee.EmployeeProfileService.client.AttendanceClient;
 import com.employee.EmployeeProfileService.client.CommunicationClient;
 import com.employee.EmployeeProfileService.config.AppProperties;
-import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
-import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
-import com.employee.EmployeeProfileService.dto.request.NotificationPayload;
-import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeRequest;
+import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.enums.*;
 import com.employee.EmployeeProfileService.exception.CustomException;
+import com.employee.EmployeeProfileService.model.BankAccount;
 import com.employee.EmployeeProfileService.model.Employee;
 import com.employee.EmployeeProfileService.model.EmployeeDocument;
 import com.employee.EmployeeProfileService.model.Feedback;
+import com.employee.EmployeeProfileService.repository.BankAccountRepository;
 import com.employee.EmployeeProfileService.repository.EmployeeDocumentRepository;
 import com.employee.EmployeeProfileService.repository.EmployeeRepository;
 import com.employee.EmployeeProfileService.repository.FeedbackRepository;
@@ -63,6 +62,8 @@ public class EmployeeServiceImplementation implements EmployeeService {
     private final AdminClient adminClient;
 
     private final EmployeeDocumentRepository employeeDocumentRepository;
+
+    private final BankAccountRepository bankAccountRepository;
 
     @Override
     public SingleResponse<List<ListOfEmployeeResponse>> getAllEmployees() {
@@ -578,6 +579,11 @@ public class EmployeeServiceImplementation implements EmployeeService {
                 document.setAadharCardDocumentNo(documentNo);
                 break;
 
+            case "CANCELLED_CHEQUE":
+                document.setCancelledCheque(filePath);
+                document.setCancelledChequeDocumentNo(documentNo);
+                break;
+
             default:
                 throw new RuntimeException("Invalid document type");
         }
@@ -617,6 +623,30 @@ public class EmployeeServiceImplementation implements EmployeeService {
             employee.setBloodGroup(request.getBloodGroup());
         }
         employeeRepository.save(employee);
+        return new SingleResponse<>(
+                null,
+                CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public SingleResponse<?> addBankAccountDetails(AddBankAccountRequest request,MultipartFile cancelledCheque,Long userId){
+        Employee employee = employeeRepository.findById(request.getEmployeeId())
+                .orElseThrow(()->
+                        new CustomException(
+                                null,
+                                CustomStatus.EMPLOYEE_NOT_FOUND,
+                                404
+                        ));
+        BankAccount bankAccount = new BankAccount();
+        bankAccount.setEmployee(employee);
+        bankAccount.setAccountNumber(request.getAccountNumber());
+        bankAccount.setIfscCode(request.getIfscCode());
+        bankAccount.setBankName(request.getBankName());
+        bankAccount.setBranchName(request.getBranchName());
+        bankAccount.setActive(request.getActive());
+        bankAccountRepository.save(bankAccount);
+        uploadDocument(cancelledCheque,String.valueOf(request.getEmployeeId()),"CANCELLED_CHEQUE",null,userId);
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS

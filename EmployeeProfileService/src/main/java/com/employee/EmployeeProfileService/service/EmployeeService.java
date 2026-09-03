@@ -1,5 +1,6 @@
 package com.employee.EmployeeProfileService.service;
 
+import com.employee.EmployeeProfileService.dto.request.AddBankAccountRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeRequest;
@@ -30,6 +31,8 @@ public interface EmployeeService {
     public SingleResponse<?> uploadDocument(MultipartFile file, String employeeId, String documentType, String documentNo,Long userId);
 
     public SingleResponse<?> updateEmployee(UpdateEmployeeRequest request);
+
+    public SingleResponse<?> addBankAccountDetails(AddBankAccountRequest request,MultipartFile cancelledCheque,Long userId);
 
 //    public ResponseEntity<Resource> getEmployeeProfile(String authHeader);
 }

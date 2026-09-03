@@ -1,6 +1,7 @@
 package com.employee.EmployeeProfileService.controller;
 
 
+import com.employee.EmployeeProfileService.dto.request.AddBankAccountRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackRequest;
 import com.employee.EmployeeProfileService.dto.request.FeedbackUpdateRequest;
 import com.employee.EmployeeProfileService.dto.request.UpdateEmployeeRequest;
@@ -95,6 +96,15 @@ public class EmployeeController {
     @PutMapping("/updateEmployee")
     public ResponseEntity<SingleResponse<?>> updateEmployee(@Valid @RequestBody UpdateEmployeeRequest request){
         SingleResponse<?> response = empService.updateEmployee(request);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping(value="/addBankAccount",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<SingleResponse<?>> addBankAccountDetails(@Valid @ModelAttribute AddBankAccountRequest request,
+                                                                   @RequestPart("cancelledCheque")MultipartFile cancelledCheque,
+                                                                   @RequestHeader("X-User-Id") Long userId){
+        System.out.println("add bank account function started");
+        SingleResponse<?> response = empService.addBankAccountDetails(request,cancelledCheque,userId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

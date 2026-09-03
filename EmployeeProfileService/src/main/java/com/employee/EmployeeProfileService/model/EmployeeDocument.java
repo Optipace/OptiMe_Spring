@@ -43,6 +43,12 @@ public class EmployeeDocument {
     @Column(name="aadhar_card_document_no")
     private String aadharCardDocumentNo;
 
+    @Column(name="cancelled_cheque")
+    private String cancelledCheque;
+
+    @Column(name="cancelled_cheque_document_no")
+    private String cancelledChequeDocumentNo;
+
     @Column(name="path")
     private String path;
 }
