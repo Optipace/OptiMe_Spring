@@ -546,4 +546,16 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                 CustomStatus.SUCCESS
         );
     }
+
+    @Override
+    public SingleResponse<List<EmployeeIdNameOfficeIdResponse>> getAllEmployeeIdAndName() {
+         List<Employee> listOfAllEmp= employeeRepository.findByRole(RoleEnum.EMP);
+         List<EmployeeIdNameOfficeIdResponse> empResponse=listOfAllEmp.stream().map(emp->{
+             EmployeeIdNameOfficeIdResponse response=modelMapper.map(emp,EmployeeIdNameOfficeIdResponse.class);
+             response.setId(emp.getId());
+             response.setEmployeeName(emp.getEmployeeName());
+             return response;
+         }).toList();
+        return new SingleResponse<>(empResponse,CustomStatus.SUCCESS);
+    }
 }

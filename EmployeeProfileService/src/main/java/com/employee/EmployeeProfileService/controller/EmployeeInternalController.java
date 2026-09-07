@@ -86,7 +86,12 @@ public class EmployeeInternalController {
     public SingleResponse<PageResponse<EmployeeResponse>> getAllEmployee(Pageable pageable){
         SingleResponse<PageResponse<EmployeeResponse>> response = empInternalService.getAllEmployee(pageable);
         return response;
+    }
 
+    @GetMapping("/getAllEmployeeIdAndName")
+    public SingleResponse<List<EmployeeIdNameOfficeIdResponse>> getAllEmployeeIdAndName(){
+        SingleResponse<List<EmployeeIdNameOfficeIdResponse>> response = empInternalService.getAllEmployeeIdAndName();
+        return response;
     }
 
     @GetMapping("/getAllEmployeeId")
