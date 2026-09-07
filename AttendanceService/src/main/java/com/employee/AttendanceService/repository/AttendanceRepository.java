@@ -77,6 +77,8 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     boolean existsByEmployeeIdAndCheckInTimeBetween(Long employeeId, LocalDateTime start, LocalDateTime end);
 
+    @Query("SELECT a from Attendance a WHERE a.checkInTime >= :startDate AND a.checkInTime < :endDate And a.employeeId = :employeeId")
+    Optional<List<Attendance>> getOneMonthAttendanceData(@Param("startDate") LocalDateTime startDate,@Param("endDate") LocalDateTime endDate,@Param("employeeId") Long employeeId);
 
 //    Optional<Attendance> findByEmployeeIdAndCheckoutDateTimeBetween(
 //            String employeeId,

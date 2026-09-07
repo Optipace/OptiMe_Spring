@@ -70,4 +70,10 @@ public class AttendanceController {
     public ResponseEntity<SingleResponse<?>> addEmployeeAttendance(@RequestBody AddEmpAttendanceRequest request){
         return ResponseEntity.status(200).body(attendanceService.addEmployeeAttendance(request));
     }
+
+    @GetMapping("/getOneMonthRecord")
+    public  ResponseEntity<SingleResponse<?>> getOneMonthRecord(@RequestParam Integer month,@RequestParam Integer year){
+        return ResponseEntity.status(200).body(attendanceService.getOneMonthRecord(month,year));
+    }
+
 }

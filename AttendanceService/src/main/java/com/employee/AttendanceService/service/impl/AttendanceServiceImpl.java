@@ -11,10 +11,12 @@ import com.employee.AttendanceService.dto.request.NotificationPayload;
 import com.employee.AttendanceService.dto.response.*;
 import com.employee.AttendanceService.enums.AttendanceStatusEnum;
 import com.employee.AttendanceService.enums.CustomStatus;
+import com.employee.AttendanceService.enums.OneMonthAttendanceStatusEnum;
 import com.employee.AttendanceService.exception.CustomException;
 import com.employee.AttendanceService.model.*;
 import com.employee.AttendanceService.repository.AttendanceRepository;
 import com.employee.AttendanceService.service.AttendanceService;
+import com.employee.AttendanceService.util.ExceptionUtil;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -45,13 +47,17 @@ public class AttendanceServiceImpl implements AttendanceService {
     private static final long MAX_IMAGE_SIZE = 1024 * 1024;
     private final ModelMapper mapperModel;
     private final AttendanceRepository attendanceRepository;
+
     private final EmployeeClient employeeClient;
+
     private final ObjectMapper objectMapper;
     private final AppProperties appProperties;
 
     private final LeaveClient leaveClient;
 
     private final CommunicationClient communicationClient;
+
+    private final ExceptionUtil exceptionUtil;
 
     @Override
     @Transactional
@@ -769,6 +775,83 @@ public class AttendanceServiceImpl implements AttendanceService {
         return null;
     }
 
+    @Override
+    public SingleResponse<?> getOneMonthRecord(Integer month, Integer year) {
+        SingleResponse<List<EmployeeIdNameOfficeIdResponse>> employeeList;
+        try {
+            log.info("External Call: Requesting profile confirmation from Employee Profile Service:");
+            employeeList = employeeClient.getAllEmployeeIdAndName();
+            log.info("employee list :{}",employeeList.getData().toString());
+
+        } catch (FeignException ex){
+            throw exceptionUtil.feignExceptionHandler(ex);
+        }
+        try {
+        List<AllEmployeeRecordResponse> responses=  employeeList.getData().stream().map(emp->{
+
+
+              AllEmployeeRecordResponse empResponse=mapperModel.map(emp,AllEmployeeRecordResponse.class);
+
+            List<HolidayResponse> holidayList;
+            try {
+                log.info("External Call: Requesting confirmation from holiday Client service:");
+                holidayList = leaveClient.getHolidayByMonthAndYear(month, year, emp.getOfficeId()).getData();
+                log.info("holiday list :{}",holidayList.toString());
+
+            } catch (FeignException ex){
+                throw exceptionUtil.feignExceptionHandler(ex);
+            }
+
+              LocalDateTime startDate = LocalDate.of(year, month, 1).atStartOfDay();
+              List<Attendance> attendanceList = attendanceRepository.getOneMonthAttendanceData(startDate, startDate.plusMonths(1),emp.getId()).orElse(null);
+
+
+
+              if (attendanceList == null) {
+                  empResponse.setAttendanceRecord(Collections.emptyList());
+              }else {
+                  List<OneMonthAttendanceResponse> oneMonthAttendanceResponse = new ArrayList<>(
+                          attendanceList.stream().map(attendance ->
+                          {
+                              OneMonthAttendanceResponse perDayRecord = mapperModel.map(attendance, OneMonthAttendanceResponse.class);
+
+                              switch (attendance.getAttendanceStatus()) {
+                                  case ABSENT -> perDayRecord.setAttendanceStatus(OneMonthAttendanceStatusEnum.ABSENT);
+                                  case ONLINE, OFFLINE ->
+                                          perDayRecord.setAttendanceStatus(OneMonthAttendanceStatusEnum.PRESENT);
+                                  case ON_LEAVE -> perDayRecord.setAttendanceStatus(OneMonthAttendanceStatusEnum.ON_LEAVE);
+                              }
+                              return perDayRecord;
+                          }
+                  ).toList()
+                  );
+                  if(holidayList !=null){
+                      for (HolidayResponse holiday:holidayList) {
+                          oneMonthAttendanceResponse.add(
+                                new OneMonthAttendanceResponse(
+                                        holiday.getHolidayDate().atStartOfDay(),
+                                        holiday.getHolidayDate().atStartOfDay(),
+                                        0L,
+                                        OneMonthAttendanceStatusEnum.HOLIDAY
+                                ));
+                      }
+                  }
+                  empResponse.setAttendanceRecord(oneMonthAttendanceResponse);
+              }
+              log.info("empResponse :{}",empResponse);
+              return empResponse;
+          }).toList();
+
+            return new SingleResponse<>(
+                    responses,
+                    CustomStatus.SUCCESS
+            );
+        } catch (Exception e){
+            log.error("Error while while getting getOneMonthRecord :{}",e.getMessage());
+            throw  new CustomException(null, CustomStatus.UNKNOWN, 500);
+        }
+    }
+
     private String saveFile(MultipartFile file, String folder) {
         try {
 
@@ -798,7 +881,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .orElse(0L);
     }
 
-    @Scheduled(cron = "0 0 6 * * ?", zone = "Asia/Kolkata") // Everyday 6 AM
+    @Scheduled(cron = "0 0 6 * * ?", zone = "Asia/Kolkata") // Every day 6 AM
     @Transactional
     public void autoCheckOutScheduler() {
         log.info("Starting automated checkout scheduler for missing checkouts ...");
@@ -848,7 +931,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59, 999999999);
         boolean isTodayHoliday = false;
-        boolean isTodayWorkingSaturday = false;
+        boolean isTodayWorkingSaturday = true;
         try {
             SingleResponse<ListOfEmployeeIdResponse> apiResponse = employeeClient.getAllEmployeeId();
 
@@ -873,7 +956,10 @@ public class AttendanceServiceImpl implements AttendanceService {
                 );
 
                 boolean hasLeaveRecord = checkLeaveStatusFromService(employeeId, startOfDay.toLocalDate());
-
+                log.info(String.valueOf(!hasAttendanceRecord));
+                log.info(String.valueOf(!hasLeaveRecord));
+                log.info(String.valueOf(!isTodayHoliday));
+                log.info(String.valueOf(isTodayWorkingSaturday));
                 if (!hasAttendanceRecord && !hasLeaveRecord && !isTodayHoliday && isTodayWorkingSaturday) {
                     log.info("No record found. Inserting absent entry for Employee ID: {}", employeeId);
 

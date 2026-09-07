@@ -4,6 +4,7 @@ import com.employee.AttendanceService.dto.request.AddEmpAttendanceRequest;
 import com.employee.AttendanceService.dto.request.DateWiseAttendanceRequest;
 import com.employee.AttendanceService.dto.request.EmployeeAttendanceRequest;
 import com.employee.AttendanceService.dto.response.*;
+import org.jspecify.annotations.Nullable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -25,4 +26,6 @@ public interface AttendanceService {
     SingleResponse<?> createEmployeeAttendance(EmployeeAttendanceRequest request, String role);
 
     SingleResponse<?> addEmployeeAttendance(AddEmpAttendanceRequest request);
+
+    public SingleResponse<?> getOneMonthRecord(Integer month, Integer year);
 }
