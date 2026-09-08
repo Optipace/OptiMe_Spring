@@ -106,7 +106,12 @@ public enum CustomStatus {
     HOLIDAY_ALREADY_PRESENT(-93, "Duplicate Holidays are not allowed-"),
     HOLIDAY_NOT_FOUND(-94, "Holiday not found."),
     ERROR_WHILE_DELETE_HOLIDAY(-95, "Error while deleting holiday."),
-    DUPLICATE_WORKING_DATES(-96, "Duplicate working date's are not allowed-"),
+    DUPLICATE_WORKING_DATES(-96, "Duplicate working date's are not allowed - "),
+
+    WORKING_SAT_NOT_FOUND(-97, "No working Saturday was found for the given ID."),
+    WORKING_SAT_UPDATE_ERROR(-98, "Error while updating Working saturday."),
+    WORKING_SAT_DELETE_ERROR(-99, "Error while Deleting Working saturday."),
+    WORKING_SAT_NOT_SAT(-103, "Given date is not saturday - "),
 
 
     // 500 Series

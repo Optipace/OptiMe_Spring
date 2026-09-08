@@ -1,5 +1,6 @@
 package com.employee.LeaveService.controller;
 
+import com.employee.LeaveService.dto.request.PutWorkingSatPayload;
 import com.employee.LeaveService.dto.request.WorkingSatPayload;
 import com.employee.LeaveService.dto.response.SingleResponse;
 import com.employee.LeaveService.dto.response.WorkingSatResponse;
@@ -19,12 +20,25 @@ public class WorkingSatController {
 
     @PostMapping("save")
     public SingleResponse<?> saveWorkingSaturday(@Valid @RequestBody WorkingSatPayload payload){
+        System.out.println(payload.toString());
         return workingSatService.saveWorkingSaturday(payload);
     }
 
     @GetMapping("")
-
-    public SingleResponse<List<WorkingSatResponse>> getWorkingSaturdayByOfficeId(@RequestParam Long officeId){
-        return workingSatService.getWorkingSaturdayByOfficeId(officeId);
+    public SingleResponse<List<WorkingSatResponse>> getWorkingSaturdayByOfficeId(@RequestParam Long officeId,
+                                                                                 @RequestParam Integer month,
+                                                                                 @RequestParam Integer year){
+        return workingSatService.getWorkingSaturdayByOfficeId(officeId,month,year);
     }
+
+    @PutMapping("")
+    public SingleResponse<WorkingSatResponse> updateWorkingSaturday(@RequestParam Long id, @Valid @RequestBody PutWorkingSatPayload payload){
+        return workingSatService.updateWorkingSaturday(id,payload);
+    }
+
+    @DeleteMapping("/{id}")
+    public SingleResponse<?> deleteWorkingSaturday(@PathVariable Long id){
+        return workingSatService.deleteWorkingSaturday(id);
+    }
+
 }

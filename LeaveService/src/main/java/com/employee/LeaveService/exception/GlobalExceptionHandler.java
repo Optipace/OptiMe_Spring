@@ -5,6 +5,8 @@ import com.employee.LeaveService.enums.CustomStatus;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -17,6 +19,8 @@ import java.time.LocalDate;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<SingleResponse<?>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex){
@@ -74,7 +78,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<SingleResponse<?>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         String cleanErrorMessage = "Invalid request format.";
-
+        log.error("e: ", ex);
         // Check if the root cause is a bad date/time string format
         if (ex.getCause() instanceof InvalidFormatException) {
             InvalidFormatException ife = (InvalidFormatException) ex.getCause();
@@ -95,6 +99,6 @@ public class GlobalExceptionHandler {
         // errorResponse.setMessage(cleanErrorMessage);
 
         // Returning 201 as per your application's established pattern for validation failures
-        return ResponseEntity.status(201).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 }
