@@ -16,4 +16,6 @@ public interface HolidaysService {
     SingleResponse<?> updateHolidayById(Long id, PutHolidayRequest request);
 
     SingleResponse<?> deleteHolidayById(Long id);
+
+    SingleResponse<?> getHolidaysByMonthYear(Integer month, Integer year, Long officeId);
 }

@@ -22,4 +22,9 @@ public interface HolidayRepository extends JpaRepository<Holidays,Long> {
             " AND h.officeId = :officeId"
     )
     Optional<List<Holidays>> findByYearsFromTo(LocalDate fromDate,LocalDate toDate,Long officeId);
+
+    @Query("SELECT h from Holidays h where h.holidayDate >= :fromDate AND "
+    +"h.holidayDate <= :toDate AND h.officeId = :officeId"
+    )
+    Optional<List<Holidays>> findByFromDateToDateOfficeId(LocalDate fromDate, LocalDate toDate, Long officeId);
 }

@@ -29,6 +29,14 @@ public class HolidayController {
                                          @RequestParam Long officeId){
         return holidaysService.getHolidaysOnYears(yearFrom,yearTo,officeId);
     }
+
+    @GetMapping("/getByMonthAndYear")
+    public SingleResponse<?> getHolidaysByMonthAndYear(@RequestParam Integer month,
+                                         @RequestParam Integer year,
+                                         @RequestParam Long officeId){
+        return holidaysService.getHolidaysByMonthYear(month,year,officeId);
+    }
+
     @PutMapping("")
     public SingleResponse<?> updateHoliday(@RequestParam Long id,
                                            @RequestBody PutHolidayRequest request){

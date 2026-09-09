@@ -11,6 +11,8 @@ import com.employee.LeaveService.exception.CustomException;
 import com.employee.LeaveService.model.Holidays;
 import com.employee.LeaveService.repository.HolidayRepository;
 import com.employee.LeaveService.service.HolidaysService;
+import com.employee.LeaveService.util.ExceptionUtil;
+import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -18,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +36,8 @@ public class HolidayImpl implements HolidaysService {
     private final AdminClient adminClient;
 
     private final ModelMapper modelMapper;
+
+    private final ExceptionUtil exceptionUtil;
 
     @Override
     public SingleResponse<?> saveHolidays(List<SaveHolidaysRequest> holidays) {
@@ -70,9 +75,20 @@ public class HolidayImpl implements HolidaysService {
     @Override
     public SingleResponse<?> getHolidaysOnYears(Integer yearFrom,Integer yearTo,Long officeId) {
 
+        SingleResponse<OfficeResponse> officeResult;
+        try{
+            officeResult =  adminClient.getOfficeDetails(officeId);
+        } catch (FeignException ex){
+            throw exceptionUtil.feignExceptionHandler(ex);
+        }
+
+        if(officeResult.getData() == null){
+            throw new CustomException(null,CustomStatus.OFFICE_NOT_FOUND,404);
+        }
+
+
         LocalDate fromDate=LocalDate.of(yearFrom, 1,1);
         LocalDate toDate=LocalDate.of(yearTo, 12,31);
-        log.info(fromDate.toString()+" : "+toDate.toString());
         List<Holidays>holidayData=repository.findByYearsFromTo(fromDate,toDate,officeId).orElse(Collections.emptyList());
         if(holidayData.isEmpty()){
             return new SingleResponse<>(holidayData,CustomStatus.SUCCESS);
@@ -81,12 +97,7 @@ public class HolidayImpl implements HolidaysService {
                   .map((holiday -> {
                       try{
                           HolidayResponse response= modelMapper.map(holiday,HolidayResponse.class);
-                          SingleResponse<OfficeResponse> officeResult =  adminClient.getOfficeDetails(holiday.getOfficeId());
-
-                          if (officeResult != null && officeResult.getData() != null) {
-                              OfficeResponse officeResponse=modelMapper.map(officeResult.getData(), OfficeResponse.class);
-                              response.setOffice(officeResponse);
-                          }
+                          response.setOffice(officeResult.getData());
                           return response;
                       } catch (Exception e) {
                           throw new CustomException(null, CustomStatus.MICROSERVICE_CALL_FAILED, 400);
@@ -117,4 +128,37 @@ public class HolidayImpl implements HolidaysService {
                     "",CustomStatus.SUCCESS);
 
     }
+
+    @Override
+    public SingleResponse<?> getHolidaysByMonthYear(Integer month, Integer year, Long officeId) {
+        SingleResponse<OfficeResponse> officeResult;
+        try{
+            officeResult =  adminClient.getOfficeDetails(officeId);
+        } catch (FeignException ex){
+            throw exceptionUtil.feignExceptionHandler(ex);
+        }
+
+        if(officeResult.getData() == null){
+            throw new CustomException(null,CustomStatus.OFFICE_NOT_FOUND,404);
+        }
+
+        LocalDate fromDate= LocalDate.of(year,month,1);
+        LocalDate toDate = fromDate.with(TemporalAdjusters.lastDayOfMonth());
+        log.info("{}+{}",fromDate,toDate);
+       List<Holidays> holidays=  repository.findByFromDateToDateOfficeId(fromDate,toDate,officeId).orElse(Collections.emptyList());
+
+       if(holidays.isEmpty()){
+           return new SingleResponse<>(Collections.emptyList(),CustomStatus.SUCCESS);
+       }
+
+       List<HolidayResponse> response= holidays.stream().map(holiday->{
+           HolidayResponse resp= modelMapper.map(holiday,HolidayResponse.class);
+           resp.setOffice(officeResult.getData());
+          return resp;
+       }).toList();
+
+        return new SingleResponse<>(response, CustomStatus.SUCCESS);
+    }
+
+
 }
