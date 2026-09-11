@@ -112,6 +112,9 @@ public enum CustomStatus {
     WORKING_SAT_UPDATE_ERROR(-98, "Error while updating Working saturday."),
     WORKING_SAT_DELETE_ERROR(-99, "Error while Deleting Working saturday."),
     WORKING_SAT_NOT_SAT(-103, "Given date is not saturday - "),
+    AVAILABLE_LEAVE_NOT_FOUND(-104, "Available leaves not found."),
+    AVAILABLE_LEAVE_ERROR_DELETING(-105, "Error while deleting available leaves."),
+    AVAILABLE_LEAVE_SAVING_INTERNAL_ERROR(-106, "Registered successfully, but failed to save leaves. Please contact your admin."),
 
 
     // 500 Series

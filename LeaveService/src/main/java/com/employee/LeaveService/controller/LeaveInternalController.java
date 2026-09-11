@@ -1,12 +1,14 @@
 package com.employee.LeaveService.controller;
 
 import com.employee.LeaveService.dto.request.ApproveLeaveRequest;
+import com.employee.LeaveService.dto.request.AvailableLeavesPayload;
 import com.employee.LeaveService.dto.request.RejectLeaveRequest;
 import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
 import com.employee.LeaveService.dto.response.ApiResponse;
 import com.employee.LeaveService.dto.response.LeaveTypeResponse;
 import com.employee.LeaveService.dto.response.ListOfLeaveResponse;
 import com.employee.LeaveService.dto.response.SingleResponse;
+import com.employee.LeaveService.model.AvailableLeaves;
 import com.employee.LeaveService.service.LeaveInternalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -63,5 +65,20 @@ public class LeaveInternalController {
             @RequestParam("endDate") LocalDate endDate
     ){
         return leaveInternalService.getEmployeeLeaveDatesInRange(employeeId, startDate, endDate);
+    }
+
+    @GetMapping("/get/availableLeavesById")
+    public SingleResponse<AvailableLeaves> getAvailableLeavesById( @RequestParam Long id){
+        return leaveInternalService.getAvailableLeavesById(id);
+    }
+
+    @PostMapping("/save/availableLeaves")
+    public SingleResponse<AvailableLeaves> saveAvailableLeaves(@Valid @RequestBody AvailableLeavesPayload payload){
+        return leaveInternalService.saveAvailableLeaves(payload);
+    }
+
+    @DeleteMapping("/delete/availableLeaves")
+    public SingleResponse<?> deleteAvailableLeaves(@RequestParam Long id){
+        return leaveInternalService.deleteAvailableLeaves(id);
     }
 }

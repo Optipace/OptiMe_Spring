@@ -2,10 +2,7 @@ package com.employee.LeaveService.service.impl;
 
 import com.employee.LeaveService.client.CommunicationClient;
 import com.employee.LeaveService.client.EmployeeClient;
-import com.employee.LeaveService.dto.request.ApproveLeaveRequest;
-import com.employee.LeaveService.dto.request.NotificationPayload;
-import com.employee.LeaveService.dto.request.RejectLeaveRequest;
-import com.employee.LeaveService.dto.request.UpdateLeaveRequest;
+import com.employee.LeaveService.dto.request.*;
 import com.employee.LeaveService.dto.response.*;
 import com.employee.LeaveService.enums.CustomStatus;
 import com.employee.LeaveService.enums.LeaveStatusEnum;
@@ -386,6 +383,44 @@ public class LeaveInternalServiceImpl implements LeaveInternalService {
         );
     }
 
+    @Override
+    public SingleResponse<AvailableLeaves> saveAvailableLeaves(AvailableLeavesPayload payload) {
+        AvailableLeaves savePayload=modelMapper.map(payload,AvailableLeaves.class);
+        savePayload.setId(null);
+        return new SingleResponse<>(
+                availableLeavesRepository.save(savePayload)
+                ,CustomStatus.SUCCESS);
+    }
+
+
+
+    @Override
+    public SingleResponse<AvailableLeaves> getAvailableLeavesById(Long id) {
+    AvailableLeaves response = availableLeavesRepository.findById(id).orElseThrow(()->
+            new CustomException(null, CustomStatus.AVAILABLE_LEAVE_NOT_FOUND,404)
+            );
+
+        return new SingleResponse<>(
+                response
+                ,CustomStatus.SUCCESS);
+    }
+
+    @Override
+    public SingleResponse<?> deleteAvailableLeaves(Long id) {
+
+         availableLeavesRepository.findById(id).orElseThrow(()->
+                new CustomException(null, CustomStatus.AVAILABLE_LEAVE_NOT_FOUND,404)
+        );
+         try {
+             availableLeavesRepository.deleteById(id);
+             return new SingleResponse<>(
+                     null
+                     , CustomStatus.SUCCESS);
+         } catch (Exception e) {
+             throw new CustomException(null,CustomStatus.AVAILABLE_LEAVE_ERROR_DELETING,409);
+         }
+
+    }
     // HELPER Method to get Employee name
     private String getEmployeeNameByEmpId(Long employeeId){
         SingleResponse<?> employeeApiResponse = null;

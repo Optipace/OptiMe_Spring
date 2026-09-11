@@ -797,8 +797,9 @@ public class LeaveServiceImpl implements LeaveService {
 
     // HELPER Method to get remaining leaves of the employee
     private Integer getRemainingLeavesByEmployeeId(Long employeeId){
+        log.info("get available leaves by this employee ID:{}",employeeId);
         AvailableLeaves availableLeaves = availableLeavesRepository.findByEmployeeId(employeeId)
-                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 200));
+                .orElseThrow(() -> new CustomException(null, CustomStatus.AVAILABLE_LEAVE_NOT_FOUND, 404));
 
         return availableLeaves.getRemainingLeaves();
     }
