@@ -12,6 +12,7 @@ import com.employee.AuthService.exception.CustomException;
 import com.employee.AuthService.model.*;
 import com.employee.AuthService.repository.*;
 import com.employee.AuthService.service.*;
+import com.employee.AuthService.util.ExceptionUtil;
 import com.employee.AuthService.util.JwtUtil;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
@@ -51,6 +52,7 @@ public class UserServiceImpl implements UserService {
     private final CommunicationClient communicationClient;
     private final AdminClient adminClient;
     private final LeaveClient leaveClient;
+    private final ExceptionUtil exceptionUtil;
 
     @Override
     @Transactional
@@ -268,39 +270,23 @@ public class UserServiceImpl implements UserService {
         );
 
         try {
-            employeeClient.completeProfile(profilePayload);
+            EmployeeProfileResponse savedResponse = employeeClient.completeProfile(profilePayload).getData();
 
+           if(savedResponse.getId()!=null){
+               AvailableLeavesPayload availableLeavesPayload=new AvailableLeavesPayload(
+                       savedResponse.getId(),
+                       2
+               );
+               try {
+                 leaveClient.saveAvailableLeaves(availableLeavesPayload);
+               } catch (FeignException ex){
+                   log.error("saveAvailableLeaves error :{}",ex.contentUTF8());
+                   throw new CustomException(null, CustomStatus.AVAILABLE_LEAVE_SAVING_INTERNAL_ERROR,500);
+               }
+           }
         } catch (FeignException e) {
-            String rawErrorJson = e.contentUTF8();
-            String cleanErrorMessage = "Microservice call failed";
-            int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
-
-            try {
-                JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-
-                // Navigate inside the nested "response" block
-                if (errorNode.has("response")) {
-                    JsonNode responseNode = errorNode.get("response");
-                    if (responseNode.has("message")) {
-                        cleanErrorMessage = responseNode.get("message").asText();
-                    }
-                    if (responseNode.has("code")) {
-                        extractedErrorCode = responseNode.get("code").asInt();
-                    }
-                } else if (errorNode.has("message")) {
-                    cleanErrorMessage = errorNode.get("message").asText();
-                }
-            } catch (Exception parseException) {
-                cleanErrorMessage = rawErrorJson;
-            }
-
-            int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
-
-            // Map the integer code to the correct Enum instance safely
-            CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
-
-            // Pass the clean extracted message to CustomException
-            throw new CustomException(cleanErrorMessage, status, httpStatusValue);
+            log.error("EmployeeResponse error :",e);
+            throw exceptionUtil.feignExceptionHandler(e);
         }
 //        userOtpRepository.delete(userOtp);
         String message = "Email sent";

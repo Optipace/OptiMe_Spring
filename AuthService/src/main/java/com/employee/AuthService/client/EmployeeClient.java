@@ -15,7 +15,7 @@ public interface EmployeeClient {
     SingleResponse<EmployeeResponse> getProfile(@RequestParam("employeeId") String employeeId);
 
     @PostMapping("/api/employee/internal/completeProfile")
-    void completeProfile(@RequestBody EmployeeProfilePayload profilePayload);
+    SingleResponse<EmployeeProfileResponse> completeProfile(@RequestBody EmployeeProfilePayload profilePayload);
 
     @GetMapping("/api/employee/internal/getMasterDetails")
     SingleResponse<MasterEmployeeResponse> getMasterDetails();

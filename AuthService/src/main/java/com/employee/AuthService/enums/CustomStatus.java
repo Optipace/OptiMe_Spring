@@ -101,6 +101,21 @@ public enum CustomStatus {
     IMAGE_SIZE_EXCEEDED(-12, "Image exceeds the maximum allowed size."),
     INVALID_IMAGE_FORMAT(-11, "Only JPEG, JPG or PNG files are allowed."),
 
+    //holiday
+    HOLIDAY_ALREADY_PRESENT(-93, "Duplicate Holidays are not allowed-"),
+    HOLIDAY_NOT_FOUND(-94, "Holiday not found."),
+    ERROR_WHILE_DELETE_HOLIDAY(-95, "Error while deleting holiday."),
+    DUPLICATE_WORKING_DATES(-96, "Duplicate working date's are not allowed - "),
+
+    WORKING_SAT_NOT_FOUND(-97, "No working Saturday was found for the given ID."),
+    WORKING_SAT_UPDATE_ERROR(-98, "Error while updating Working saturday."),
+    WORKING_SAT_DELETE_ERROR(-99, "Error while Deleting Working saturday."),
+    WORKING_SAT_NOT_SAT(-103, "Given date is not saturday - "),
+    AVAILABLE_LEAVE_NOT_FOUND(-104, "Available leaves not found."),
+    AVAILABLE_LEAVE_ERROR_DELETING(-105, "Error while deleting available leaves."),
+    AVAILABLE_LEAVE_SAVING_INTERNAL_ERROR(-106, "Registered successfully, but failed to save leaves. Please contact your admin."),
+
+
     // 500 Series
     UNEXPECTED_ERROR(-73, "An unexpected error occurred."),
     ROLLBACK_FAILED(-102, "Rollback operation failed."),
