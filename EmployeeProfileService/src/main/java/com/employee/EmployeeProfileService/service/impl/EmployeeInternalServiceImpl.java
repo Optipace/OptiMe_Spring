@@ -94,7 +94,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     }
 
     @Override
-    public SingleResponse<?> completeProfile(CompleteProfileRequest request) {
+    public SingleResponse<Employee> completeProfile(CompleteProfileRequest request) {
 
         Employee employee = employeeRepository.findEmployeeByUserId(request.getUserId())
                 .orElseThrow(() -> new CustomException("Employee not found",CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
@@ -111,10 +111,10 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         int result = currentStatus | 2;
         employee.setProfileStatus(result);
         employee.setAccountStatus(AccountStatus.ACTIVE);
-        employeeRepository.save(employee);
-
+       Employee empResponse= employeeRepository.save(employee);
+        log.info("saved response of Employee registration: {}",empResponse.toString());
         return new SingleResponse<>(
-                null,
+                empResponse,
                 CustomStatus.SUCCESS
         );
     }

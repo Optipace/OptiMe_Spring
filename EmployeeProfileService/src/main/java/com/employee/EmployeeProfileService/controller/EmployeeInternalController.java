@@ -2,6 +2,7 @@ package com.employee.EmployeeProfileService.controller;
 
 import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
+import com.employee.EmployeeProfileService.model.Employee;
 import com.employee.EmployeeProfileService.service.EmployeeInternalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +32,8 @@ public class EmployeeInternalController {
     }
 
     @PostMapping("/completeProfile")
-    public ResponseEntity<SingleResponse<?>> completeProfile(@RequestBody CompleteProfileRequest request){
-        SingleResponse<?> response = empInternalService.completeProfile(request);
+    public ResponseEntity<SingleResponse<Employee>> completeProfile(@RequestBody CompleteProfileRequest request){
+        SingleResponse<Employee> response = empInternalService.completeProfile(request);
         return ResponseEntity.status(200).body(response);
     }
 

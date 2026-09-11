@@ -2,6 +2,7 @@ package com.employee.EmployeeProfileService.service;
 
 import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
+import com.employee.EmployeeProfileService.model.Employee;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -12,7 +13,7 @@ public interface EmployeeInternalService {
 
     public SingleResponse<?> createProfile(EmployeeProfileRequest request);
 
-    public SingleResponse<?> completeProfile(CompleteProfileRequest request);
+    public SingleResponse<Employee> completeProfile(CompleteProfileRequest request);
 
     SingleResponse<Long> getEmployeeByUserId(Long userId);
 
