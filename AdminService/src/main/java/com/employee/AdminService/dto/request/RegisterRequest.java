@@ -1,9 +1,6 @@
 package com.employee.AdminService.dto.request;
 
-import com.employee.AdminService.enums.EmployeeDesignationEnum;
-import com.employee.AdminService.enums.GenderEnum;
-import com.employee.AdminService.enums.RoleEnum;
-import com.employee.AdminService.enums.WorkTypeEnum;
+import com.employee.AdminService.enums.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -37,6 +34,8 @@ public class RegisterRequest {
             message = "Provide valid Email-Id"
     )
     private String emailId;
+
+    private UserStatusEnum accountStatus =UserStatusEnum.INACTIVE;
 
     @NotNull(message = "Role is mandatory")
     private RoleEnum role;

@@ -19,5 +19,5 @@ public class OfficeResponse {
     private String address;
     private String contact;
     private String googleMap;
-    private String groupLinks;
+    private String groupLink;
 }

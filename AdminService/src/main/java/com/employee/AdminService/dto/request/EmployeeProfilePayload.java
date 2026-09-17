@@ -2,6 +2,7 @@ package com.employee.AdminService.dto.request;
 
 import com.employee.AdminService.enums.GenderEnum;
 import com.employee.AdminService.enums.RoleEnum;
+import com.employee.AdminService.enums.UserStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,5 +25,6 @@ public class EmployeeProfilePayload {
     private LocalDate dateOfBirth;
     private LocalDate dateOfJoining;
     private String permanentAddress;
+    private UserStatusEnum accountStatus;
     private Long userId;
 }

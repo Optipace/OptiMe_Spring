@@ -46,6 +46,8 @@ public class AdminServiceImpl implements AdminService {
 
     private final OfficeRepository officeRepository;
 
+    private final AsyncServices asyncServices;
+
     @Override
     public SingleResponse<?> addNewUser(RegisterRequest request, String adminEmployeeId) {
 
@@ -60,6 +62,7 @@ public class AdminServiceImpl implements AdminService {
                 request.getEmailId(),
                 request.getContact(),
                 request.getRole(),
+                request.getAccountStatus(),
                 createdByEmpId // The logged-in admin who is making this request
         );
 
@@ -87,6 +90,7 @@ public class AdminServiceImpl implements AdminService {
                         request.getDateOfBirth(),
                         request.getDateOfJoining(),
                         request.getPermanentAddress(),
+                        request.getAccountStatus(),
                         newUserResponse.getData().getUserId()
                 );
 
@@ -140,19 +144,11 @@ public class AdminServiceImpl implements AdminService {
         }
 
         // 5. For email service
-        communicationClient.sendAccountCreatedEmail(request.getEmailId(), request.getContact());
-        log.info("Triggered account created email");
-        log.info("Communication service is called to send welcome email");
+        asyncServices.AsyncAccountCreatedEmail(request.getEmailId(), request.getContact());
 
         // 6. Sending broadcast notification to ALL
-        NotificationPayload payload = new NotificationPayload();
-//            payload.setEmployeeId("ALL");
-        payload.setTitle("Company Announcement");
-        payload.setMessage("Please welcome our new employee: " + request.getEmployeeName());
-        payload.setType("INFO");
+        asyncServices.AsyncBroadCastNotification(request.getEmployeeName());
 
-        communicationClient.sendBroadCastNotification(payload);
-        log.info("Notification is broadcasted to everyone");
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS
@@ -190,6 +186,7 @@ public class AdminServiceImpl implements AdminService {
                     });
 
         } catch (FeignException e) {
+            log.error("In Feign Exception Handler :{}{}",e,e.contentUTF8());
             String rawErrorJson = e.contentUTF8();
             String cleanErrorMessage = "Microservice call failed";
             int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
@@ -363,6 +360,11 @@ public class AdminServiceImpl implements AdminService {
         if(request.getGoogleMap() != null){
             office.setGoogleMap(request.getGoogleMap());
         }
+
+        if(request.getGroupLink() != null){
+            office.setGroupLink(request.getGroupLink());
+        }
+
 
         officeRepository.save(office);
         return new SingleResponse<>(

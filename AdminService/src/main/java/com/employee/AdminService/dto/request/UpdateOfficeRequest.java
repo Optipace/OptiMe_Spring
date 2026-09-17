@@ -21,4 +21,5 @@ public class UpdateOfficeRequest {
     private String address;
     private String contact;
     private String googleMap;
+    private String groupLink;
 }
