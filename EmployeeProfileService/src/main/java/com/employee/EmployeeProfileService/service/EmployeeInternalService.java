@@ -23,7 +23,7 @@ public interface EmployeeInternalService {
 
     public boolean checkEmployeeByEmployeeId(Long employeeId);
 
-    public SingleResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request);
+    public SingleResponse<?> updateEmployeeAccountStatus(Long empId);
 
     public SingleResponse<EmployeeInternalResponse> getEmployeeById(Long employeeId);
 
@@ -50,4 +50,6 @@ public interface EmployeeInternalService {
     public SingleResponse<Long> getEmployeeOfficeId(Long employeeId);
 
     public SingleResponse<List<EmployeeIdNameOfficeIdResponse>> getAllEmployeeIdAndName();
+
+    public SingleResponse<?> updateEmployeeIsDisContinued(Long empId);
 }

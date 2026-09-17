@@ -1,5 +1,6 @@
 package com.employee.EmployeeProfileService.dto.request;
 
+import com.employee.EmployeeProfileService.enums.AccountStatus;
 import com.employee.EmployeeProfileService.enums.GenderEnum;
 import com.employee.EmployeeProfileService.enums.RoleEnum;
 import lombok.*;
@@ -23,5 +24,6 @@ public class EmployeeProfileRequest {
         private LocalDate dateOfBirth;
         private LocalDate dateOfJoining;
         private String permanentAddress;
+        private AccountStatus accountStatus = AccountStatus.INACTIVE;
         private Long userId;
 }

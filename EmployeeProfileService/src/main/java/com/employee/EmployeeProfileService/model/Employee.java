@@ -47,6 +47,10 @@ public class Employee {
     @Column(name = "account_status", length = 20)
     private AccountStatus accountStatus;
 
+    @Enumerated(EnumType.ORDINAL)
+    @Column(nullable = false, length = 4, columnDefinition = "integer default 0")
+    private IsDiscontinued isDiscontinued = IsDiscontinued.NO;
+
     @Column(name = "daily_status", length = 20)
     private String dailyStatus;
 

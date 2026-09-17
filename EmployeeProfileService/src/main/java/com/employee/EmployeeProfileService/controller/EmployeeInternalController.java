@@ -52,9 +52,15 @@ public class EmployeeInternalController {
         return empInternalService.checkEmployeeByEmployeeId(employeeId);
     }
 
-    @PostMapping("/updateEmployeeStatus")
-    public ResponseEntity<SingleResponse<?>> updateEmployeeStatus(@RequestBody UpdateEmployeeStatusRequest request) {
-        SingleResponse<?> response = empInternalService.updateEmployeeStatus(request);
+    @PutMapping("/updateEmployeeAccountStatus/{empId}")
+    public ResponseEntity<SingleResponse<?>> updateEmployeeAccountStatus(@PathVariable Long empId) {
+        SingleResponse<?> response = empInternalService.updateEmployeeAccountStatus(empId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/updateEmployeeIsDisContinued/{empId}")
+    public ResponseEntity<SingleResponse<?>> updateEmployeeIsDisContinued(@PathVariable Long empId) {
+        SingleResponse<?> response = empInternalService.updateEmployeeIsDisContinued(empId);
         return ResponseEntity.ok(response);
     }
 

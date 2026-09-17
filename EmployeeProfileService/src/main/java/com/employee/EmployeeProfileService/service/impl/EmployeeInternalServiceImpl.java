@@ -6,6 +6,7 @@ import com.employee.EmployeeProfileService.dto.request.*;
 import com.employee.EmployeeProfileService.dto.response.*;
 import com.employee.EmployeeProfileService.enums.AccountStatus;
 import com.employee.EmployeeProfileService.enums.CustomStatus;
+import com.employee.EmployeeProfileService.enums.IsDiscontinued;
 import com.employee.EmployeeProfileService.enums.RoleEnum;
 import com.employee.EmployeeProfileService.exception.CustomException;
 import com.employee.EmployeeProfileService.model.*;
@@ -68,6 +69,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
         newEmployee.setContact(request.getContact());
         newEmployee.setEmailId(request.getEmailId());
         newEmployee.setDesignation(designation);
+        newEmployee.setAccountStatus(request.getAccountStatus());
 
         if(String.valueOf(request.getRole()).equals("ADMIN")){
             newEmployee.setRole(request.getRole());
@@ -110,7 +112,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
 //        employee.setProfileStatus(ProfileStatusEnum.COMPLETE);
         int result = currentStatus | 2;
         employee.setProfileStatus(result);
-        employee.setAccountStatus(AccountStatus.ACTIVE);
+        employee.setAccountStatus(request.getAccountStatus());
        Employee empResponse= employeeRepository.save(employee);
         log.info("saved response of Employee registration: {}",empResponse.toString());
         return new SingleResponse<>(
@@ -231,12 +233,14 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
     }
 
     @Override
-    public SingleResponse<?> updateEmployeeStatus(UpdateEmployeeStatusRequest request) {
-        Employee employee = employeeRepository.findEmployeeByUserId(request.getEmployeeId())
+    public SingleResponse<?> updateEmployeeAccountStatus(Long empId) {
+        Employee employee = employeeRepository.findEmployeeByUserId(empId)
                 .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
 
-        employee.setAccountStatus(request.getAccountStatus());
+        employee.setAccountStatus(employee.getAccountStatus()==AccountStatus.ACTIVE ?
+                AccountStatus.INACTIVE : AccountStatus.ACTIVE);
         employeeRepository.save(employee);
+
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS
@@ -352,7 +356,7 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
                     if (employee.getDesignation() != null) {
                         response.setDesignationId(employee.getDesignation().getId());
                     }
-
+                    response.setIsDisContinued(employee.getIsDiscontinued());
                     response.setAttendanceStatus(attendanceStatus);
 
                     return response;
@@ -557,5 +561,20 @@ public class EmployeeInternalServiceImpl implements EmployeeInternalService {
              return response;
          }).toList();
         return new SingleResponse<>(empResponse,CustomStatus.SUCCESS);
+    }
+
+    @Override
+    public SingleResponse<?> updateEmployeeIsDisContinued(Long empId) {
+        Employee employee = employeeRepository.findEmployeeByUserId(empId)
+                .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_ID_NOT_FOUND, 404));
+
+        employee.setIsDiscontinued(employee.getIsDiscontinued() == IsDiscontinued.NO ?
+                IsDiscontinued.YES : IsDiscontinued.NO);
+        employee.setAccountStatus(AccountStatus.INACTIVE);
+        employeeRepository.save(employee);
+        return new SingleResponse<>(
+                null,
+                CustomStatus.SUCCESS
+        );
     }
 }
