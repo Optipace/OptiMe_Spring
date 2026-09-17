@@ -13,9 +13,7 @@ public interface EmployeeClient {
 
 //    @GetMapping("/api/employee/internal/checkEmployeeByEmployeeId")
 //    ApiResponse<?> checkEmployeeByEmployeeId(@RequestParam("employeeId") String employeeId);
-//
-//    @PostMapping("/api/employee/internal/updateEmployeeStatus")
-//    void updateEmployeeStatus(@RequestBody UpdateEmployeeStatusPayload payload);
+
 
     @GetMapping("/api/employee/internal/getEmployeeById")
     SingleResponse<EmployeeResponse> getEmployeeByEmployeeId(@RequestParam("employeeId") Long employeeId);
