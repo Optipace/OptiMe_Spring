@@ -28,6 +28,10 @@ public enum CustomStatus {
     INVALID_VALIDATION_TOKEN(-27, "Invalid validation token."),
     OTP_NOT_VALIDATED(-28, "OTP has not been validated."),
     INVALID_PASSWORD(-32, "Invalid password."),
+    USER_NOT_ACTIVE(-107, "Your account is inactive. Please contact your administrator to activate it."),
+    USER_DISCONTINUED(-108, "Your account has been discontinued. You are no longer able to log in."),
+    USER_UPDATE_DISCONTINUED(-109, "This user is already deactivated, so you cannot set them to active or inactive."),
+
 
     // 202: User Identity & Profile Failures
     ADMIN_NOT_FOUND(-1, "Admin not found."),

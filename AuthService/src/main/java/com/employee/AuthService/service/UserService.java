@@ -19,4 +19,8 @@ public interface UserService {
     public SingleResponse<?> resetPassword(ResetPasswordRequest request);
 
     public SingleResponse<?> updatePassword(UpdatePasswordRequest request, String employeeId);
+
+    SingleResponse<String> updateUserStatus(Long userId);
+
+    SingleResponse<String> updateUserIsDiscontinued(Long userId);
 }

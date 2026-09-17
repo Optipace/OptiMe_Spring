@@ -26,6 +26,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/internal/**").permitAll()
                         .requestMatchers("/api/auth/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/swagger-ui/**").permitAll()
+                        .requestMatchers("/api/auth/updateUserStatus").hasRole("ADMIN")
                         .requestMatchers("/api/auth/**").permitAll() // Open all auth endpoints
                         .anyRequest().authenticated()
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

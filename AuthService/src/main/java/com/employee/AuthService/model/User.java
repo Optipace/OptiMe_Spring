@@ -51,6 +51,10 @@ public class User {
     @Column(length = 12)
     private UserStatusEnum userStatus;
 
+    @Enumerated(EnumType.ORDINAL)
+    @Column(nullable = false, length = 5,columnDefinition = "integer default 0")
+    private IsDiscontinued isDiscontinued = IsDiscontinued.NO;
+
 //    @Enumerated(EnumType.STRING)
 //    @Column(length = 2)
 //    private RegisterEnum registerStatus;

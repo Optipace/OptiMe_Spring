@@ -1,6 +1,7 @@
 package com.employee.AuthService.dto.request;
 
 import com.employee.AuthService.enums.RoleEnum;
+import com.employee.AuthService.enums.UserStatusEnum;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -33,6 +34,8 @@ public class AuthIdentityRequest {
             message = "Provide a 10-digit contact number starting with 6,7,8 or 9"
     )
     private String contact;
+
+    private UserStatusEnum accountStatus =UserStatusEnum.INACTIVE;
 
     @NotNull(message = "Please provide the role")
     private RoleEnum role;

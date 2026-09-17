@@ -64,4 +64,18 @@ public class AuthController {
         SingleResponse<?> response = userService.updatePassword(request,userId);
         return ResponseEntity.status(200).body(response);
     }
+
+    @PatchMapping("/updateUserStatus/{userId}")
+    public ResponseEntity<SingleResponse<String>> updateUserStatus(@PathVariable Long userId){
+        SingleResponse<String> response = userService.updateUserStatus(userId);
+
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PatchMapping("/updateUserIsDiscontinued/{userId}")
+    public ResponseEntity<SingleResponse<String>> updateUserIsDiscontinued(@PathVariable Long userId){
+        SingleResponse<String> response = userService.updateUserIsDiscontinued(userId);
+
+        return ResponseEntity.status(200).body(response);
+    }
 }

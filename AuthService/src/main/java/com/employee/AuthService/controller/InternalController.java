@@ -5,6 +5,8 @@ import com.employee.AuthService.dto.request.UpdateIdentityRequest;
 import com.employee.AuthService.dto.response.ApiResponse;
 import com.employee.AuthService.dto.response.NewUserResponse;
 import com.employee.AuthService.dto.response.SingleResponse;
+import com.employee.AuthService.dto.response.UserStatusGatewayResponse;
+import com.employee.AuthService.enums.UserStatusEnum;
 import com.employee.AuthService.service.InternalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +34,11 @@ public class InternalController {
     public ResponseEntity<SingleResponse<?>> updateIdentity(@RequestBody UpdateIdentityRequest request){
         SingleResponse<?> response = internalService.updateIdentity(request);
         return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/userStatus/{id}")
+    public UserStatusGatewayResponse getUserStatus(@PathVariable Long id){
+        return internalService.getUserStatus(id);
     }
 
 }

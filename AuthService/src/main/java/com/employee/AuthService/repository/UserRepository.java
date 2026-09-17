@@ -1,5 +1,7 @@
 package com.employee.AuthService.repository;
 
+import com.employee.AuthService.dto.response.UserStatusGatewayResponse;
+import com.employee.AuthService.enums.UserStatusEnum;
 import com.employee.AuthService.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

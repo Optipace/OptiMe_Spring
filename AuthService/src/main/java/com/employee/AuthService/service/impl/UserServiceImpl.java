@@ -1,7 +1,6 @@
 package com.employee.AuthService.service.impl;
 
 import com.employee.AuthService.client.AdminClient;
-import com.employee.AuthService.client.CommunicationClient;
 import com.employee.AuthService.client.EmployeeClient;
 import com.employee.AuthService.client.LeaveClient;
 import com.employee.AuthService.config.AppProperties;
@@ -49,10 +48,10 @@ public class UserServiceImpl implements UserService {
     private static final long OTP_LOCK_DURATION_MINUTES = 60;
     private static final long OTP_EXPIRY_MINUTES = 5;
     private final AppProperties appProperties;
-    private final CommunicationClient communicationClient;
     private final AdminClient adminClient;
     private final LeaveClient leaveClient;
     private final ExceptionUtil exceptionUtil;
+    private final AsyncServices asyncServices;
 
     @Override
     @Transactional
@@ -97,20 +96,10 @@ public class UserServiceImpl implements UserService {
         userOtp.setRetryCount(0);
         userOtp.setOtpCount(userOtp.getOtpCount() + 1);
         userOtpRepository.save(userOtp);
-        String message = "Otp sent successfully";
-        try {
-            log.info("Calling Email Service to send new otp");
-            SingleResponse<String> apiResponse = communicationClient.sendNewOtpToEmail(userOtp.getEmailId(), userOtp.getEmailOtp(), OTP_EXPIRY_MINUTES);
-            log.info("Email service called");
 
-            if(apiResponse != null && apiResponse.getStatusCode() == 200) {
-                message = apiResponse.getMessage();
-                // Call the SMS client here for userOtp.getMobileOtp()
-            }
-        } catch (FeignException e) {
-            log.error("Email service failed",e);
-            throw new CustomException(null, CustomStatus.EMAIL_SENDING_FAILED, 409);
-        }
+        // async calling communication service to send OTP
+        asyncServices.asyncSentOtpClientCall(userOtp);
+
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS
@@ -266,7 +255,8 @@ public class UserServiceImpl implements UserService {
                 request.getCurrentAddress(),
                 request.getEmergencyContact(),
                 request.getBloodGroup(),
-                user.getId()
+                user.getId(),
+                user.getUserStatus()
         );
 
         try {
@@ -289,29 +279,8 @@ public class UserServiceImpl implements UserService {
             throw exceptionUtil.feignExceptionHandler(e);
         }
 //        userOtpRepository.delete(userOtp);
-        String message = "Email sent";
-        try{
-            log.info("Calling email service");
-            SingleResponse<String> apiResponse = communicationClient.sendCompleteRegisteredEmail(user.getEmailId());
-            log.info("Email service called to send completed registration email");
 
-            if(apiResponse != null && apiResponse.getStatusCode() == 200){
-                message = apiResponse.getMessage();
-            }
-        }catch (FeignException e){
-            log.warn("Failed to completed registration email", e);
-
-            return new SingleResponse<>(
-                    null,
-                    CustomStatus.EMAIL_SENDING_FAILED
-            );
-        }
-
-//        try {
-//            emailService.sendHtmlEmail(user.getEmailId(), subject, htmlBody);
-//        } catch (Exception e) {
-//            log.error("Email sending failed", e);
-//        }
+        asyncServices.asyncCompleteRegistration(user.getEmailId());
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS
@@ -322,6 +291,14 @@ public class UserServiceImpl implements UserService {
 
         User user = userRepository.findByEmailIdOrContact(request.getIdentifier(), request.getIdentifier())
                 .orElseThrow(() -> new CustomException(null, CustomStatus.EMPLOYEE_NOT_FOUND, 409));
+
+        if(user.getIsDiscontinued()==IsDiscontinued.YES){
+            throw new CustomException(null, CustomStatus.USER_DISCONTINUED, 403);
+        }
+
+        if(user.getUserStatus() == UserStatusEnum.INACTIVE){
+            throw new CustomException(null, CustomStatus.USER_NOT_ACTIVE, 403);
+        }
 
         if (user.getPassword() == null) {
             throw new CustomException(null, CustomStatus.INVALID_PASSWORD, 409);
@@ -337,10 +314,6 @@ public class UserServiceImpl implements UserService {
         String accessToken = jwtUtil.generateToken(user.getUserName(), user.getId().toString(), user.getEmailId(), user.getEmployeeId(), String.valueOf(user.getRole()), String.valueOf(response.getData()));
         String refreshToken = refreshTokenService.create(user, response.getData());
 
-        if (user.getUserStatus() == null || user.getUserStatus() == UserStatusEnum.INACTIVE) {
-            user.setUserStatus(UserStatusEnum.ACTIVE);
-            userRepository.save(user);
-        }
 
         LoginResponse loginResponse = new LoginResponse(accessToken, refreshToken);
 
@@ -477,5 +450,54 @@ public class UserServiceImpl implements UserService {
                 null,
                 CustomStatus.SUCCESS
         );
+    }
+
+    @Override
+    public SingleResponse<String> updateUserStatus(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(null, CustomStatus.USER_NOT_FOUND, 409));
+
+        if(user.getIsDiscontinued() == IsDiscontinued.YES){
+            throw new CustomException(null, CustomStatus.USER_UPDATE_DISCONTINUED, 400);
+        }
+
+        UserStatusEnum statusToSet=user.getUserStatus()==UserStatusEnum.ACTIVE ?
+                UserStatusEnum.INACTIVE : UserStatusEnum.ACTIVE;
+
+        user.setUserStatus(statusToSet);
+
+        try{
+            employeeClient.updateEmployeeAccountStatus(user.getId());
+        } catch (FeignException e) {
+            throw exceptionUtil.feignExceptionHandler(e);
+        }
+
+        userRepository.save(user);
+
+        return new SingleResponse<>(statusToSet==UserStatusEnum.ACTIVE ?
+                user.getUserName()+" is activated.": user.getUserName()+" is deactivated.",
+                CustomStatus.SUCCESS);
+    }
+
+    @Override
+    public SingleResponse<String> updateUserIsDiscontinued(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(null, CustomStatus.USER_NOT_FOUND, 409));
+
+        IsDiscontinued statusToSet=user.getIsDiscontinued()==IsDiscontinued.NO ?
+                IsDiscontinued.YES : IsDiscontinued.NO;
+
+        user.setIsDiscontinued(statusToSet);
+        user.setUserStatus(UserStatusEnum.INACTIVE);
+        try{
+            employeeClient.updateEmployeeIsDisContinued(user.getId());
+        } catch (FeignException e) {
+            throw exceptionUtil.feignExceptionHandler(e);
+        }
+
+        userRepository.save(user);
+        return new SingleResponse<>(statusToSet==IsDiscontinued.NO ?
+                user.getUserName()+" is not discontinued.": user.getUserName()+" is discontinued.",
+                CustomStatus.SUCCESS);
     }
 }

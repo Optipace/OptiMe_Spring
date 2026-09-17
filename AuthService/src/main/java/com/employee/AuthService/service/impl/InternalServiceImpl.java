@@ -3,13 +3,9 @@ package com.employee.AuthService.service.impl;
 import com.employee.AuthService.client.EmployeeClient;
 import com.employee.AuthService.dto.request.AuthIdentityRequest;
 import com.employee.AuthService.dto.request.UpdateIdentityRequest;
-import com.employee.AuthService.dto.response.ApiResponse;
-import com.employee.AuthService.dto.response.EmployeeResponse;
-import com.employee.AuthService.dto.response.NewUserResponse;
-import com.employee.AuthService.dto.response.SingleResponse;
+import com.employee.AuthService.dto.response.*;
 import com.employee.AuthService.enums.CustomStatus;
 import com.employee.AuthService.enums.RoleEnum;
-import com.employee.AuthService.enums.UserStatusEnum;
 import com.employee.AuthService.exception.CustomException;
 import com.employee.AuthService.model.User;
 import com.employee.AuthService.repository.UserRepository;
@@ -17,7 +13,7 @@ import com.employee.AuthService.service.InternalService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -68,7 +64,7 @@ public class InternalServiceImpl implements InternalService {
         newUser.setRole(request.getRole());
         newUser.setCreatedOn(LocalDateTime.now());
         newUser.setCreatedBy(request.getCreatedBy());
-        newUser.setUserStatus(UserStatusEnum.INACTIVE);
+        newUser.setUserStatus(request.getAccountStatus());
         newUser = userRepository.save(newUser);
 
         NewUserResponse newUserResponse = new NewUserResponse(newUser.getId());
@@ -104,6 +100,23 @@ public class InternalServiceImpl implements InternalService {
         return new SingleResponse<>(
                 null,
                 CustomStatus.SUCCESS
+        );
+    }
+
+    @Override
+    public UserStatusGatewayResponse getUserStatus(Long id) {
+        User userResponse= userRepository.findById(id).orElse(null);
+
+        if(userResponse!=null){
+            return new UserStatusGatewayResponse(
+                    null,
+                    null
+            );
+        }
+
+        return new UserStatusGatewayResponse(
+                userResponse.getUserStatus(),
+                userResponse.getIsDiscontinued()
         );
     }
 

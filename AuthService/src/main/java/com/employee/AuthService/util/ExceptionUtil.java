@@ -3,15 +3,19 @@ package com.employee.AuthService.util;
 import com.employee.AuthService.enums.CustomStatus;
 import com.employee.AuthService.exception.CustomException;
 import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
+@Slf4j
 public record ExceptionUtil(ObjectMapper objectMapper) {
 
     public CustomException feignExceptionHandler(FeignException exception) {
+        log.error("In Feign Exception Handler :{}{}",exception,exception.contentUTF8());
+
         String rawErrorJson = exception.contentUTF8();
         String cleanErrorMessage = "Microservice call failed";
         int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
