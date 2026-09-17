@@ -1,10 +1,17 @@
 package com.employee.Gateway.filter;
 
+import com.employee.Gateway.client.AuthClient;
 import com.employee.Gateway.config.RouteValidator;
+import com.employee.Gateway.dto.response.UserStatusGatewayResponse;
+import com.employee.Gateway.enums.IsDiscontinued;
+import com.employee.Gateway.enums.UserStatusEnum;
 import com.employee.Gateway.util.JwtUtil;
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -13,6 +20,7 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.nio.charset.StandardCharsets;
 
@@ -22,6 +30,10 @@ public class GatewayAuthenticationFilter extends AbstractGatewayFilterFactory<Ga
 
     private final JwtUtil jwtUtil;
     private final RouteValidator validator;
+
+    @Autowired
+    @Lazy
+    private AuthClient authClient;
 
     public GatewayAuthenticationFilter(RouteValidator validator, JwtUtil jwtUtil){
         super(Config.class);
@@ -68,19 +80,44 @@ public class GatewayAuthenticationFilter extends AbstractGatewayFilterFactory<Ga
                             return handleUnauthorised(exchange);
                         }
                     }
-                    // 3. Mutate the request (Add the ID as a downstream header)
-                    ServerWebExchange mutatedExchange = exchange.mutate()
-                            .request(exchange.getRequest().mutate()
-                                    .header("X-Employee-Id",employeeId)
-                                    .header("X-User-Role", role)
-                                    .header("X-Employee-Name", employeeName)
-                                    .header("X-Email-Id", emailId)
-                                    .header("X-Id", id)
-                                    .header("X-User-Id", userId)
-                                    .build())
-                            .build();
 
-                    return chain.filter(mutatedExchange);
+                    return Mono.fromCallable(()->authClient.getUserStatus(Long.parseLong(userId)))
+                            .subscribeOn(Schedulers.boundedElastic())
+                            .flatMap(getStatus-> {
+                                        log.info("Auth client response - status :{},isDiscontinued :{}",
+                                                getStatus.getUserStatus(),getStatus.getIsDiscontinued());
+                                        if (getStatus == null || getStatus.getUserStatus() == null || getStatus.getIsDiscontinued() == null) {
+                                            return handleForbidden(exchange,"Given token is not valid.");
+                                        } else if (getStatus.getIsDiscontinued() == IsDiscontinued.YES ) {
+                                            return handleForbidden(exchange,"Your account has been discontinued, so you cannot access this website.");
+                                        } else if (getStatus.getUserStatus() == UserStatusEnum.INACTIVE) {
+                                            return handleForbidden(exchange,"Your account has been blocked, so you are unable to access this website.");
+                                        }
+                                        // 3. Mutate the request (Add the ID as a downstream header)
+                                        ServerWebExchange mutatedExchange = exchange.mutate()
+                                                .request(exchange.getRequest().mutate()
+                                                        .header("X-Employee-Id",employeeId)
+                                                        .header("X-User-Role", role)
+                                                        .header("X-Employee-Name", employeeName)
+                                                        .header("X-Email-Id", emailId)
+                                                        .header("X-Id", id)
+                                                        .header("X-User-Id", userId)
+                                                        .build())
+                                                .build();
+
+                                        return chain.filter(mutatedExchange);
+                                    }
+                                    )
+                            .onErrorResume(FeignException.class, e -> {
+                                log.error("Error in gateway auth client {} , {}", e.getMessage(), e.contentUTF8());
+                                return handleForbidden(exchange,"Service unavailable. Please try again later.");
+                            })
+                            .onErrorResume(Exception.class, e -> {
+                                log.error("CRITICAL ERROR in auth client evaluation: ", e);
+                                return handleUnauthorised(exchange);
+                            });
+
+
                 }catch (Exception e){
                     log.error("CRITICAL JWT ERROR: " + e.getMessage());
                     e.printStackTrace();
@@ -103,6 +140,16 @@ public class GatewayAuthenticationFilter extends AbstractGatewayFilterFactory<Ga
         DataBuffer buffer = response.bufferFactory().wrap(jsonResponse.getBytes(StandardCharsets.UTF_8));
 
         return response.writeWith(Mono.just(buffer));
+    }
+
+    public Mono<Void> handleForbidden(ServerWebExchange exchange,String message){
+        ServerHttpResponse response =exchange.getResponse();
+        response.setStatusCode(HttpStatus.FORBIDDEN);
+        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        String jsonResponse = "{\"error\": \"forbidden\", \"message\": \""+ message +"\"}";
+        DataBuffer buffer=response.bufferFactory().wrap(jsonResponse.getBytes(StandardCharsets.UTF_8));
+        return response.writeWith(Mono.just(buffer));
+
     }
 
     public static class Config {
