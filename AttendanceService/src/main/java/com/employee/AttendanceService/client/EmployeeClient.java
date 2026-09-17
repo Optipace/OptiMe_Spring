@@ -17,9 +17,6 @@ import java.util.List;
 @FeignClient(name = "EMPLOYEE-PROFILE-SERVICE")
 public interface EmployeeClient {
 
-    @PostMapping("/api/employee/internal/updateEmployeeStatus")
-    void updateEmployeeStatus(@RequestBody UpdateEmployeeStatusPayload payload);
-
     @GetMapping("/api/employee/internal/checkWorkTypeById")
     boolean checkWorkTypeIdExists(@RequestParam("workTypeId")Long workTypeId);
 

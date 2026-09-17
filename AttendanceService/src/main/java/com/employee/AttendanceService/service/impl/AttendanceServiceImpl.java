@@ -611,67 +611,39 @@ public class AttendanceServiceImpl implements AttendanceService {
             try {
                 log.info("External Call: Requesting profile confirmation from Employee Profile Service for ID: {}", request.getEmployeeId());
                 employeeResponse = employeeClient.getEmployeeName(request.getEmployeeId());
-                log.info("External Call Success: Retrieved employee profile details for ID: {}", request.getEmployeeId());
-
-
+                log.info("External Call Success: Retrieved employee profile details for ID: {}", employeeResponse.getData());
             } catch (FeignException e) {
-                String rawErrorJson = e.contentUTF8();
-                String cleanErrorMessage = "Microservice call failed";
-                int extractedErrorCode = -100; // Defaults to MICROSERVICE_CALL_FAILED code
-
-                try {
-                    JsonNode errorNode = objectMapper.readTree(rawErrorJson);
-
-                    // Navigate inside the nested "response" block
-                    if (errorNode.has("response")) {
-                        JsonNode responseNode = errorNode.get("response");
-                        if (responseNode.has("message")) {
-                            cleanErrorMessage = responseNode.get("message").asText();
-                        }
-                        if (responseNode.has("code")) {
-                            extractedErrorCode = responseNode.get("code").asInt();
-                        }
-                    } else if (errorNode.has("message")) {
-                        cleanErrorMessage = errorNode.get("message").asText();
-                    }
-                } catch (Exception parseException) {
-                    cleanErrorMessage = rawErrorJson;
+                throw exceptionUtil.feignExceptionHandler(e);
+            }
+            try {
+                Attendance attendance = new Attendance();
+                attendance.setEmployeeId(request.getEmployeeId());
+                attendance.setAttendanceTypeId(request.getAttendanceTypeId());
+                attendance.setAttendanceStatus(AttendanceStatusEnum.OFFLINE);
+                attendance.setLatitude("00.0000");
+                attendance.setLongitude("00.0000");
+                attendance.setCheckInTime(request.getCheckInTime());
+                if (request.getCheckOutTime() != null) {
+                    attendance.setCheckOutTime(request.getCheckOutTime());
+                } else {
+                    attendance.setCheckOutTime(null);
                 }
+                attendance.setFilePath(null);
+                attendance.setAdminModified(true);
+                attendance.setAdminRemarks(request.getRemarks().isBlank() ? null : request.getRemarks());
 
-                int httpStatusValue = (e.status() > 0) ? e.status() : HttpStatus.INTERNAL_SERVER_ERROR.value();
-
-                // Map the integer code to the correct Enum instance safely
-                CustomStatus status = CustomStatus.fromCode(extractedErrorCode);
-
-                // Pass the clean extracted message to CustomException
-                throw new CustomException(cleanErrorMessage, status, httpStatusValue);
-            }
-
-            Attendance attendance = new Attendance();
-            attendance.setEmployeeId(request.getEmployeeId());
-            attendance.setAttendanceTypeId(request.getAttendanceTypeId());
-            attendance.setAttendanceStatus(AttendanceStatusEnum.OFFLINE);
-            attendance.setLatitude("00.0000");
-            attendance.setLongitude("00.0000");
-            attendance.setCheckInTime(request.getCheckInTime());
-            if (request.getCheckOutTime() != null ||
-                    (!(request.getCheckOutTime().toString().equalsIgnoreCase("null")))) {
-                attendance.setCheckOutTime(request.getCheckOutTime());
-            } else {
-                attendance.setCheckOutTime(null);
-            }
-            attendance.setFilePath(null);
-            attendance.setAdminModified(true);
-            attendance.setAdminRemarks(request.getRemarks().isBlank() ? null : request.getRemarks());
-
-            if (request.getCheckOutTime() != null) {
-                attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
-            } else {
-                attendance.setTotalWorkMin(0L);
-            }
+                if (request.getCheckOutTime() != null) {
+                    attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
+                } else {
+                    attendance.setTotalWorkMin(0L);
+                }
 //            attendance.setTotalWorkMin(Duration.between(attendance.getCheckInTime(), attendance.getCheckOutTime()).toMinutes());
-            attendanceRepository.save(attendance);
-            log.info("Successfully created and saved attendance record for Employee ID: {}", request.getEmployeeId());
+                attendanceRepository.save(attendance);
+                log.info("Successfully created and saved attendance record for Employee ID: {}", request.getEmployeeId());
+            } catch (Exception e) {
+                log.error("while saving attandance error:{}",e.getMessage(),e);
+                throw new CustomException(null, CustomStatus.UNKNOWN, 500);
+            }
         } else {
             //updating exising record
             log.info("Processing branch: Attendance Update triggered for Attendance Record ID: {}", request.getId());
