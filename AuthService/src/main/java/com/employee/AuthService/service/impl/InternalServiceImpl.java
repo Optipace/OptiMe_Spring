@@ -107,13 +107,12 @@ public class InternalServiceImpl implements InternalService {
     public UserStatusGatewayResponse getUserStatus(Long id) {
         User userResponse= userRepository.findById(id).orElse(null);
 
-        if(userResponse!=null){
+        if(userResponse == null){
             return new UserStatusGatewayResponse(
                     null,
                     null
             );
         }
-
         return new UserStatusGatewayResponse(
                 userResponse.getUserStatus(),
                 userResponse.getIsDiscontinued()
